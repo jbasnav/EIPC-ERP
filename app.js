@@ -138,6 +138,14 @@ document.addEventListener('DOMContentLoaded', () => {
     setupLoginEventListeners(); // Setup login-related events first
     setupEventListeners();
 
+    // Setup refresh button click handler
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            refreshCurrentViewData();
+        });
+    }
+
     // Check if user is already logged in
     const savedUser = checkUserSession();
     if (savedUser) {
@@ -4077,12 +4085,72 @@ async function checkSqlConnection() {
     }
 }
 
-// Start periodic SQL connection check
+// Check SQL connection once at startup
 function startSqlConnectionCheck() {
-    // Check immediately
+    // Only check once at startup
     checkSqlConnection();
-    // Then check every 30 seconds
-    setInterval(checkSqlConnection, 30000);
+}
+
+// Refresh data for current view (triggered by refresh button)
+function refreshCurrentViewData() {
+    const currentView = appData.currentView || 'inicio';
+    console.log('Refreshing data for view:', currentView);
+
+    // Update last update timestamp
+    const lastUpdateEl = document.getElementById('lastUpdate');
+    if (lastUpdateEl) {
+        lastUpdateEl.textContent = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // Check SQL connection status
+    checkSqlConnection();
+
+    // Reload data based on current view
+    switch (currentView) {
+        case 'dashboard':
+            if (typeof fetchAllData === 'function') fetchAllData();
+            break;
+        case 'orders':
+            if (typeof filterOrders === 'function') filterOrders();
+            break;
+        case 'calidad-rechazos':
+            if (typeof fetchCalidadData === 'function') fetchCalidadData();
+            break;
+        case 'oee':
+            if (typeof fetchOEEData === 'function') fetchOEEData();
+            break;
+        case 'otd':
+            if (typeof fetchOTDData === 'function') fetchOTDData();
+            break;
+        case 'capa-charge':
+            if (typeof fetchCapaCharge === 'function') fetchCapaCharge();
+            break;
+        case 'personal-dashboard':
+        case 'bonos':
+        case 'formacion':
+            if (typeof fetchPersonalData === 'function') fetchPersonalData();
+            break;
+        case 'ensayos-dashboard':
+        case 'ensayos-vt':
+        case 'ensayos-pt':
+        case 'ensayos-rt':
+            if (typeof fetchEnsayosData === 'function') fetchEnsayosData();
+            break;
+        case 'compras-dashboard':
+            if (typeof fetchComprasData === 'function') fetchComprasData();
+            break;
+        case 'articulos':
+            if (typeof fetchArticulos === 'function') fetchArticulos();
+            break;
+        case 'operarios':
+            if (typeof fetchOperarios === 'function') fetchOperarios();
+            break;
+        default:
+            // For views without specific fetch, just update the connection status
+            console.log('No specific refresh function for view:', currentView);
+    }
+
+    showToast('Datos actualizados', 'success', 2000);
 }
 
 function animateValue(id, end) {
@@ -12101,126 +12169,3 @@ function setupOrdersEventListeners() {
         });
     });
 }
-if (yearFilter) {
-    // Remove existing listeners by cloning (if simplistic removal isn't possible) 
-    // or just add new one. Adding multiple is fine if logic is idempotent-ish.
-    // But better to execute logic cleanly.
-    yearFilter.addEventListener('change', () => {
-        console.log('Orders Year Filter Changed');
-        appData.pagination.currentPage = 1;
-        filterOrders();
-    });
-}
-
-document.getElementById('ordersMonthFilter')?.addEventListener('change', () => {
-    appData.pagination.currentPage = 1;
-    filterOrders();
-});
-
-// Familia Filter - cascades to subfamilia and articulo
-document.getElementById('familiaFilter')?.addEventListener('change', (e) => {
-    appData.filters['familia'] = e.target.value;
-    appData.filters['subfamilia'] = '';
-    appData.filters['articulo'] = '';
-    appData.filters['sequence'] = '';
-    appData.filters['hasReprocess'] = '';
-    const subF = document.getElementById('subfamiliaFilter');
-    if (subF) subF.value = '';
-    const artF = document.getElementById('articuloFilter');
-    if (artF) artF.value = '';
-    const seqF = document.getElementById('sequenceFilterSelect');
-    if (seqF) seqF.value = '';
-    const repF = document.getElementById('reprocessFilter');
-    if (repF) repF.value = '';
-
-    if (typeof updateSubfamiliaFilter === 'function') updateSubfamiliaFilter();
-    if (typeof updateArticuloFilterByFilters === 'function') updateArticuloFilterByFilters();
-
-    appData.pagination.currentPage = 1;
-    filterOrders();
-});
-
-// Subfamilia Filter - cascades to articulo
-document.getElementById('subfamiliaFilter')?.addEventListener('change', (e) => {
-    appData.filters['subfamilia'] = e.target.value;
-    appData.filters['articulo'] = '';
-    appData.filters['sequence'] = '';
-    appData.filters['hasReprocess'] = '';
-    const artF = document.getElementById('articuloFilter');
-    if (artF) artF.value = '';
-    const seqF = document.getElementById('sequenceFilterSelect');
-    if (seqF) seqF.value = '';
-    const repF = document.getElementById('reprocessFilter');
-    if (repF) repF.value = '';
-
-    if (typeof updateArticuloFilterByFilters === 'function') updateArticuloFilterByFilters();
-
-    appData.pagination.currentPage = 1;
-    filterOrders();
-});
-
-// Orden Filter (text input with debounce)
-let ordenTimeout;
-document.getElementById('ordenFilter')?.addEventListener('input', (e) => {
-    clearTimeout(ordenTimeout);
-    ordenTimeout = setTimeout(() => {
-        appData.filters['orden'] = e.target.value.trim();
-        appData.pagination.currentPage = 1;
-        filterOrders();
-    }, 300);
-});
-
-// Articulo Filter
-document.getElementById('articuloFilter')?.addEventListener('change', (e) => {
-    appData.filters['articulo'] = e.target.value;
-    appData.filters['sequence'] = '';
-    appData.filters['hasReprocess'] = '';
-    const seqF = document.getElementById('sequenceFilterSelect');
-    if (seqF) seqF.value = '';
-    const repF = document.getElementById('reprocessFilter');
-    if (repF) repF.value = '';
-    appData.pagination.currentPage = 1;
-    filterOrders();
-});
-
-document.getElementById('reprocessFilter')?.addEventListener('change', (e) => {
-    appData.filters['hasReprocess'] = e.target.value;
-    appData.pagination.currentPage = 1;
-    filterOrders();
-});
-
-document.getElementById('sequenceFilterSelect')?.addEventListener('change', (e) => {
-    appData.filters['sequence'] = e.target.value;
-    appData.pagination.currentPage = 1;
-    filterOrders();
-});
-
-document.getElementById('prevPageBtn')?.addEventListener('click', () => {
-    if (appData.pagination.currentPage > 1) {
-        appData.pagination.currentPage--;
-        filterOrders();
-    }
-});
-
-document.getElementById('nextPageBtn')?.addEventListener('click', () => {
-    const totalPages = Math.ceil(appData.pagination.totalFiltered / appData.pagination.pageSize);
-    if (appData.pagination.currentPage < totalPages) {
-        appData.pagination.currentPage++;
-        filterOrders();
-    }
-});
-
-// Generic sorting for Orders Table
-document.querySelectorAll('#ordersTable th.sortable').forEach(th => {
-    th.addEventListener('click', () => {
-        const col = th.dataset.sort;
-        if (appData.sort.col === col) {
-            appData.sort.dir = appData.sort.dir === 'asc' ? 'desc' : 'asc';
-        } else {
-            appData.sort.col = col;
-            appData.sort.dir = 'asc';
-        }
-        if (typeof updateSortIcons === 'function') updateSortIcons();
-        filterOrders();
-    });
-});

@@ -73,6 +73,18 @@ async function initializeDatabase(pool) {
 
 
 
+// Health check endpoint - checks SQL Server connection status
+app.get('/api/health', async (req, res) => {
+    try {
+        // Try a simple query to verify the connection is alive
+        await sql.query`SELECT 1 as test`;
+        res.json({ database: 'connected' });
+    } catch (error) {
+        console.error('Health check failed:', error.message);
+        res.status(503).json({ database: 'disconnected', error: error.message });
+    }
+});
+
 // Endpoint para obtener todos los usuarios (para el login)
 app.get('/api/users', async (req, res) => {
     try {
