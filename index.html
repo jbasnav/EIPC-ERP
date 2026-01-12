@@ -18,7 +18,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <link rel="stylesheet" href="styles.css?v=20260109">
+    <link rel="stylesheet" href="styles.css?v=20260112">
     <link rel="icon" type="image/png" href="favicon.png">
 </head>
 
@@ -5346,7 +5346,326 @@
                 </div> <!-- Close padding div -->
             </div> <!-- Close view section -->
 
-            <!-- Admin Panel View -->
+
+            <!-- ENSAYOS VT VIEW -->
+            <div id="ensayos-vtView" class="view-section">
+                <div style="padding: 1.5rem;">
+                    <!-- Filter Bar -->
+                    <div
+                        style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm); display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem;">
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <label for="ensayosVtArticuloFilter"
+                                style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Artículo
+                                / Referencia</label>
+                            <input type="text" id="ensayosVtArticuloFilter" placeholder="Buscar..."
+                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 200px;">
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <label for="ensayosVtTratamientoFilter"
+                                style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Tratamiento</label>
+                            <select id="ensayosVtTratamientoFilter"
+                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 150px;">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <button id="buscarEnsayosVtBtn" class="btn-primary"
+                            style="padding: 0.5rem 1rem; border-radius: 6px; border: none; background: var(--primary); color: white; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="ri-search-line"></i> Buscar
+                        </button>
+                    </div>
+
+                    <!-- Info & Pagination (Top) -->
+                    <div id="ensayosVtInfo"
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <span id="ensayosVtResultCount" style="font-weight: 600; color: var(--text-main);">0 registros
+                            encontrados</span>
+                        <div id="ensayosVtPaginationBar" style="display: flex; gap: 0.5rem; align-items: center;">
+                            <span id="ensayosVtPageInfo"
+                                style="font-size: 0.875rem; color: var(--text-muted); margin-right: 0.5rem;">Pagina 1 de
+                                1</span>
+                            <button id="ensayosVtPrevBtn" disabled
+                                style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text-main); cursor: pointer; opacity: 0.5;">
+                                <i class="ri-arrow-left-s-line"></i>
+                            </button>
+                            <button id="ensayosVtNextBtn" disabled
+                                style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text-main); cursor: pointer; opacity: 0.5;">
+                                <i class="ri-arrow-right-s-line"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="table-card"
+                        style="background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm); overflow: hidden;">
+                        <div class="table-wrapper" style="overflow-x: auto;">
+                            <table id="ensayosVtTable" style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: var(--primary); color: white;">
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('vt', 'Fecha')">
+                                            Fecha <i id="sort-vt-Fecha" class="ri-arrow-down-line sort-icon"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('vt', 'Referencia')">
+                                            Referencia <i id="sort-vt-Referencia"
+                                                class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('vt', 'Informe')">
+                                            Informe <i id="sort-vt-Informe" class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('vt', 'Colada')">
+                                            Colada <i id="sort-vt-Colada" class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('vt', 'Lingote')">
+                                            Lingote <i id="sort-vt-Lingote" class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('vt', 'Tratamiento')">
+                                            Tratamiento <i id="sort-vt-Tratamiento"
+                                                class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('vt', 'Inspector')">
+                                            Inspector <i id="sort-vt-Inspector" class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ensayosVtTableBody">
+                                    <tr>
+                                        <td colspan="7"
+                                            style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                            Seleccione filtros y pulse buscar
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ENSAYOS PT VIEW -->
+            <div id="ensayos-ptView" class="view-section">
+                <div style="padding: 1.5rem;">
+                    <!-- Filter Bar -->
+                    <div
+                        style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm); display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem;">
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <label for="ensayosPtArticuloFilter"
+                                style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Artículo
+                                / Referencia</label>
+                            <input type="text" id="ensayosPtArticuloFilter" placeholder="Buscar..."
+                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 200px;">
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <label for="ensayosPtTratamientoFilter"
+                                style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Tratamiento</label>
+                            <select id="ensayosPtTratamientoFilter"
+                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 150px;">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <button id="buscarEnsayosPtBtn" class="btn-primary"
+                            style="padding: 0.5rem 1rem; border-radius: 6px; border: none; background: var(--primary); color: white; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="ri-search-line"></i> Buscar
+                        </button>
+                    </div>
+
+                    <!-- Info & Pagination (Top) -->
+                    <div id="ensayosPtInfo"
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <span id="ensayosPtResultCount" style="font-weight: 600; color: var(--text-main);">0 registros
+                            encontrados</span>
+                        <div id="ensayosPtPaginationBar" style="display: flex; gap: 0.5rem; align-items: center;">
+                            <span id="ensayosPtPageInfo"
+                                style="font-size: 0.875rem; color: var(--text-muted); margin-right: 0.5rem;">Pagina 1 de
+                                1</span>
+                            <button id="ensayosPtPrevBtn" disabled
+                                style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text-main); cursor: pointer; opacity: 0.5;">
+                                <i class="ri-arrow-left-s-line"></i>
+                            </button>
+                            <button id="ensayosPtNextBtn" disabled
+                                style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text-main); cursor: pointer; opacity: 0.5;">
+                                <i class="ri-arrow-right-s-line"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="table-card"
+                        style="background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm); overflow: hidden;">
+                        <div class="table-wrapper" style="overflow-x: auto;">
+                            <table id="ensayosPtTable" style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: var(--primary); color: white;">
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('pt', 'Fecha')">
+                                            Fecha <i id="sort-pt-Fecha" class="ri-arrow-down-line sort-icon"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('pt', 'Referencia')">
+                                            Referencia <i id="sort-pt-Referencia"
+                                                class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('pt', 'Informe')">
+                                            Informe <i id="sort-pt-Informe" class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('pt', 'Colada')">
+                                            Colada <i id="sort-pt-Colada" class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('pt', 'Lingote')">
+                                            Lingote <i id="sort-pt-Lingote" class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('pt', 'Tratamiento')">
+                                            Tratamiento <i id="sort-pt-Tratamiento"
+                                                class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('pt', 'Inspector')">
+                                            Inspector <i id="sort-pt-Inspector" class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ensayosPtTableBody">
+                                    <tr>
+                                        <td colspan="7"
+                                            style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                            Seleccione filtros y pulse buscar
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ENSAYOS RT VIEW -->
+            <div id="ensayos-rtView" class="view-section">
+                <div style="padding: 1.5rem;">
+                    <!-- Filter Bar -->
+                    <div
+                        style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm); display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem;">
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <label for="ensayosRtArticuloFilter"
+                                style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Artículo
+                                / Referencia</label>
+                            <input type="text" id="ensayosRtArticuloFilter" placeholder="Buscar..."
+                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 200px;">
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <label for="ensayosRtTratamientoFilter"
+                                style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Tratamiento</label>
+                            <select id="ensayosRtTratamientoFilter"
+                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 150px;">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <button id="buscarEnsayosRtBtn" class="btn-primary"
+                            style="padding: 0.5rem 1rem; border-radius: 6px; border: none; background: var(--primary); color: white; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="ri-search-line"></i> Buscar
+                        </button>
+                    </div>
+
+                    <!-- Info & Pagination (Top) -->
+                    <div id="ensayosRtInfo"
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <span id="ensayosRtResultCount" style="font-weight: 600; color: var(--text-main);">0 registros
+                            encontrados</span>
+                        <div id="ensayosRtPaginationBar" style="display: flex; gap: 0.5rem; align-items: center;">
+                            <span id="ensayosRtPageInfo"
+                                style="font-size: 0.875rem; color: var(--text-muted); margin-right: 0.5rem;">Pagina 1 de
+                                1</span>
+                            <button id="ensayosRtPrevBtn" disabled
+                                style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text-main); cursor: pointer; opacity: 0.5;">
+                                <i class="ri-arrow-left-s-line"></i>
+                            </button>
+                            <button id="ensayosRtNextBtn" disabled
+                                style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text-main); cursor: pointer; opacity: 0.5;">
+                                <i class="ri-arrow-right-s-line"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="table-card"
+                        style="background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm); overflow: hidden;">
+                        <div class="table-wrapper" style="overflow-x: auto;">
+                            <table id="ensayosRtTable" style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: var(--primary); color: white;">
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('rt', 'Fecha')">
+                                            Fecha <i id="sort-rt-Fecha" class="ri-arrow-down-line sort-icon"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('rt', 'Referencia')">
+                                            Referencia <i id="sort-rt-Referencia"
+                                                class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('rt', 'Informe')">
+                                            Informe <i id="sort-rt-Informe" class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('rt', 'Colada')">
+                                            Colada <i id="sort-rt-Colada" class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('rt', 'Lingote')">
+                                            Lingote <i id="sort-rt-Lingote" class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('rt', 'Tratamiento')">
+                                            Tratamiento <i id="sort-rt-Tratamiento"
+                                                class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left; cursor: pointer;"
+                                            onclick="handleEnsayosSort('rt', 'Inspector')">
+                                            Inspector <i id="sort-rt-Inspector" class="ri-arrow-up-down-line sort-icon"
+                                                style="color: rgba(255,255,255,0.5);"></i>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ensayosRtTableBody">
+                                    <tr>
+                                        <td colspan="7"
+                                            style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                            Seleccione filtros y pulse buscar
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
             <div id="adminView" class="view-section">
                 <div style="padding: 2rem;">
                     <div style="padding: 2rem;">

@@ -4603,14 +4603,14 @@ async function fetchEnsayosData(type, tableId, renderRow) {
     showLoading(true);
     try {
         const typeCap = type.charAt(0).toUpperCase() + type.slice(1);
-        const artInput = document.getElementById(`ensayos${typeCap} ArticuloFilter`);
-        const tratInput = document.getElementById(`ensayos${typeCap} TratamientoFilter`);
+        const artInput = document.getElementById(`ensayos${typeCap}ArticuloFilter`);
+        const tratInput = document.getElementById(`ensayos${typeCap}TratamientoFilter`);
 
         const params = new URLSearchParams();
         if (artInput && artInput.value) params.append('articulo', artInput.value);
         if (tratInput && tratInput.value) params.append('tratamiento', tratInput.value);
 
-        const response = await fetch(`/ api / ensayos / ${type}?${params.toString()} `);
+        const response = await fetch(`/api/ensayos/${type}?${params.toString()}`);
         if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
 
@@ -4624,7 +4624,7 @@ async function fetchEnsayosData(type, tableId, renderRow) {
         }
 
         tbody.innerHTML = data.map(renderRow).join('');
-        const countEl = document.getElementById(`ensayos${type.charAt(0).toUpperCase() + type.slice(1)} ResultCount`);
+        const countEl = document.getElementById(`ensayos${type.charAt(0).toUpperCase() + type.slice(1)}ResultCount`);
         if (countEl) countEl.textContent = `${data.length} registros encontrados`;
     } catch (error) {
         console.error(`Error fetching ensayos ${type}: `, error);
@@ -4659,14 +4659,14 @@ window.handleEnsayosSort = function (type, column) {
 };
 
 function updateEnsayosSortIcons(type, column, order) {
-    const tableId = `ensayos${type.charAt(0).toUpperCase() + type.slice(1)} Table`;
-    const icons = document.querySelectorAll(`#${tableId} .sort - icon`);
+    const tableId = `ensayos${type.charAt(0).toUpperCase() + type.slice(1)}Table`;
+    const icons = document.querySelectorAll(`#${tableId} .sort-icon`);
     icons.forEach(icon => {
         icon.className = 'ri-arrow-up-down-line sort-icon';
         icon.style.color = 'var(--text-muted)';
     });
 
-    const activeIcon = document.getElementById(`sort - ${type} -${column} `);
+    const activeIcon = document.getElementById(`sort-${type}-${column}`);
     if (activeIcon) {
         activeIcon.className = order === 'ASC' ? 'ri-arrow-up-line sort-icon' : 'ri-arrow-down-line sort-icon';
         activeIcon.style.color = 'var(--primary)';
@@ -4678,8 +4678,8 @@ async function fetchEnsayosPaginated(type, state) {
     showLoading(true);
     const typeCap = type.charAt(0).toUpperCase() + type.slice(1);
     try {
-        const artInput = document.getElementById(`ensayos${typeCap} ArticuloFilter`);
-        const tratInput = document.getElementById(`ensayos${typeCap} TratamientoFilter`);
+        const artInput = document.getElementById(`ensayos${typeCap}ArticuloFilter`);
+        const tratInput = document.getElementById(`ensayos${typeCap}TratamientoFilter`);
 
         const params = new URLSearchParams();
         if (artInput && artInput.value) params.append('articulo', artInput.value);
@@ -4699,12 +4699,12 @@ async function fetchEnsayosPaginated(type, state) {
         if (tratInput && tratInput.tagName === 'SELECT' && result.tratamientos) {
             const currentValue = tratInput.value;
             tratInput.innerHTML = '<option value="">Todos</option>' +
-                result.tratamientos.map(t => `< option value = "${t}" > ${t}</option > `).join('');
+                result.tratamientos.map(t => `<option value="${t}">${t}</option>`).join('');
             tratInput.value = currentValue;
         }
 
         // Render table
-        const tbody = document.getElementById(`ensayos${typeCap} TableBody`);
+        const tbody = document.getElementById(`ensayos${typeCap}TableBody`);
         if (!tbody) return;
 
         tbody.innerHTML = '';
@@ -4712,7 +4712,7 @@ async function fetchEnsayosPaginated(type, state) {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 2rem;">No hay registros</td></tr>';
         } else {
             tbody.innerHTML = result.data.map(item => `
-        < tr >
+                <tr>
                     <td>${formatDate(item.Fecha)}</td>
                     <td>${item.Referencia || ''}</td>
                     <td>${item.Informe || ''}</td>
@@ -4720,18 +4720,18 @@ async function fetchEnsayosPaginated(type, state) {
                     <td>${item.Lingote || ''}</td>
                     <td>${item.Tratamiento || ''}</td>
                     <td>${item.Inspector || ''}</td>
-                </tr >
+                </tr>
         `).join('');
         }
 
         // Update pagination info
-        const countEl = document.getElementById(`ensayos${typeCap} ResultCount`);
-        const pageInfo = document.getElementById(`ensayos${typeCap} PageInfo`);
-        const prevBtn = document.getElementById(`ensayos${typeCap} PrevBtn`);
-        const nextBtn = document.getElementById(`ensayos${typeCap} NextBtn`);
+        const countEl = document.getElementById(`ensayos${typeCap}ResultCount`);
+        const pageInfo = document.getElementById(`ensayos${typeCap}PageInfo`);
+        const prevBtn = document.getElementById(`ensayos${typeCap}PrevBtn`);
+        const nextBtn = document.getElementById(`ensayos${typeCap}NextBtn`);
 
         if (countEl) countEl.textContent = `${result.total} registros encontrados`;
-        if (pageInfo) pageInfo.textContent = `Pagina ${result.page} de ${result.totalPages} `;
+        if (pageInfo) pageInfo.textContent = `Pagina ${result.page} de ${result.totalPages}`;
         if (prevBtn) {
             prevBtn.disabled = result.page <= 1;
             prevBtn.style.opacity = result.page <= 1 ? '0.5' : '1';

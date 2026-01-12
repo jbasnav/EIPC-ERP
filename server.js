@@ -5701,6 +5701,78 @@ app.get('/api/capa-charge/detalle', async (req, res) => {
     }
 });
 
+// ============================================
+// ENSAYOS ENDPOINTS (VT, PT, RT)
+// ============================================
+
+app.get('/api/ensayos/:type', async (req, res) => {
+    try {
+        const { type } = req.params;
+        const validTypes = ['vt', 'pt', 'rt'];
+
+        if (!validTypes.includes(type.toLowerCase())) {
+            return res.status(400).json({ success: false, error: 'Tipo de ensayo no válido (vt, pt, rt)' });
+        }
+
+        const tableName = `[ENSAYOS ${type.toUpperCase()}]`; // Assumption: Table names are [ENSAYOS VT], etc.
+        const { page = 1, pageSize = 50, sortBy = 'Fecha', sortOrder = 'DESC', articulo, tratamiento } = req.query;
+
+        const request = new sql.Request();
+        let whereConditions = [];
+
+        if (articulo) {
+            request.input('articulo', sql.NVarChar, `%${articulo}%`);
+            whereConditions.push("([Referencia] LIKE @articulo OR [Colada] LIKE @articulo OR [Informe] LIKE @articulo)");
+        }
+
+        if (tratamiento) {
+            request.input('tratamiento', sql.NVarChar, tratamiento);
+            whereConditions.push("[Tratamiento] = @tratamiento");
+        }
+
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+        const offset = (parseInt(page) - 1) * parseInt(pageSize);
+
+        // Count total
+        const countQuery = `SELECT COUNT(*) as total FROM ${tableName} ${whereClause}`;
+        const countResult = await request.query(countQuery);
+        const total = countResult.recordset[0].total;
+
+        // Data query
+        const query = `
+            SELECT * FROM ${tableName}
+            ${whereClause}
+            ORDER BY [${sortBy}] ${sortOrder}
+            OFFSET ${offset} ROWS FETCH NEXT ${parseInt(pageSize)} ROWS ONLY
+        `;
+
+        const result = await request.query(query);
+
+        // Get unique tratamientos for filter
+        const tratamientosQuery = `SELECT DISTINCT [Tratamiento] FROM ${tableName} WHERE [Tratamiento] IS NOT NULL ORDER BY [Tratamiento]`;
+        const tratamientosResult = await new sql.Request().query(tratamientosQuery);
+        const tratamientos = tratamientosResult.recordset.map(r => r.Tratamiento);
+
+        res.json({
+            success: true,
+            data: result.recordset,
+            total: total,
+            page: parseInt(page),
+            pageSize: parseInt(pageSize),
+            totalPages: Math.ceil(total / parseInt(pageSize)),
+            tratamientos: tratamientos
+        });
+
+    } catch (err) {
+        console.error(`Error en /api/ensayos/${req.params.type}:`, err);
+        res.status(500).json({
+            success: false,
+            error: 'Error al obtener datos de ensayos',
+            details: err.message
+        });
+    }
+});
+
 // Serve index.html for any unmatched routes (SPA fallback)
 app.get('*', (req, res) => {
     res.sendFile(__dirname + '/index.html');

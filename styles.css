@@ -183,29 +183,39 @@ body {
 }
 
 .connection-status.online {
-    background-color: rgba(16, 185, 129, 0.15);
+    background-color: rgba(16, 185, 129, 0.2) !important;
     color: var(--success);
 }
 
 .connection-status.online .status-text {
     background-color: #10b981 !important;
     color: white !important;
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem 0.75rem;
     border-radius: 4px;
     display: inline-block;
+    font-weight: 500;
+}
+
+.connection-status.online .status-dot {
+    background-color: #10b981 !important;
 }
 
 .connection-status.offline {
-    background-color: rgba(239, 68, 68, 0.15);
+    background-color: rgba(239, 68, 68, 0.2) !important;
     color: var(--danger);
 }
 
 .connection-status.offline .status-text {
     background-color: #ef4444 !important;
     color: white !important;
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem 0.75rem;
     border-radius: 4px;
     display: inline-block;
+    font-weight: 500;
+}
+
+.connection-status.offline .status-dot {
+    background-color: #ef4444 !important;
 }
 
 .status-dot {
