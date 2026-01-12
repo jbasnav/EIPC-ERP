@@ -3540,7 +3540,8 @@ function updateCharts(analysis) {
         labels: ['T4', 'T6'],
         datasets: [{
             data: [analysis.totalT4, analysis.totalT6],
-            backgroundColor: [colors.t4, colors.t6]
+            backgroundColor: [colors.t4, colors.t6],
+            borderWidth: 0
         }]
     });
 
@@ -4922,7 +4923,8 @@ function renderEnsayosDistChart(data) {
             labels: labels,
             datasets: [{
                 data: values,
-                backgroundColor: ['#FF6B6B', '#4facfe', '#43e97b']
+                backgroundColor: ['#FF6B6B', '#4facfe', '#43e97b'],
+                borderWidth: 0
             }]
         },
         options: { responsive: true, maintainAspectRatio: false }
@@ -6605,6 +6607,25 @@ function renderCalidadPieChart(causes) {
                 legend: {
                     display: true,
                     position: 'right'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const label = context.label;
+                            const value = context.raw;
+                            let formattedValue = value.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+
+                            if (label === 'Otros') {
+                                return `Otros: ${formattedValue}`;
+                            }
+
+                            const cause = top6.find(c => (c.causaRechazo || 'Sin codigo') === label);
+                            if (cause) {
+                                return `${cause.descripcionCausa} (${label}): ${formattedValue}`;
+                            }
+                            return `${label}: ${formattedValue}`;
+                        }
+                    }
                 }
             }
         }
