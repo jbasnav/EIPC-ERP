@@ -163,7 +163,7 @@ body {
 }
 
 .nav-item.active {
-    background: var(--gradient-primary);
+    background: #124981;
     color: white;
     box-shadow: var(--shadow-md);
 }
@@ -180,13 +180,32 @@ body {
     font-size: 0.875rem;
     padding: 0.5rem;
     border-radius: 6px;
-    background-color: rgba(16, 185, 129, 0.1);
+}
+
+.connection-status.online {
+    background-color: rgba(16, 185, 129, 0.15);
     color: var(--success);
 }
 
+.connection-status.online .status-text {
+    background-color: #10b981 !important;
+    color: white !important;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+}
+
 .connection-status.offline {
-    background-color: rgba(239, 68, 68, 0.1);
+    background-color: rgba(239, 68, 68, 0.15);
     color: var(--danger);
+}
+
+.connection-status.offline .status-text {
+    background-color: #ef4444 !important;
+    color: white !important;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
 }
 
 .status-dot {
@@ -774,6 +793,41 @@ table td:last-child {
     font-size: 0.9rem;
 }
 
+/* Resaltado de sección activa (cuando una subsección está seleccionada) */
+.nav-section-header.section-active {
+    background: #124981 !important;
+    color: #ffffff !important;
+    border-left: 3px solid #86a2be;
+    /* border-left: 3px solid #b6171c; */
+}
+
+.nav-section-header.section-active .nav-section-title {
+    color: #ffffff !important;
+}
+
+.nav-section-header.section-active .nav-section-title i {
+    color: #ffffff !important;
+}
+
+.nav-section-header.section-active .nav-section-arrow {
+    color: #ffffff !important;
+}
+
+/* Resaltado de subsección activa */
+.nav-submenu .nav-item.active {
+    background: #124981 !important;
+    color: #ffffff !important;
+    font-weight: 600;
+    border-radius: 6px;
+    border-left: 3px solid #86a2be;
+    /* border-left: 3px solid #b6171c; */
+}
+
+.nav-submenu .nav-item.active i {
+    color: #ffffff !important;
+}
+
+
 /* ============================================
    LOGIN OVERLAY STYLES
    ============================================ */
@@ -785,7 +839,8 @@ table td:last-child {
     height: 100%;
     background: linear-gradient(135deg, #0f1419 0%, #1a2332 50%, #0f1419 100%);
     z-index: 1000;
-    display: flex;
+    display: none;
+    /* Hidden by default, JS shows when needed */
     align-items: center;
     justify-content: center;
 }

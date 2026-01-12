@@ -135,15 +135,23 @@ const elements = {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
-    setupLoginEventListeners();  // Setup login-related events first
+    setupLoginEventListeners(); // Setup login-related events first
     setupEventListeners();
 
     // Check if user is already logged in
-    if (checkUserSession()) {
+    const savedUser = checkUserSession();
+    if (savedUser) {
         // User is logged in, proceed with app initialization
         initializeApp();
+        // Ensure user display is updated after app initialization
+        setTimeout(() => {
+            updateUserDisplay();
+        }, 200);
+    } else {
+        // Explicitly show login overlay if no session
+        const loginOverlay = document.getElementById('loginOverlay');
+        if (loginOverlay) loginOverlay.style.display = 'flex';
     }
-    // If not logged in, login screen is already visible
 
     if (typeof Chart !== 'undefined') {
         Chart.defaults.animation.duration = 750;
@@ -152,11 +160,83 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Initialize app after successful login
 function initializeApp() {
+    populateYearFilters(); // Initialize dynamic year filters
     fetchAllData();
     loadOperariosSecciones();
     loadOperacionesSecciones();
     loadActivosZonas();
     switchView('inicio');
+    // Start SQL connection monitoring
+    startSqlConnectionCheck();
+    // Check admin access
+    setTimeout(() => checkAdminAccess(), 100);
+}
+
+// Populate all year filter dropdowns dynamically
+function populateYearFilters() {
+    const currentYear = new Date().getFullYear();
+    const startYear = 2022; // Minimum year to show
+
+    // List of all year filter select IDs in the application
+    const yearFilterIds = [
+        'dashboardYearFilter',      // HeatTreat Dashboard
+        'ensayosDashboardYear',     // Ensayos Dashboard
+        'personalDashboardYear',    // Personal Dashboard
+        'calidadYearFilter',        // Calidad Dashboard
+        'comercialYearFilter',      // Ventas/Comercial Dashboard
+        'capacidadYearFilter',      // Capacidad/Capa Charge
+        'comprasYearFilter',        // Compras Dashboard
+        'oeeYearFilter',            // OEE Dashboard
+        'otdAnoFilter',             // OTD
+        'ordersYearFilter'          // Coladas-TT (Orders)
+    ];
+
+    yearFilterIds.forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            // Save current value if exists
+            const currentValue = select.value;
+
+            // Check if first option is "Todos" or similar
+            const firstOption = select.options[0];
+            const hasTodosOption = firstOption && (firstOption.value === '' || firstOption.textContent.toLowerCase().includes('todo'));
+
+            // Clear and rebuild options
+            select.innerHTML = '';
+
+            // Add "Todos" option if it existed
+            if (hasTodosOption) {
+                const todosOpt = document.createElement('option');
+                todosOpt.value = '';
+                todosOpt.textContent = 'Todos';
+                select.appendChild(todosOpt);
+            }
+
+
+            // Add years from current year down to startYear
+            for (let year = currentYear; year >= startYear; year--) {
+                const opt = document.createElement('option');
+                opt.value = year;
+                opt.textContent = year;
+
+                // Logic to select current year by default or preserve selection
+                if (String(currentValue) === String(year)) {
+                    opt.selected = true;
+                } else if (!currentValue && year === currentYear) {
+                    // Force default to current year if no value selected
+                    opt.selected = true;
+                } else if (hasTodosOption && year === currentYear && currentValue === '') {
+                    // If 'Todos' was selected (empty value) but user wants default to current year:
+                    // We check if this function is running on initial load or user action.
+                    // Assuming this runs on init/refresh, we force current year.
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            }
+
+            console.log(`Populated year filter: ${id}`);
+        }
+    });
 }
 
 // Switch between views
@@ -173,6 +253,25 @@ async function switchView(viewName) {
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         const navItem = document.querySelector(`.nav-item[data-view="${viewName}"]`);
         if (navItem) navItem.classList.add('active');
+
+        // Update active section header (mark parent section when subsection is selected)
+        document.querySelectorAll('.nav-section-header').forEach(el => el.classList.remove('section-active'));
+        if (navItem) {
+            // Find parent nav-section and mark its header as active
+            const parentSection = navItem.closest('.nav-section');
+            if (parentSection) {
+                const sectionHeader = parentSection.querySelector('.nav-section-header');
+                if (sectionHeader) {
+                    sectionHeader.classList.add('section-active');
+                }
+            }
+        }
+        // Also check if the view corresponds to a section header (e.g., clicking on "HEATTREAT" itself)
+        const sectionHeader = document.querySelector(`.nav-section-header[data-view="${viewName}"]`);
+        if (sectionHeader) {
+            sectionHeader.classList.add('section-active');
+        }
+
 
         // Update header based on view - COMPLETELY RECONSTRUCT HEADER TO ENSURE VISIBILITY
         const headerTitleContainer = document.querySelector('.header-title');
@@ -204,8 +303,10 @@ async function switchView(viewName) {
                     <p id="pageSubtitle" style="display: none;"></p>
                 `;
             }
-        } else {
-            console.error('Header Title Container not found');
+        } else if (elements.pageTitle) {
+            // Fallback if container not found but pageTitle element exists
+            const niceName = viewName.charAt(0).toUpperCase() + viewName.slice(1).replace('-', ' ');
+            elements.pageTitle.textContent = niceName;
         }
 
         // Perform view-specific data loading
@@ -297,13 +398,30 @@ function setupEventListeners() {
         });
     });
 
-    elements.themeToggle.addEventListener('click', toggleTheme);
-    elements.refreshBtn.addEventListener('click', fetchAllData);
+    if (elements.themeToggle) elements.themeToggle.addEventListener('click', toggleTheme);
+    if (elements.refreshBtn) elements.refreshBtn.addEventListener('click', () => {
+        // Reload current view data
+        if (currentView) {
+            switchView(currentView);
+        } else {
+            fetchAllData();
+        }
+    });
 
     // Dashboard year filter
     document.getElementById('dashboardYearFilter')?.addEventListener('change', () => {
         analyzeData();
         updateUI();
+    });
+
+    // Coladas-TT (Orders) year and month filters
+    document.getElementById('ordersYearFilter')?.addEventListener('change', () => {
+        appData.pagination.currentPage = 1;
+        filterOrders();
+    });
+    document.getElementById('ordersMonthFilter')?.addEventListener('change', () => {
+        appData.pagination.currentPage = 1;
+        filterOrders();
     });
 
     // Familia Filter - cascades to subfamilia and articulo
@@ -793,8 +911,8 @@ async function fetchAllData() {
     showLoading(true);
     try {
         const [tratamientosRes, articulosRes] = await Promise.all([
-            fetch('http://localhost:3001/api/tratamientos'),
-            fetch('http://localhost:3001/api/articulos')
+            fetch('/api/tratamientos'),
+            fetch('/api/articulos')
         ]);
 
         const tratamientosData = await tratamientosRes.json();
@@ -2809,61 +2927,159 @@ function analyzeData() {
         treatmentCounts: {
             T4: 0, T6: 0, T4R1: 0, T6R1: 0, T4R2: 0, T6R2: 0, T4R3: 0, T6R3: 0
         },
+        // Nuevo: conteo de referencias (filas) por tipo de tratamiento
+        referenceCounts: {
+            T4: 0, T6: 0, T4R1: 0, T6R1: 0, T4R2: 0, T6R2: 0, T4R3: 0, T6R3: 0
+        },
         articleReprocesses: {}
     };
+
+    // Sets para rastrear tratamientos únicos por su número (ej: "2004/2")
+    const seenTreatments = {
+        T4: new Set(),
+        T6: new Set(),
+        T4R1: new Set(),
+        T6R1: new Set(),
+        T4R2: new Set(),
+        T6R2: new Set(),
+        T4R3: new Set(),
+        T6R3: new Set()
+    };
+
+    const currentYearFilter = document.getElementById('dashboardYearFilter')?.value;
+    const currentMonthFilter = 'dashboardMonthFilter' ? document.getElementById('dashboardMonthFilter')?.value : null;
 
     data.forEach(row => {
         // Solo procesar articulos tipo 02 (los que estan en el mapa)
         const artInfo = appData.articulosMap?.[row.articulo];
-        if (!artInfo) return;
+        if (!artInfo) return; // Skip if article not found in maestros
 
-        const dateT4 = parseDate(row.Fecha_T4);
-        const dateT6 = parseDate(row.Fecha_T6);
+        // Función auxiliar para saber si una fecha específica cumple con el filtro
+        const matchesFilter = (dateStr) => {
+            if (!dateStr) return false;
+            const d = new Date(dateStr);
+            if (currentYearFilter && currentYearFilter !== '' && d.getFullYear().toString() !== currentYearFilter) return false;
+            // Si tuviéramos filtro de mes:
+            // if (currentMonthFilter && currentMonthFilter !== '' && (d.getMonth() + 1).toString() !== currentMonthFilter) return false;
+            return true;
+        };
 
-        const t4 = row.Piezas_T4 || 0;
-        const t6 = row.Piezas_T6 || 0;
+        // Extraer fechas
+        const dateT4 = row.Fecha_T4;
+        const dateT6 = row.Fecha_T6;
 
+        // Verificar validez individual
+        const validT4 = matchesFilter(dateT4);
+        const validT6 = matchesFilter(dateT6);
+        const validT4R1 = matchesFilter(row.Fecha_T4R1);
+        const validT6R1 = matchesFilter(row.Fecha_T6R1);
+        const validT4R2 = matchesFilter(row.Fecha_T4R2);
+        const validT6R2 = matchesFilter(row.Fecha_T6R2);
+        const validT4R3 = matchesFilter(row.Fecha_T4R3);
+        const validT6R3 = matchesFilter(row.Fecha_T6R3);
+
+        const t4 = (validT4 && row.Piezas_T4) ? row.Piezas_T4 : 0;
+        const t6 = (validT6 && row.Piezas_T6) ? row.Piezas_T6 : 0;
+
+        // Solo sumar si es válido para el filtro
         analysis.totalT4 += t4;
         analysis.totalT6 += t6;
 
-        if (t4 > 0) analysis.treatmentCounts.T4++;
-        if (t6 > 0) analysis.treatmentCounts.T6++;
-        if ((row.Piezas_T4R1 || 0) > 0) analysis.treatmentCounts.T4R1++;
-        if ((row.Piezas_T6R1 || 0) > 0) analysis.treatmentCounts.T6R1++;
-        if ((row.Piezas_T4R2 || 0) > 0) analysis.treatmentCounts.T4R2++;
-        if ((row.Piezas_T6R2 || 0) > 0) analysis.treatmentCounts.T6R2++;
-        if ((row.Piezas_T4R3 || 0) > 0) analysis.treatmentCounts.T4R3++;
-        if ((row.Piezas_T6R3 || 0) > 0) analysis.treatmentCounts.T6R3++;
+        // Contar referencias (filas) por tipo (solo si válido)
+        if (t4 > 0) analysis.referenceCounts.T4++;
+        if (t6 > 0) analysis.referenceCounts.T6++;
+        if (validT4R1 && (row.Piezas_T4R1 || 0) > 0) analysis.referenceCounts.T4R1++;
+        if (validT6R1 && (row.Piezas_T6R1 || 0) > 0) analysis.referenceCounts.T6R1++;
+        if (validT4R2 && (row.Piezas_T4R2 || 0) > 0) analysis.referenceCounts.T4R2++;
+        if (validT6R2 && (row.Piezas_T6R2 || 0) > 0) analysis.referenceCounts.T6R2++;
+        if (validT4R3 && (row.Piezas_T4R3 || 0) > 0) analysis.referenceCounts.T4R3++;
+        if (validT6R3 && (row.Piezas_T6R3 || 0) > 0) analysis.referenceCounts.T6R3++;
 
-        const monthKey = getMonthKey(dateT4 || dateT6);
-        if (monthKey) {
-            if (!analysis.monthlyTreatments[monthKey]) {
-                analysis.monthlyTreatments[monthKey] = { t4: 0, t6: 0, total: 0 };
+        // Contar tratamientos ÚNICOS por su número (ej: "2004/2")
+        // Solo si la fecha específica es válida
+        if (validT4 && row.Tratamiento_T4 && !seenTreatments.T4.has(row.Tratamiento_T4)) {
+            seenTreatments.T4.add(row.Tratamiento_T4);
+            analysis.treatmentCounts.T4++;
+        }
+        if (validT6 && row.Tratamiento_T6 && !seenTreatments.T6.has(row.Tratamiento_T6)) {
+            seenTreatments.T6.add(row.Tratamiento_T6);
+            analysis.treatmentCounts.T6++;
+        }
+        if (validT4R1 && row.Tratamiento_T4R1 && !seenTreatments.T4R1.has(row.Tratamiento_T4R1)) {
+            seenTreatments.T4R1.add(row.Tratamiento_T4R1);
+            analysis.treatmentCounts.T4R1++;
+        }
+        if (validT6R1 && row.Tratamiento_T6R1 && !seenTreatments.T6R1.has(row.Tratamiento_T6R1)) {
+            seenTreatments.T6R1.add(row.Tratamiento_T6R1);
+            analysis.treatmentCounts.T6R1++;
+        }
+        if (validT4R2 && row.Tratamiento_T4R2 && !seenTreatments.T4R2.has(row.Tratamiento_T4R2)) {
+            seenTreatments.T4R2.add(row.Tratamiento_T4R2);
+            analysis.treatmentCounts.T4R2++;
+        }
+        if (validT6R2 && row.Tratamiento_T6R2 && !seenTreatments.T6R2.has(row.Tratamiento_T6R2)) {
+            seenTreatments.T6R2.add(row.Tratamiento_T6R2);
+            analysis.treatmentCounts.T6R2++;
+        }
+        if (validT4R3 && row.Tratamiento_T4R3 && !seenTreatments.T4R3.has(row.Tratamiento_T4R3)) {
+            seenTreatments.T4R3.add(row.Tratamiento_T4R3);
+            analysis.treatmentCounts.T4R3++;
+        }
+        if (validT6R3 && row.Tratamiento_T6R3 && !seenTreatments.T6R3.has(row.Tratamiento_T6R3)) {
+            seenTreatments.T6R3.add(row.Tratamiento_T6R3);
+            analysis.treatmentCounts.T6R3++;
+        }
+
+
+        // Para el gráfico de mensualidades (usamos la fecha válida encontrada)
+        // Ojo: si una orden tiene T4 en en 2025 y T6 en 2026, y filtramos 2026,
+        // solo el T6 debe contar para el mes correspondiente.
+        // IMPORTANTE: Solo contar tratamientos ÚNICOS por mes (no cada fila)
+        if (validT4 && dateT4 && row.Tratamiento_T4) {
+            const monthKey = getMonthKey(parseDate(dateT4));
+            if (monthKey) {
+                if (!analysis.monthlyTreatments[monthKey]) analysis.monthlyTreatments[monthKey] = { t4: 0, t6: 0, total: 0, seenT4: new Set(), seenT6: new Set() };
+                if (!analysis.monthlyTreatments[monthKey].seenT4) analysis.monthlyTreatments[monthKey].seenT4 = new Set();
+                if (t4 > 0 && !analysis.monthlyTreatments[monthKey].seenT4.has(row.Tratamiento_T4)) {
+                    analysis.monthlyTreatments[monthKey].seenT4.add(row.Tratamiento_T4);
+                    analysis.monthlyTreatments[monthKey].t4++;
+                    analysis.monthlyTreatments[monthKey].total++;
+                }
             }
-            if (t4 > 0) {
-                analysis.monthlyTreatments[monthKey].t4++;
-                analysis.monthlyTreatments[monthKey].total++;
-            }
-            if (t6 > 0) {
-                analysis.monthlyTreatments[monthKey].t6++;
-                analysis.monthlyTreatments[monthKey].total++;
+        }
+        if (validT6 && dateT6 && row.Tratamiento_T6) {
+            const monthKey = getMonthKey(parseDate(dateT6));
+            if (monthKey) {
+                if (!analysis.monthlyTreatments[monthKey]) analysis.monthlyTreatments[monthKey] = { t4: 0, t6: 0, total: 0, seenT4: new Set(), seenT6: new Set() };
+                if (!analysis.monthlyTreatments[monthKey].seenT6) analysis.monthlyTreatments[monthKey].seenT6 = new Set();
+                if (t6 > 0 && !analysis.monthlyTreatments[monthKey].seenT6.has(row.Tratamiento_T6)) {
+                    analysis.monthlyTreatments[monthKey].seenT6.add(row.Tratamiento_T6);
+                    analysis.monthlyTreatments[monthKey].t6++;
+                    analysis.monthlyTreatments[monthKey].total++;
+                }
             }
         }
 
-        if (row.articulo) {
+        // Si alguna parte de la orden es válida, la incluimos en 'articulos' count?
+        // O solo contamos si tiene algún tratamiento en el periodo? 
+        // Asumiremos: si tiene algun tratamiento visible en el periodo.
+        const hasAnyValid = validT4 || validT6 || validT4R1 || validT6R1 || validT4R2 || validT6R2 || validT4R3 || validT6R3;
+
+        if (hasAnyValid && row.articulo) {
             analysis.articulos[row.articulo] = (analysis.articulos[row.articulo] || 0) + 1;
         }
 
         const seqString = buildSequenceString(row);
 
-        const hasReprocess = (row.Piezas_T4R1 || 0) > 0 ||
-            (row.Piezas_T6R1 || 0) > 0 ||
-            (row.Piezas_T4R2 || 0) > 0 ||
-            (row.Piezas_T6R2 || 0) > 0 ||
-            (row.Piezas_T4R3 || 0) > 0 ||
-            (row.Piezas_T6R3 || 0) > 0;
+        // Reprocesos: Solo contar si el reproceso ocurrió en la fecha filtrada
+        const hasReprocessInFilter = (validT4R1 && (row.Piezas_T4R1 || 0) > 0) ||
+            (validT6R1 && (row.Piezas_T6R1 || 0) > 0) ||
+            (validT4R2 && (row.Piezas_T4R2 || 0) > 0) ||
+            (validT6R2 && (row.Piezas_T6R2 || 0) > 0) ||
+            (validT4R3 && (row.Piezas_T4R3 || 0) > 0) ||
+            (validT6R3 && (row.Piezas_T6R3 || 0) > 0);
 
-        if (hasReprocess) {
+        if (hasReprocessInFilter) {
             analysis.reprocessCount++;
             if (row.articulo) {
                 if (!analysis.articleReprocesses[row.articulo]) {
@@ -2872,23 +3088,23 @@ function analyzeData() {
                     };
                 }
                 analysis.articleReprocesses[row.articulo].total++;
-                if ((row.Piezas_T4R1 || 0) > 0) analysis.articleReprocesses[row.articulo].T4R1++;
-                if ((row.Piezas_T6R1 || 0) > 0) analysis.articleReprocesses[row.articulo].T6R1++;
-                if ((row.Piezas_T4R2 || 0) > 0) analysis.articleReprocesses[row.articulo].T4R2++;
-                if ((row.Piezas_T6R2 || 0) > 0) analysis.articleReprocesses[row.articulo].T6R2++;
-                if ((row.Piezas_T4R3 || 0) > 0) analysis.articleReprocesses[row.articulo].T4R3++;
-                if ((row.Piezas_T6R3 || 0) > 0) analysis.articleReprocesses[row.articulo].T6R3++;
+                if (validT4R1 && (row.Piezas_T4R1 || 0) > 0) analysis.articleReprocesses[row.articulo].T4R1++;
+                if (validT6R1 && (row.Piezas_T6R1 || 0) > 0) analysis.articleReprocesses[row.articulo].T6R1++;
+                if (validT4R2 && (row.Piezas_T4R2 || 0) > 0) analysis.articleReprocesses[row.articulo].T4R2++;
+                if (validT6R2 && (row.Piezas_T6R2 || 0) > 0) analysis.articleReprocesses[row.articulo].T6R2++;
+                if (validT4R3 && (row.Piezas_T4R3 || 0) > 0) analysis.articleReprocesses[row.articulo].T4R3++;
+                if (validT6R3 && (row.Piezas_T6R3 || 0) > 0) analysis.articleReprocesses[row.articulo].T6R3++;
             }
         }
 
-        if (seqString) {
+        if (hasAnyValid && seqString) {
             analysis.sequences[seqString] = (analysis.sequences[seqString] || 0) + 1;
         }
 
         analysis.orders.push({
             ...row,
             sequence: seqString,
-            hasReprocess,
+            hasReprocess: hasReprocessInFilter,
             dateObj: dateT4 || dateT6,
             familia: artInfo['codigo familia'] || null,
             subfamilia: artInfo['codigo subfamilia'] || null
@@ -2896,6 +3112,33 @@ function analyzeData() {
     });
 
     appData.analysis = analysis;
+
+    // Crear allOrders con TODOS los datos procesados (sin filtro del Dashboard)
+    // para que Coladas-TT tenga sus propios filtros independientes
+    if (!appData.allOrders || appData.allOrders.length === 0) {
+        appData.allOrders = [];
+        appData.raw.forEach(row => {
+            const artInfo = appData.articulosMap?.[row.articulo];
+            if (!artInfo) return;
+
+            const seqString = buildSequenceString(row);
+            const hasReprocess = (row.Piezas_T4R1 || 0) > 0 ||
+                (row.Piezas_T6R1 || 0) > 0 ||
+                (row.Piezas_T4R2 || 0) > 0 ||
+                (row.Piezas_T6R2 || 0) > 0 ||
+                (row.Piezas_T4R3 || 0) > 0 ||
+                (row.Piezas_T6R3 || 0) > 0;
+
+            appData.allOrders.push({
+                ...row,
+                sequence: seqString,
+                hasReprocess,
+                dateObj: parseDate(row.Fecha_T4) || parseDate(row.Fecha_T6),
+                familia: artInfo['codigo familia'] || null,
+                subfamilia: artInfo['codigo subfamilia'] || null
+            });
+        });
+    }
 }
 
 function updateUI() {
@@ -2904,13 +3147,16 @@ function updateUI() {
 
     updateKPIs(analysis);
     updateCharts(analysis);
+    updateTreatmentLoadTable(analysis);
     updateArticuloFilterByFilters();
     updateSequenceFilter(analysis.sequences);
 
     appData.pagination.currentPage = 1;
     filterOrders();
 
-    elements.lastUpdate.textContent = appData.lastUpdate.toLocaleTimeString();
+    if (elements.lastUpdate && appData.lastUpdate) {
+        elements.lastUpdate.textContent = appData.lastUpdate.toLocaleTimeString();
+    }
 }
 
 function updateSequenceFilter(sequences) {
@@ -2932,24 +3178,17 @@ function updateSequenceFilter(sequences) {
 }
 
 function updateKPIs(analysis) {
-    // Count number of treatments (orders) for each type
-    const t4Count = analysis.orders.filter(order => {
-        // An order has T4 if it has any T4 treatment (including reprocesos)
-        return order.Tratamiento_T4 || order.Tratamiento_T4R || order.Tratamiento_T4R2 || order.Tratamiento_T4R3;
-    }).length;
+    // KPIs muestran tratamientos únicos (por número de tratamiento)
+    const t4Count = analysis.treatmentCounts.T4;
+    const t6Count = analysis.treatmentCounts.T6;
 
-    const t6Count = analysis.orders.filter(order => {
-        // An order has T6 if it has any T6 treatment (including reprocesos)
-        return order.Tratamiento_T6 || order.Tratamiento_T6R || order.Tratamiento_T6R2 || order.Tratamiento_T6R3;
-    }).length;
-
-    // Update T4 KPIs
+    // Update T4 KPIs - tratamientos únicos y referencias
     animateValue('kpiT4Count', t4Count);
-    document.getElementById('kpiT4').textContent = `${analysis.totalT4.toLocaleString()} piezas`;
+    document.getElementById('kpiT4').textContent = `${analysis.referenceCounts.T4.toLocaleString()} referencias`;
 
-    // Update T6 KPIs
+    // Update T6 KPIs - tratamientos únicos y referencias
     animateValue('kpiT6Count', t6Count);
-    document.getElementById('kpiT6').textContent = `${analysis.totalT6.toLocaleString()} piezas`;
+    document.getElementById('kpiT6').textContent = `${analysis.referenceCounts.T6.toLocaleString()} referencias`;
 
     const totalOrders = analysis.orders.length;
     const reprocessRate = totalOrders > 0 ? ((analysis.reprocessCount / totalOrders) * 100).toFixed(1) : '0.0';
@@ -2959,6 +3198,272 @@ function updateKPIs(analysis) {
     document.getElementById('kpiReprocess').textContent = `${reprocessRate}% del total`;
     document.getElementById('kpiEfficiency').textContent = `${efficiency}%`;
 }
+
+// Actualiza la tabla de carga de tratamientos
+// Estado de ordenación para la tabla de tratamientos
+let treatmentTableSort = { col: 'fecha', dir: 'desc' };
+// Almacén de detalles de tratamientos para el modal
+let treatmentDetailsMap = {};
+
+function updateTreatmentLoadTable(analysis) {
+    const tbody = document.getElementById('treatmentLoadTableBody');
+    const countSpan = document.getElementById('treatmentLoadCount');
+    const typeFilter = document.getElementById('treatmentTypeFilter')?.value || '';
+
+    // Obtener filtros de año y mes actuales del dashboard de HeatTreat
+    // Si la tabla heatTreat tiene filtros propios, usarlos. Si no, usar los globales o del dashboard.
+    // En este caso, asumimos que usa los filtros del dashboard que afectan a 'analysis', pero
+    // necesitamos re-filtrar porque 'analysis' contiene toda la orden si ALGO coincide, 
+    // pero aquí queremos mostrar solo la PARTE de la orden que coiincide.
+
+    // NOTA: 'analysis' ya viene filtrado, pero contiene la orden COMPLETA. 
+    // Necesitamos saber qué año/mes se está visualizando para excluir partes de la orden de otros años.
+    const yearFilter = document.getElementById('dashboardYearFilter')?.value;
+    const monthFilter = 'dashboardMonthFilter' ? document.getElementById('dashboardMonthFilter')?.value : null;
+
+    if (!tbody) return;
+
+    // Construir mapa de tratamientos agrupados por NÚMERO (no por tipo)
+    const treatmentMap = {};
+    const treatmentTypes = typeFilter === 'T4'
+        ? ['T4', 'T4R1', 'T4R2', 'T4R3']
+        : typeFilter === 'T6'
+            ? ['T6', 'T6R1', 'T6R2', 'T6R3']
+            : ['T4', 'T6', 'T4R1', 'T6R1', 'T4R2', 'T6R2', 'T4R3', 'T6R3'];
+
+    analysis.orders.forEach(order => {
+        treatmentTypes.forEach(type => {
+            const treatmentNum = order[`Tratamiento_${type}`];
+            const piezas = order[`Piezas_${type}`] || 0;
+            const fecha = order[`Fecha_${type}`];
+
+            if (treatmentNum && piezas > 0) {
+                // VERIFICACIÓN DE FECHA: 
+                // Si hay filtro de año/mes activo, asegurar que ESTE tratamiento específico cumple.
+                if (fecha) {
+                    const dateObj = new Date(fecha);
+                    const tYear = dateObj.getFullYear().toString();
+                    const tMonth = (dateObj.getMonth() + 1).toString();
+
+                    if (yearFilter && yearFilter !== '' && tYear !== yearFilter) return;
+                    if (monthFilter && monthFilter !== '' && tMonth !== monthFilter) return;
+                }
+
+                // Agrupar por número de tratamiento solamente
+                const key = treatmentNum;
+                if (!treatmentMap[key]) {
+                    treatmentMap[key] = {
+                        numero: treatmentNum,
+                        tipos: new Set(),
+                        fecha: fecha,
+                        detalles: [], // Lista de órdenes con sus detalles
+                        totalPiezas: 0
+                    };
+                }
+                treatmentMap[key].tipos.add(type);
+                // Usar la fecha más reciente (dentro del filtrado)
+                if (fecha && (!treatmentMap[key].fecha || new Date(fecha) > new Date(treatmentMap[key].fecha))) {
+                    treatmentMap[key].fecha = fecha;
+                }
+                // Añadir detalle de la orden
+                treatmentMap[key].detalles.push({
+                    orden: order['numero orden'] || order.Numero_Orden,
+                    articulo: order.articulo,
+                    tipo: type,
+                    piezas: piezas,
+                    fecha: fecha
+                });
+                treatmentMap[key].totalPiezas += piezas;
+            }
+        });
+    });
+
+    // Guardar para el modal
+    treatmentDetailsMap = treatmentMap;
+
+    // Convertir a array
+    let treatments = Object.values(treatmentMap).map(t => ({
+        numero: t.numero,
+        tipos: Array.from(t.tipos).sort(),
+        tiposStr: Array.from(t.tipos).sort().join(', '),
+        fecha: t.fecha,
+        ordenes: t.detalles.length,
+        ordenesUnicas: [...new Set(t.detalles.map(d => d.orden))].length,
+        piezas: t.totalPiezas
+    }));
+
+    // Aplicar ordenación
+    treatments.sort((a, b) => {
+        let valA, valB;
+        switch (treatmentTableSort.col) {
+            case 'numero':
+                valA = a.numero;
+                valB = b.numero;
+                break;
+            case 'fecha':
+                valA = new Date(a.fecha || 0);
+                valB = new Date(b.fecha || 0);
+                break;
+            case 'ordenes':
+                valA = a.ordenesUnicas;
+                valB = b.ordenesUnicas;
+                break;
+            case 'piezas':
+                valA = a.piezas;
+                valB = b.piezas;
+                break;
+            case 'tipo':
+                valA = a.tiposStr;
+                valB = b.tiposStr;
+                break;
+            default:
+                valA = new Date(a.fecha || 0);
+                valB = new Date(b.fecha || 0);
+        }
+        if (valA < valB) return treatmentTableSort.dir === 'asc' ? -1 : 1;
+        if (valA > valB) return treatmentTableSort.dir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    if (countSpan) {
+        countSpan.textContent = `${treatments.length} tratamientos`;
+    }
+
+    if (treatments.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No hay tratamientos para mostrar</td></tr>';
+        return;
+    }
+
+    // Generar filas (número clicable)
+
+    tbody.innerHTML = treatments.map(t => {
+        const fechaStr = t.fecha ? new Date(t.fecha).toLocaleDateString() : '-';
+        const hasT4 = t.tipos.some(tipo => tipo.startsWith('T4'));
+        const hasT6 = t.tipos.some(tipo => tipo.startsWith('T6'));
+
+        // Generar badges para los tipos
+        const tiposBadges = t.tipos.map(tipo => {
+            const isT4 = tipo.startsWith('T4');
+            const isReprocess = tipo.includes('R');
+            const bgColor = isReprocess ? 'rgba(239, 68, 68, 0.1)' : (isT4 ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)');
+            const textColor = isReprocess ? '#ef4444' : (isT4 ? '#3b82f6' : '#8b5cf6');
+            return `<span class="badge" style="background: ${bgColor}; color: ${textColor}; margin-right: 4px;">${tipo}</span>`;
+        }).join('');
+
+        return `
+            <tr>
+                <td>
+                    <button onclick="showTreatmentDetails('${t.numero}'); return false;" 
+                        style="background: rgba(79, 70, 229, 0.1); color: var(--primary); border: 1px solid var(--primary); padding: 0.25rem 0.75rem; border-radius: 4px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                        <i class="ri-eye-line" style="margin-right: 4px;"></i>${t.numero}
+                    </button>
+                </td>
+                <td>${tiposBadges}</td>
+                <td>${fechaStr}</td>
+                <td>${t.ordenesUnicas}</td>
+                <td><strong>${t.piezas.toLocaleString()}</strong></td>
+            </tr>
+        `;
+    }).join('');
+
+    // Actualizar iconos de ordenación
+    document.querySelectorAll('.sortable-treatment').forEach(th => {
+        const icon = th.querySelector('i');
+        if (icon) {
+            if (th.dataset.sort === treatmentTableSort.col) {
+                icon.className = treatmentTableSort.dir === 'asc' ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line';
+                icon.style.opacity = '1';
+            } else {
+                icon.className = 'ri-arrow-up-down-line';
+                icon.style.opacity = '0.5';
+            }
+        }
+    });
+}
+
+// Función para mostrar modal de detalles del tratamiento
+function showTreatmentDetails(treatmentNum) {
+    const treatment = treatmentDetailsMap[treatmentNum];
+    if (!treatment) return;
+
+    // Crear contenido del modal (Versión Ajustada: 4 columnas iguales, sin scroll horizontal)
+    const modalContent = `
+        <div style="width: 100%; overflow-x: hidden;">
+            <table style="width: 100%; border-collapse: collapse; table-layout: fixed; background: #1e293b; border-radius: 8px; overflow: hidden;">
+                <thead>
+                    <tr style="background: #1e3a5f; color: #94a3b8;">
+                        <th style="padding: 0.75rem; text-align: left; width: 30%; font-weight: 600;">Referencia</th>
+                        <th style="padding: 0.75rem; text-align: left; width: 20%; font-weight: 600;">Orden</th>
+                        <th style="padding: 0.75rem; text-align: center; width: 25%; font-weight: 600;">Tipo</th>
+                        <th style="padding: 0.75rem; text-align: right; width: 25%; font-weight: 600;">Piezas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${treatment.detalles.map(d => {
+        const isT4 = d.tipo.startsWith('T4');
+        const isReprocess = d.tipo.includes('R');
+        const bgColor = isReprocess ? '#fecaca' : (isT4 ? '#bfdbfe' : '#ddd6fe');
+        const textColor = isReprocess ? '#991b1b' : (isT4 ? '#1e40af' : '#5b21b6');
+        return `
+                            <tr style="border-bottom: 1px solid #334155; background: #1e293b;">
+                                <td style="padding: 0.5rem 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; color: #f8fafc;" title="${d.articulo || ''}">${d.articulo || '-'}</td>
+                                <td style="padding: 0.5rem 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #f8fafc;" title="${d.orden}">${d.orden}</td>
+                                <td style="padding: 0.5rem 0.75rem; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    <span style="background: ${bgColor}; color: ${textColor}; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">
+                                        ${d.tipo}
+                                    </span>
+                               </td>
+                                <td style="padding: 0.5rem 0.75rem; text-align: right; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #f8fafc;">${d.piezas.toLocaleString()}</td>
+                            </tr>
+                        `;
+    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    Swal.fire({
+        title: `Tratamiento ${treatment.numero}`,
+        html: modalContent,
+        width: '600px',
+        showCloseButton: true,
+        showConfirmButton: false,
+        background: '#1e293b',
+        color: '#f8fafc',
+        customClass: {
+            popup: 'swal-dark-popup'
+        }
+    });
+}
+
+function closeTreatmentModal() {
+    const modal = document.getElementById('treatmentDetailsModal');
+    if (modal) modal.style.display = 'none';
+}
+
+// Event listener para filtro de tipo
+document.getElementById('treatmentTypeFilter')?.addEventListener('change', () => {
+    if (appData.analysis) {
+        updateTreatmentLoadTable(appData.analysis);
+    }
+});
+
+// Event listeners para ordenación de tabla de tratamientos
+document.querySelectorAll('.sortable-treatment').forEach(th => {
+    th.addEventListener('click', () => {
+        const sortCol = th.dataset.sort;
+        if (treatmentTableSort.col === sortCol) {
+            treatmentTableSort.dir = treatmentTableSort.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+            treatmentTableSort.col = sortCol;
+            treatmentTableSort.dir = 'desc';
+        }
+        if (appData.analysis) {
+            updateTreatmentLoadTable(appData.analysis);
+        }
+    });
+});
+
 
 function updateCharts(analysis) {
     const colors = {
@@ -2973,7 +3478,7 @@ function updateCharts(analysis) {
     const monthLabels = sortedMonths.map(m => {
         const [year, month] = m.split('-');
         const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-        return `${monthNames[parseInt(month) - 1]} ${year.slice(2)}`;
+        return `${monthNames[parseInt(month) - 1]} ${year.slice(2)} `;
     });
 
     let trendDatasets = [];
@@ -3134,7 +3639,7 @@ function renderTable(orders) {
     tbody.innerHTML = sortedOrders.map(order => {
         const displaySequence = order.sequence ? order.sequence.replace(/->/g, ' -> ') : '-';
         return `
-            <tr>
+        <tr>
                 <td><strong>${order['numero orden'] ?? order.Numero_Orden}</strong></td>
                 <td>${order.articulo || '-'}</td>
                 <td>${order.Colada || '-'}</td>
@@ -3147,11 +3652,11 @@ function renderTable(orders) {
                 ${renderTreatmentCell(order.Tratamiento_T6R2, order.Piezas_T6R2, order.Fecha_T6R2)}
                 ${renderTreatmentCell(order.Tratamiento_T4R3, order.Piezas_T4R3, order.Fecha_T4R3)}
                 ${renderTreatmentCell(order.Tratamiento_T6R3, order.Piezas_T6R3, order.Fecha_T6R3)}
-                <td>
-                    <span class="badge ${order.hasReprocess ? 'reprocess' : 'clean'}">
-                        ${order.hasReprocess ? 'Reproceso' : 'OK'}
-                    </span>
-                </td>
+    <td>
+        <span class="badge ${order.hasReprocess ? 'reprocess' : 'clean'}">
+            ${order.hasReprocess ? 'Reproceso' : 'OK'}
+        </span>
+    </td>
             </tr>
         `;
     }).join('');
@@ -3161,7 +3666,7 @@ function updateSortIcons() {
     document.querySelectorAll('th.sortable').forEach(th => {
         th.classList.remove('sort-asc', 'sort-desc');
         if (th.dataset.sort === appData.sort.col) {
-            th.classList.add(`sort-${appData.sort.dir}`);
+            th.classList.add(`sort - ${appData.sort.dir} `);
         }
     });
 }
@@ -3172,7 +3677,35 @@ function formatDate(dateStr) {
 }
 
 function filterOrders() {
-    const filtered = appData.analysis.orders.filter(order => {
+    // Usar allOrders (sin filtro del Dashboard) para Coladas-TT tenga sus propios filtros independientes
+    const sourceOrders = appData.allOrders || appData.analysis.orders;
+    const filtered = sourceOrders.filter(order => {
+        // Year filter (check any date field)
+        const yearFilter = document.getElementById('ordersYearFilter')?.value;
+        if (yearFilter) {
+            const dates = [order.Fecha_T4, order.Fecha_T6, order.Fecha_T4R1, order.Fecha_T6R1].filter(d => d);
+            if (dates.length === 0) return false;
+
+            const matchesYear = dates.some(fecha => {
+                const dateObj = new Date(fecha);
+                return dateObj.getFullYear().toString() === yearFilter;
+            });
+            if (!matchesYear) return false;
+        }
+
+        // Month filter
+        const monthFilter = document.getElementById('ordersMonthFilter')?.value;
+        if (monthFilter) {
+            const dates = [order.Fecha_T4, order.Fecha_T6, order.Fecha_T4R1, order.Fecha_T6R1].filter(d => d);
+            if (dates.length === 0) return false;
+
+            const matchesMonth = dates.some(fecha => {
+                const dateObj = new Date(fecha);
+                return (dateObj.getMonth() + 1).toString() === monthFilter;
+            });
+            if (!matchesMonth) return false;
+        }
+
         // Familia filter
         const familiaFilter = appData.filters['familia'];
         if (familiaFilter && order.familia !== familiaFilter) return false;
@@ -3221,7 +3754,7 @@ function filterOrders() {
     if (paginationInfo) {
         paginationInfo.textContent = totalFiltered === 0
             ? 'No hay registros'
-            : `Mostrando ${startIndex + 1}-${endIndex} de ${totalFiltered} registros`;
+            : `Mostrando ${startIndex + 1} -${endIndex} de ${totalFiltered} registros`;
     }
 
     const prevBtn = document.getElementById('prevPageBtn');
@@ -3243,6 +3776,13 @@ function filterOrders() {
 function parseDate(dateStr) {
     if (!dateStr) return null;
     return new Date(dateStr);
+}
+
+function getMonthKey(dateObj) {
+    if (!dateObj || !(dateObj instanceof Date) || isNaN(dateObj)) return null;
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    return `${year} -${month} `;
 }
 
 function createChart(id, type, data, options = {}) {
@@ -3310,7 +3850,8 @@ function switchView(viewName) {
         'estructuras': 'estructurasView',
         'capa-charge': 'capaChargeView',
         'materiales': 'materialesView',
-        'utillajes': 'utillajesView'
+        'utillajes': 'utillajesView',
+        'admin': 'adminView'
     };
 
     const targetView = viewMap[viewName] || 'inicioView';
@@ -3329,6 +3870,14 @@ function switchView(viewName) {
         loadRutasTop10();    // Load TOP 10 lists immediately
     } else if (viewName === 'estructuras') {
         loadEstructurasTop10();  // Load TOP 10 immediately
+    } else if (viewName === 'dashboard') {
+        // Fetch data first if not already loaded
+        if (!appData.raw || appData.raw.length === 0) {
+            fetchAllData();
+        } else {
+            analyzeData();
+            updateUI();
+        }
     } else if (viewName === 'ensayos-dashboard') {
         fetchEnsayosDashboard();
     } else if (viewName === 'ensayos-vt') {
@@ -3387,6 +3936,8 @@ function switchView(viewName) {
         fetchMateriales();
     } else if (viewName === 'utillajes') {
         fetchUtillajes();
+    } else if (viewName === 'admin') {
+        loadAdminUsers();
     }
 
     // Update page title based on view
@@ -3427,7 +3978,8 @@ function switchView(viewName) {
         'estructuras': 'Estructuras de Artículos',
         'capa-charge': 'Capa Charge',
         'materiales': 'Maestro de Materiales',
-        'utillajes': 'Maestro de Utillajes'
+        'utillajes': 'Maestro de Utillajes',
+        'admin': 'Panel de Administración'
     };
 
     // Icon map for each view
@@ -3468,12 +4020,31 @@ function switchView(viewName) {
         'estructuras': 'ri-node-tree',
         'capa-charge': 'ri-battery-charge-line',
         'materiales': 'ri-copper-coin-line',
-        'utillajes': 'ri-tools-fill'
+        'utillajes': 'ri-tools-fill',
+        'admin': 'ri-settings-3-line'
+    };
+
+    // Subtitle map for each view
+    const subtitleMap = {
+        'admin': 'Gestión de usuarios del sistema',
+        'maestros': 'Gestión de datos maestros'
     };
 
     const title = titleMap[viewName] || 'Dashboard General';
     const icon = iconMap[viewName] || 'ri-dashboard-line';
+    const subtitle = subtitleMap[viewName] || '';
+
     elements.pageTitle.innerHTML = `<i class="${icon}" style="font-size: 1.5rem; color: var(--text-main);"></i> ${title}`;
+
+    const subtitleEl = document.getElementById('pageSubtitle');
+    if (subtitleEl) {
+        if (subtitle) {
+            subtitleEl.textContent = subtitle;
+            subtitleEl.style.display = 'block';
+        } else {
+            subtitleEl.style.display = 'none';
+        }
+    }
 }
 
 function showLoading(show) {
@@ -3482,6 +4053,7 @@ function showLoading(show) {
 
 function updateConnectionStatus(online) {
     const el = elements.connectionStatus;
+    if (!el) return;
     if (online) {
         el.classList.remove('offline');
         el.classList.add('online');
@@ -3489,8 +4061,28 @@ function updateConnectionStatus(online) {
     } else {
         el.classList.remove('online');
         el.classList.add('offline');
-        el.querySelector('.status-text').textContent = 'Desconectado';
+        el.querySelector('.status-text').textContent = 'No Conectado a SQL';
     }
+}
+
+// Check SQL connection by calling health endpoint
+async function checkSqlConnection() {
+    try {
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        updateConnectionStatus(data.database === 'connected');
+    } catch (error) {
+        console.error('Error checking SQL connection:', error);
+        updateConnectionStatus(false);
+    }
+}
+
+// Start periodic SQL connection check
+function startSqlConnectionCheck() {
+    // Check immediately
+    checkSqlConnection();
+    // Then check every 30 seconds
+    setInterval(checkSqlConnection, 30000);
 }
 
 function animateValue(id, end) {
@@ -3529,25 +4121,29 @@ function toggleTheme() {
     updateLogoForTheme(next);
 }
 
-// --- Collapsible Menu Logic (Accordion) ---
+// --- Collapsible Menu Logic (Accordion with Toggle) ---
 document.querySelectorAll('.nav-section-header').forEach(header => {
     header.addEventListener('click', () => {
         const section = header.parentElement;
         const isActive = section.classList.contains('active');
 
-        // Close all sections
+        // Close all sections and remove section-active from all headers
         document.querySelectorAll('.nav-section').forEach(s => {
             s.classList.remove('active');
         });
+        document.querySelectorAll('.nav-section-header').forEach(h => {
+            h.classList.remove('section-active');
+        });
 
-        // Toggle clicked section (if it wasn't active, open it)
+        // Toggle: if section was active, leave it closed; otherwise open it
         if (!isActive) {
             section.classList.add('active');
+            header.classList.add('section-active');
+        }
 
-            // If header has data-view, switch to that view
-            if (header.dataset.view) {
-                switchView(header.dataset.view);
-            }
+        // If header has data-view, switch to that view immediately
+        if (header.dataset.view) {
+            switchView(header.dataset.view);
         }
     });
 });
@@ -3744,10 +4340,30 @@ function checkUserSession() {
     if (savedUser) {
         try {
             const userData = JSON.parse(savedUser);
-            if (userData && userData.id && userData.name) {
-                appData.currentUser = userData;
-                updateUserDisplay();
+            if (userData && userData.id) {
+                // Normalize user data to ensure consistent field names
+                appData.currentUser = {
+                    id: userData.id,
+                    username: userData.username || userData.id,
+                    name: userData.name || userData.nombre_completo || 'Usuario',
+                    nombre_completo: userData.nombre_completo || userData.name || 'Usuario',
+                    initials: userData.initials || userData.iniciales || 'U',
+                    iniciales: userData.iniciales || userData.initials || 'U',
+                    rol: userData.rol || 'operario'
+                };
+
+                // Save normalized data back to localStorage
+                localStorage.setItem('eipc_user', JSON.stringify(appData.currentUser));
+
                 hideLoginScreen();
+
+                // Update UI after a delay to ensure DOM is ready
+                setTimeout(() => {
+                    updateUserDisplay();
+                }, 100);
+
+                // Show admin section if user is admin
+                setTimeout(() => checkAdminAccess(), 150);
                 return true;
             }
         } catch (e) {
@@ -3799,9 +4415,18 @@ async function handleLogin(e) {
         const data = await response.json();
 
         if (data.success && data.user) {
-            appData.currentUser = data.user;
+            // Normalize user data to ensure consistent field names
+            appData.currentUser = {
+                id: data.user.id,
+                username: data.user.username || data.user.id,
+                name: data.user.name || data.user.nombre_completo || 'Usuario',
+                nombre_completo: data.user.nombre_completo || data.user.name || 'Usuario',
+                initials: data.user.initials || data.user.iniciales || 'U',
+                iniciales: data.user.iniciales || data.user.initials || 'U',
+                rol: data.user.rol || 'operario'
+            };
 
-            // Save to localStorage
+            // Save normalized data to localStorage
             localStorage.setItem('eipc_user', JSON.stringify(appData.currentUser));
 
             // Update UI
@@ -3810,6 +4435,11 @@ async function handleLogin(e) {
 
             // Initialize the app
             initializeApp();
+
+            // Ensure user display is updated after app initialization
+            setTimeout(() => {
+                updateUserDisplay();
+            }, 100);
         } else {
             alert(data.error || 'Credenciales invalidas');
         }
@@ -3834,12 +4464,19 @@ function handleLogout() {
     // Reset form
     const userSelect = document.getElementById('userSelect');
     const passwordInput = document.getElementById('passwordInput');
-    if (userSelect) userSelect.value = '';
+    if (userSelect) {
+        userSelect.innerHTML = '<option value="">Cargando usuarios...</option>';
+        userSelect.value = '';
+    }
     if (passwordInput) passwordInput.value = '';
 
-    // Show login screen and reload users
+    // Show login screen
     showLoginScreen();
-    loadUsersFromDB();
+
+    // Load users with a small delay to ensure everything is ready
+    setTimeout(() => {
+        loadUsersFromDB();
+    }, 300);
 }
 
 // Update user display in header
@@ -3848,8 +4485,12 @@ function updateUserDisplay() {
     const userName = document.getElementById('userName');
 
     if (appData.currentUser) {
-        if (userAvatar) userAvatar.textContent = appData.currentUser.initials;
-        if (userName) userName.textContent = appData.currentUser.name;
+        // Handle both possible field names from API
+        const initials = appData.currentUser.initials || appData.currentUser.iniciales || 'U';
+        const name = appData.currentUser.name || appData.currentUser.nombre_completo || 'Usuario';
+
+        if (userAvatar) userAvatar.textContent = initials;
+        if (userName) userName.textContent = name;
     }
 }
 
@@ -3858,6 +4499,7 @@ function showLoginScreen() {
     const loginOverlay = document.getElementById('loginOverlay');
     if (loginOverlay) {
         loginOverlay.classList.remove('hidden');
+        loginOverlay.style.display = 'flex';
     }
 }
 
@@ -3866,6 +4508,7 @@ function hideLoginScreen() {
     const loginOverlay = document.getElementById('loginOverlay');
     if (loginOverlay) {
         loginOverlay.classList.add('hidden');
+        loginOverlay.style.display = 'none';
     }
 }
 
@@ -3892,14 +4535,14 @@ async function fetchEnsayosData(type, tableId, renderRow) {
     showLoading(true);
     try {
         const typeCap = type.charAt(0).toUpperCase() + type.slice(1);
-        const artInput = document.getElementById(`ensayos${typeCap}ArticuloFilter`);
-        const tratInput = document.getElementById(`ensayos${typeCap}TratamientoFilter`);
+        const artInput = document.getElementById(`ensayos${typeCap} ArticuloFilter`);
+        const tratInput = document.getElementById(`ensayos${typeCap} TratamientoFilter`);
 
         const params = new URLSearchParams();
         if (artInput && artInput.value) params.append('articulo', artInput.value);
         if (tratInput && tratInput.value) params.append('tratamiento', tratInput.value);
 
-        const response = await fetch(`/api/ensayos/${type}?${params.toString()}`);
+        const response = await fetch(`/ api / ensayos / ${type}?${params.toString()} `);
         if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
 
@@ -3913,11 +4556,11 @@ async function fetchEnsayosData(type, tableId, renderRow) {
         }
 
         tbody.innerHTML = data.map(renderRow).join('');
-        const countEl = document.getElementById(`ensayos${type.charAt(0).toUpperCase() + type.slice(1)}ResultCount`);
+        const countEl = document.getElementById(`ensayos${type.charAt(0).toUpperCase() + type.slice(1)} ResultCount`);
         if (countEl) countEl.textContent = `${data.length} registros encontrados`;
     } catch (error) {
-        console.error(`Error fetching ensayos ${type}:`, error);
-        // alert(`Error al cargar datos de ${type}`); // Silent fail or toast better
+        console.error(`Error fetching ensayos ${type}: `, error);
+        // alert(`Error al cargar datos de ${ type } `); // Silent fail or toast better
     } finally {
         showLoading(false);
     }
@@ -3948,14 +4591,14 @@ window.handleEnsayosSort = function (type, column) {
 };
 
 function updateEnsayosSortIcons(type, column, order) {
-    const tableId = `ensayos${type.charAt(0).toUpperCase() + type.slice(1)}Table`;
-    const icons = document.querySelectorAll(`#${tableId} .sort-icon`);
+    const tableId = `ensayos${type.charAt(0).toUpperCase() + type.slice(1)} Table`;
+    const icons = document.querySelectorAll(`#${tableId} .sort - icon`);
     icons.forEach(icon => {
         icon.className = 'ri-arrow-up-down-line sort-icon';
         icon.style.color = 'var(--text-muted)';
     });
 
-    const activeIcon = document.getElementById(`sort-${type}-${column}`);
+    const activeIcon = document.getElementById(`sort - ${type} -${column} `);
     if (activeIcon) {
         activeIcon.className = order === 'ASC' ? 'ri-arrow-up-line sort-icon' : 'ri-arrow-down-line sort-icon';
         activeIcon.style.color = 'var(--primary)';
@@ -3967,8 +4610,8 @@ async function fetchEnsayosPaginated(type, state) {
     showLoading(true);
     const typeCap = type.charAt(0).toUpperCase() + type.slice(1);
     try {
-        const artInput = document.getElementById(`ensayos${typeCap}ArticuloFilter`);
-        const tratInput = document.getElementById(`ensayos${typeCap}TratamientoFilter`);
+        const artInput = document.getElementById(`ensayos${typeCap} ArticuloFilter`);
+        const tratInput = document.getElementById(`ensayos${typeCap} TratamientoFilter`);
 
         const params = new URLSearchParams();
         if (artInput && artInput.value) params.append('articulo', artInput.value);
@@ -3988,12 +4631,12 @@ async function fetchEnsayosPaginated(type, state) {
         if (tratInput && tratInput.tagName === 'SELECT' && result.tratamientos) {
             const currentValue = tratInput.value;
             tratInput.innerHTML = '<option value="">Todos</option>' +
-                result.tratamientos.map(t => `<option value="${t}">${t}</option>`).join('');
+                result.tratamientos.map(t => `< option value = "${t}" > ${t}</option > `).join('');
             tratInput.value = currentValue;
         }
 
         // Render table
-        const tbody = document.getElementById(`ensayos${typeCap}TableBody`);
+        const tbody = document.getElementById(`ensayos${typeCap} TableBody`);
         if (!tbody) return;
 
         tbody.innerHTML = '';
@@ -4001,7 +4644,7 @@ async function fetchEnsayosPaginated(type, state) {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 2rem;">No hay registros</td></tr>';
         } else {
             tbody.innerHTML = result.data.map(item => `
-                <tr>
+        < tr >
                     <td>${formatDate(item.Fecha)}</td>
                     <td>${item.Referencia || ''}</td>
                     <td>${item.Informe || ''}</td>
@@ -4009,18 +4652,18 @@ async function fetchEnsayosPaginated(type, state) {
                     <td>${item.Lingote || ''}</td>
                     <td>${item.Tratamiento || ''}</td>
                     <td>${item.Inspector || ''}</td>
-                </tr>
-            `).join('');
+                </tr >
+        `).join('');
         }
 
         // Update pagination info
-        const countEl = document.getElementById(`ensayos${typeCap}ResultCount`);
-        const pageInfo = document.getElementById(`ensayos${typeCap}PageInfo`);
-        const prevBtn = document.getElementById(`ensayos${typeCap}PrevBtn`);
-        const nextBtn = document.getElementById(`ensayos${typeCap}NextBtn`);
+        const countEl = document.getElementById(`ensayos${typeCap} ResultCount`);
+        const pageInfo = document.getElementById(`ensayos${typeCap} PageInfo`);
+        const prevBtn = document.getElementById(`ensayos${typeCap} PrevBtn`);
+        const nextBtn = document.getElementById(`ensayos${typeCap} NextBtn`);
 
         if (countEl) countEl.textContent = `${result.total} registros encontrados`;
-        if (pageInfo) pageInfo.textContent = `Pagina ${result.page} de ${result.totalPages}`;
+        if (pageInfo) pageInfo.textContent = `Pagina ${result.page} de ${result.totalPages} `;
         if (prevBtn) {
             prevBtn.disabled = result.page <= 1;
             prevBtn.style.opacity = result.page <= 1 ? '0.5' : '1';
@@ -4034,7 +4677,7 @@ async function fetchEnsayosPaginated(type, state) {
         updateEnsayosSortIcons(type, state.sortColumn, state.sortOrder);
 
     } catch (error) {
-        console.error(`Error fetching ensayos ${type}:`, error);
+        console.error(`Error fetching ensayos ${type}: `, error);
     } finally {
         showLoading(false);
     }
@@ -4083,38 +4726,38 @@ document.getElementById('buscarEnsayosPtBtn')?.addEventListener('click', () => f
 
 function fetchEnsayosDureza() {
     fetchEnsayosData('dureza', 'ensayosDurezaTableBody', item => `
-        <tr>
+        < tr >
             <td>${formatDate(item.Fecha)}</td>
             <td>${item.Referencia || item.Articulo || ''}</td>
             <td>${item.Tratamiento || ''}</td>
             <td>${item.Valor || ''}</td>
             <td>${item.Unidad || ''}</td>
-        </tr>
-    `);
+        </tr >
+        `);
 }
 
 function fetchEnsayosTraccion() {
     fetchEnsayosData('traccion', 'ensayosTraccionTableBody', item => `
-        <tr>
+        < tr >
             <td>${formatDate(item.Fecha)}</td>
             <td>${item.Referencia || item.Articulo || ''}</td>
             <td>${item.Tratamiento || ''}</td>
             <td>${item.Rm || ''}</td>
             <td>${item.Rp02 || ''}</td>
             <td>${item.A || ''}%</td>
-        </tr>
-    `);
+        </tr >
+        `);
 }
 
 function fetchEnsayosMetalografia() {
     fetchEnsayosData('metalografia', 'ensayosMetalografiaTableBody', item => `
-        <tr>
+        < tr >
             <td>${formatDate(item.Fecha)}</td>
             <td>${item.Referencia || item.Articulo || ''}</td>
             <td>${item.Tratamiento || ''}</td>
             <td>${item.Observaciones || ''}</td>
-        </tr>
-    `);
+        </tr >
+        `);
 }
 
 // --- DASHBOARD ENSAYOS LOGIC ---
@@ -4301,13 +4944,13 @@ function renderEnsayosArticlesTable(data) {
     if (data) {
         data.forEach(d => {
             tbody.innerHTML += `
-                <tr>
+        < tr >
                     <td>${d.Articulo}</td>
                     <td style="font-weight: 600; text-align: center;">${d.Total}</td>
                     <td style="text-align: center; color: var(--success); font-weight: 500;">${d.VT || 0}</td>
                     <td style="text-align: center; color: var(--info); font-weight: 500;">${d.PT || 0}</td>
                     <td style="text-align: center; color: var(--danger); font-weight: 500;">${d.RT || 0}</td>
-                </tr>`;
+                </tr > `;
         });
     }
 }
@@ -4370,66 +5013,66 @@ function exportEnsayosToPdf() {
     const inspectorChartImg = inspectorChart ? inspectorChart.toDataURL('image/png') : '';
 
     printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Dashboard Ensayos - ${year} ${month}</title>
-            <style>
-                body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
-                h1 { color: #1f2937; font-size: 24px; margin-bottom: 5px; }
-                .subtitle { color: #6b7280; margin-bottom: 20px; }
-                .kpi-row { display: flex; gap: 20px; margin-bottom: 30px; }
-                .kpi-box { flex: 1; background: #f3f4f6; padding: 15px; border-radius: 8px; text-align: center; }
-                .kpi-value { font-size: 24px; font-weight: bold; color: #1f2937; }
-                .kpi-label { font-size: 12px; color: #6b7280; }
-                .chart-section { margin-bottom: 30px; page-break-inside: avoid; }
-                .chart-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; }
-                img { max-width: 100%; height: auto; }
-                @media print { body { padding: 0; } }
-            </style>
-        </head>
-        <body>
-            <h1>Dashboard de Ensayos</h1>
-            <p class="subtitle">Ano: ${year} | Mes: ${month}</p>
-            
-            <div class="kpi-row">
-                <div class="kpi-box">
-                    <div class="kpi-value">${kpiTotal}</div>
-                    <div class="kpi-label">Total Informes</div>
-                </div>
-                <div class="kpi-box">
-                    <div class="kpi-value">${kpiRt}</div>
-                    <div class="kpi-label">Informes RT</div>
-                </div>
-                <div class="kpi-box">
-                    <div class="kpi-value">${kpiPt}</div>
-                    <div class="kpi-label">Informes PT</div>
-                </div>
-                <div class="kpi-box">
-                    <div class="kpi-value">${kpiVt}</div>
-                    <div class="kpi-label">Informes VT</div>
-                </div>
-            </div>
+        < !DOCTYPE html >
+            <html>
+                <head>
+                    <title>Dashboard Ensayos - ${year} ${month}</title>
+                    <style>
+                        body {font - family: Arial, sans-serif; padding: 20px; color: #333; }
+                        h1 {color: #1f2937; font-size: 24px; margin-bottom: 5px; }
+                        .subtitle {color: #6b7280; margin-bottom: 20px; }
+                        .kpi-row {display: flex; gap: 20px; margin-bottom: 30px; }
+                        .kpi-box {flex: 1; background: #f3f4f6; padding: 15px; border-radius: 8px; text-align: center; }
+                        .kpi-value {font - size: 24px; font-weight: bold; color: #1f2937; }
+                        .kpi-label {font - size: 12px; color: #6b7280; }
+                        .chart-section {margin - bottom: 30px; page-break-inside: avoid; }
+                        .chart-title {font - size: 16px; font-weight: bold; margin-bottom: 10px; }
+                        img {max - width: 100%; height: auto; }
+                        @media print {body {padding: 0; } }
+                    </style>
+                </head>
+                <body>
+                    <h1>Dashboard de Ensayos</h1>
+                    <p class="subtitle">Ano: ${year} | Mes: ${month}</p>
 
-            ${trendChartImg ? `
+                    <div class="kpi-row">
+                        <div class="kpi-box">
+                            <div class="kpi-value">${kpiTotal}</div>
+                            <div class="kpi-label">Total Informes</div>
+                        </div>
+                        <div class="kpi-box">
+                            <div class="kpi-value">${kpiRt}</div>
+                            <div class="kpi-label">Informes RT</div>
+                        </div>
+                        <div class="kpi-box">
+                            <div class="kpi-value">${kpiPt}</div>
+                            <div class="kpi-label">Informes PT</div>
+                        </div>
+                        <div class="kpi-box">
+                            <div class="kpi-value">${kpiVt}</div>
+                            <div class="kpi-label">Informes VT</div>
+                        </div>
+                    </div>
+
+                    ${trendChartImg ? `
             <div class="chart-section">
                 <div class="chart-title">Evolucion Mensual</div>
                 <img src="${trendChartImg}" />
             </div>` : ''}
 
-            ${distChartImg ? `
+                    ${distChartImg ? `
             <div class="chart-section">
                 <div class="chart-title">Distribucion por Tipo</div>
                 <img src="${distChartImg}" />
             </div>` : ''}
 
-            ${inspectorChartImg ? `
+                    ${inspectorChartImg ? `
             <div class="chart-section">
                 <div class="chart-title">Top Inspectores</div>
                 <img src="${inspectorChartImg}" />
             </div>` : ''}
-        </body>
-        </html>
+                </body>
+            </html>
     `);
 
     printWindow.document.close();
@@ -4502,7 +5145,7 @@ async function fetchPersonalDashboard() {
                     const porcentaje = totalHoras > 0 ? ((horasAusencia / totalHoras) * 100) : 0;
 
                     return `
-                    <tr>
+        < tr >
                         <td>${sec.NombreSeccion || 'Sin seccion'}</td>
                         <td style="text-align: center;"><span style="background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">${periodoLabel}</span></td>
                         <td style="text-align: center;">${sec.empleados}</td>
@@ -4510,8 +5153,8 @@ async function fetchPersonalDashboard() {
                         <td style="text-align: center;">${horasAusencia.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         <td style="text-align: center; color: ${porcentaje > 5 ? '#ef4444' : '#22c55e'};">${porcentaje.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</td>
                         <td style="text-align: center; font-weight: 600;">${totalHoras.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    </tr>
-                    `;
+                    </tr >
+        `;
                 }).join('');
             } else if (tbody) {
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No hay datos</td></tr>';
@@ -4713,81 +5356,81 @@ function exportPersonalToPdf() {
     }
 
     printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Dashboard Personal - ${year} ${month}</title>
-            <style>
-                body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
-                h1 { color: #1f2937; font-size: 24px; margin-bottom: 5px; }
-                .subtitle { color: #6b7280; margin-bottom: 20px; }
-                .kpi-row { display: flex; gap: 20px; margin-bottom: 30px; }
-                .kpi-box { flex: 1; background: #f3f4f6; padding: 15px; border-radius: 8px; text-align: center; }
-                .kpi-value { font-size: 24px; font-weight: bold; color: #1f2937; }
-                .kpi-label { font-size: 12px; color: #6b7280; }
-                .chart-section { margin-bottom: 30px; page-break-inside: avoid; }
-                .chart-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; }
-                img { max-width: 100%; height: auto; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-                th { background: #f3f4f6; }
-                @media print { body { padding: 0; } }
-            </style>
-        </head>
-        <body>
-            <h1>Dashboard de Personal</h1>
-            <p class="subtitle">Ano: ${year} | Mes: ${month}</p>
-            
-            <div class="kpi-row">
-                <div class="kpi-box">
-                    <div class="kpi-value">${kpiEmpleados}</div>
-                    <div class="kpi-label">Total Empleados</div>
-                </div>
-                <div class="kpi-box">
-                    <div class="kpi-value">${kpiHorasMes}</div>
-                    <div class="kpi-label">Horas Mes</div>
-                </div>
-                <div class="kpi-box">
-                    <div class="kpi-value">${kpiOutliers}</div>
-                    <div class="kpi-label">Outliers</div>
-                </div>
-                <div class="kpi-box">
-                    <div class="kpi-value">${kpiMedia}</div>
-                    <div class="kpi-label">Media Horas</div>
-                </div>
-            </div>
+        < !DOCTYPE html >
+            <html>
+                <head>
+                    <title>Dashboard Personal - ${year} ${month}</title>
+                    <style>
+                        body {font - family: Arial, sans-serif; padding: 20px; color: #333; }
+                        h1 {color: #1f2937; font-size: 24px; margin-bottom: 5px; }
+                        .subtitle {color: #6b7280; margin-bottom: 20px; }
+                        .kpi-row {display: flex; gap: 20px; margin-bottom: 30px; }
+                        .kpi-box {flex: 1; background: #f3f4f6; padding: 15px; border-radius: 8px; text-align: center; }
+                        .kpi-value {font - size: 24px; font-weight: bold; color: #1f2937; }
+                        .kpi-label {font - size: 12px; color: #6b7280; }
+                        .chart-section {margin - bottom: 30px; page-break-inside: avoid; }
+                        .chart-title {font - size: 16px; font-weight: bold; margin-bottom: 10px; }
+                        img {max - width: 100%; height: auto; }
+                        table {width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td {border: 1px solid #ddd; padding: 8px; text-align: center; }
+                        th {background: #f3f4f6; }
+                        @media print {body {padding: 0; } }
+                    </style>
+                </head>
+                <body>
+                    <h1>Dashboard de Personal</h1>
+                    <p class="subtitle">Ano: ${year} | Mes: ${month}</p>
 
-            ${evolChartImg ? `
+                    <div class="kpi-row">
+                        <div class="kpi-box">
+                            <div class="kpi-value">${kpiEmpleados}</div>
+                            <div class="kpi-label">Total Empleados</div>
+                        </div>
+                        <div class="kpi-box">
+                            <div class="kpi-value">${kpiHorasMes}</div>
+                            <div class="kpi-label">Horas Mes</div>
+                        </div>
+                        <div class="kpi-box">
+                            <div class="kpi-value">${kpiOutliers}</div>
+                            <div class="kpi-label">Outliers</div>
+                        </div>
+                        <div class="kpi-box">
+                            <div class="kpi-value">${kpiMedia}</div>
+                            <div class="kpi-label">Media Horas</div>
+                        </div>
+                    </div>
+
+                    ${evolChartImg ? `
             <div class="chart-section">
                 <div class="chart-title">Evolucion de Horas</div>
                 <img src="${evolChartImg}" />
             </div>` : ''}
 
-            ${secChartImg ? `
+                    ${secChartImg ? `
             <div class="chart-section">
                 <div class="chart-title">Horas por Seccion</div>
                 <img src="${secChartImg}" />
             </div>` : ''}
 
-            <div class="chart-section">
-                <div class="chart-title">Resumen por Seccion</div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Seccion</th>
-                            <th>Periodo</th>
-                            <th>Empleados</th>
-                            <th>Horas Trabajo</th>
-                            <th>Horas Ausencia</th>
-                            <th>% Ausencia</th>
-                            <th>Total Horas</th>
-                        </tr>
-                    </thead>
-                    <tbody>${tableRows}</tbody>
-                </table>
-            </div>
-        </body>
-        </html>
+                    <div class="chart-section">
+                        <div class="chart-title">Resumen por Seccion</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Seccion</th>
+                                    <th>Periodo</th>
+                                    <th>Empleados</th>
+                                    <th>Horas Trabajo</th>
+                                    <th>Horas Ausencia</th>
+                                    <th>% Ausencia</th>
+                                    <th>Total Horas</th>
+                                </tr>
+                            </thead>
+                            <tbody>${tableRows}</tbody>
+                        </table>
+                    </div>
+                </body>
+            </html>
     `);
 
     printWindow.document.close();
@@ -4869,20 +5512,20 @@ async function fetchBonos(page = 1) {
             const yyyy = today.getFullYear();
             const mm = String(today.getMonth() + 1).padStart(2, '0');
             const dd = String(today.getDate()).padStart(2, '0');
-            fechaDesdeInput.value = `${yyyy}-${mm}-${dd}`;
-            if (fechaHastaInput) fechaHastaInput.value = `${yyyy}-${mm}-${dd}`;
+            fechaDesdeInput.value = `${yyyy} -${mm} -${dd} `;
+            if (fechaHastaInput) fechaHastaInput.value = `${yyyy} -${mm} -${dd} `;
         }
     }
 
     // Show loading
     if (tbody) {
         tbody.innerHTML = `
-            <tr>
-                <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                    <div class="spinner" style="width: 30px; height: 30px; margin: 0 auto 0.5rem;"></div>
-                    Cargando datos de bonos...
-                </td>
-            </tr>
+        < tr >
+        <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+            <div class="spinner" style="width: 30px; height: 30px; margin: 0 auto 0.5rem;"></div>
+            Cargando datos de bonos...
+        </td>
+            </tr >
         `;
     }
 
@@ -5883,7 +6526,8 @@ function renderCalidadPieChart(causes) {
             labels: labels,
             datasets: [{
                 data: data,
-                backgroundColor: colors.slice(0, labels.length)
+                backgroundColor: colors.slice(0, labels.length),
+                borderWidth: 0
             }]
         },
         options: {
@@ -6910,15 +7554,15 @@ function renderOTDDetalleTable(data) {
 
         return `
             <tr>
-                <td style="padding: 0.4rem; text-align: center; border: 1px solid var(--border);">${idx + 1}</td>
-                <td style="padding: 0.4rem; border: 1px solid var(--border);">${item.numAlbaran ? formatNumber(item.numAlbaran) : '-'}</td>
-                <td style="padding: 0.4rem; border: 1px solid var(--border);">${item.articulo || '-'}</td>
-                <td style="padding: 0.4rem; text-align: right; border: 1px solid var(--border);">${formatNumber(item.cantidadPedida)}</td>
-                <td style="padding: 0.4rem; text-align: right; border: 1px solid var(--border);">${formatNumber(item.cantidadServida)}</td>
-                <td style="padding: 0.4rem; border: 1px solid var(--border);">${fechaAlbaranFormatted}</td>
-                <td style="padding: 0.4rem; border: 1px solid var(--border);">${fechaEntregaFormatted}</td>
-                <td style="padding: 0.4rem; text-align: center; border: 1px solid var(--border); ${diasRetrasoStyle}">${diasRetraso}</td>
-                <td style="padding: 0.4rem; border: 1px solid var(--border);">${item.cliente || '-'}</td>
+                <td style="text-align: center;">${idx + 1}</td>
+                <td>${item.numAlbaran ? formatNumber(item.numAlbaran) : '-'}</td>
+                <td>${item.articulo || '-'}</td>
+                <td style="text-align: right;">${formatNumber(item.cantidadPedida)}</td>
+                <td style="text-align: right;">${formatNumber(item.cantidadServida)}</td>
+                <td>${fechaAlbaranFormatted}</td>
+                <td>${fechaEntregaFormatted}</td>
+                <td style="text-align: center; ${diasRetrasoStyle}">${diasRetraso}</td>
+                <td>${item.cliente || '-'}</td>
             </tr>
         `;
     }).join('');
@@ -7598,8 +8242,8 @@ function renderCapacidadDetalleTable(data) {
         return `
             <tr style="${bgColor}">
                 <td style="padding: 0.75rem; border-bottom: 1px solid var(--border);">
-                    <div style="font-weight: 600;">${row.seccionNombre || row.seccion}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted);">${row.seccion}</div>
+                    <div style="font-weight: 600; line-height: 1.1;">${row.seccionNombre || row.seccion}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: -2px;">${row.seccion}</div>
                 </td>
                 <td style="padding: 0.75rem; border-bottom: 1px solid var(--border); text-align: center; font-weight: 600;">
                     ${row.plantilla}
@@ -8551,11 +9195,20 @@ async function fetchComprasDashboard(year = null) {
         if (data.success) {
             comprasState.data = data;
 
-            // Populate year filter if needed
+            // Populate year filter if needed (always include current year 2026)
             if (yearSelect && data.anosDisponibles) {
                 const currentVal = yearSelect.value;
                 yearSelect.innerHTML = '';
-                data.anosDisponibles.forEach(y => {
+
+                // Ensure current year (2026) is always in the list
+                const currentYear = new Date().getFullYear();
+                let years = [...data.anosDisponibles];
+                if (!years.includes(currentYear)) {
+                    years.unshift(currentYear);
+                }
+                years.sort((a, b) => b - a); // Sort descending
+
+                years.forEach(y => {
                     const option = document.createElement('option');
                     option.value = y;
                     option.textContent = y;
@@ -8565,8 +9218,32 @@ async function fetchComprasDashboard(year = null) {
             }
 
             // Populate filter checkboxes (cascading)
+            // On first load, select Tipo 01 by default if no types are selected
             if (data.filtros) {
-                populateComprasCheckboxes('comprasTipoContainer', data.filtros.tipos, comprasState.tipos);
+                let tiposSeleccionados = comprasState.tipos;
+
+                // If first load (no types selected yet) and Tipo 01 exists, select it
+                if (tiposSeleccionados.length === 0 && data.filtros.tipos && data.filtros.tipos.length > 0) {
+                    const tipo01 = data.filtros.tipos.find(t => (t.codigo || t) === '01');
+                    if (tipo01) {
+                        tiposSeleccionados = ['01'];
+                        comprasState.tipos = ['01'];
+                        comprasState.justAutoSelected01 = true;
+                        // Re-fetch with Tipo 01 selected to get its familias
+                        populateComprasCheckboxes('comprasTipoContainer', data.filtros.tipos, tiposSeleccionados);
+                        fetchComprasDashboard(); // Fetch again with Tipo 01 selected
+                        return;
+                    }
+                }
+
+                // If we just auto-selected Tipo 01, now we have the families, so select them all
+                if (comprasState.justAutoSelected01) {
+                    comprasState.familias = data.filtros.familias.map(f => f.codigo || f);
+                    comprasState.subfamilias = data.filtros.subfamilias.map(f => f.codigo || f);
+                    comprasState.justAutoSelected01 = false;
+                }
+
+                populateComprasCheckboxes('comprasTipoContainer', data.filtros.tipos, tiposSeleccionados);
                 populateComprasCheckboxes('comprasFamiliaContainer', data.filtros.familias, comprasState.familias, 'Selecciona un Tipo');
                 populateComprasCheckboxes('comprasSubfamiliaContainer', data.filtros.subfamilias, comprasState.subfamilias, 'Selecciona una Familia');
             }
@@ -8630,11 +9307,15 @@ function renderComprasKPIs(kpis) {
     };
 
     const kpiTotal = document.getElementById('comprasKpiTotal');
+    const kpiSeleccion = document.getElementById('comprasKpiSeleccion');
     const kpiFacturas = document.getElementById('comprasKpiFacturas');
     const kpiProveedores = document.getElementById('comprasKpiProveedores');
     const kpiTicket = document.getElementById('comprasKpiTicket');
 
-    if (kpiTotal) kpiTotal.textContent = formatEuro(kpis.comprasTotales || 0);
+    // comprasTotales shows total without any type/familia/subfamilia filter (just year)
+    // comprasSeleccion shows total with current filters applied
+    if (kpiTotal) kpiTotal.textContent = formatEuro(kpis.comprasTotalesSinFiltro || kpis.comprasTotales || 0);
+    if (kpiSeleccion) kpiSeleccion.textContent = formatEuro(kpis.comprasSeleccion || kpis.comprasTotales || 0);
     if (kpiFacturas) kpiFacturas.textContent = (kpis.numFacturas || 0).toLocaleString();
     if (kpiProveedores) kpiProveedores.textContent = (kpis.numProveedores || 0).toLocaleString();
     if (kpiTicket) kpiTicket.textContent = formatEuro(kpis.ticketMedio || 0);
@@ -9168,10 +9849,10 @@ async function loadUsers() {
 
         userSelect.innerHTML = '<option value="">Seleccionar usuario...</option>';
 
-        if (result.success && result.data) {
-            result.data.forEach(user => {
+        if (result.success && result.users) {
+            result.users.forEach(user => {
                 const option = document.createElement('option');
-                option.value = user.id;
+                option.value = user.username;
                 option.textContent = user.nombre_completo;
                 userSelect.appendChild(option);
             });
@@ -9211,12 +9892,14 @@ async function handleLogin(event) {
         const result = await response.json();
 
         if (result.success) {
-            // Save user data to localStorage and appData
+            // Normalize user data to ensure consistent field names
             const userData = {
                 id: result.user.id,
-                username: result.user.username,
-                nombre_completo: result.user.nombre_completo,
-                iniciales: result.user.iniciales,
+                username: result.user.username || result.user.id,
+                name: result.user.name || result.user.nombre_completo || 'Usuario',
+                nombre_completo: result.user.nombre_completo || result.user.name || 'Usuario',
+                initials: result.user.initials || result.user.iniciales || 'U',
+                iniciales: result.user.iniciales || result.user.initials || 'U',
                 rol: result.user.rol || 'operario'
             };
 
@@ -9229,27 +9912,28 @@ async function handleLogin(event) {
             // Initialize app data
             initializeApp();
 
-            // Update user info
-            document.getElementById('userName').textContent = result.user.nombre_completo;
-            const avatar = document.getElementById('userAvatar');
-            if (avatar) avatar.textContent = result.user.iniciales || 'U';
+            // Update user info using normalized data
+            updateUserDisplay();
+
+            // Show admin section if user is admin
+            checkAdminAccess();
 
             console.log('[LOGIN] Login successful - User:', userData.nombre_completo, 'Role:', userData.rol);
         } else {
-            alert('Login fallido: ' + (result.error || 'Error desconocido'));
+            showToast('Login fallido: ' + (result.error || 'Error desconocido'), 'error');
         }
     } catch (error) {
         console.error('[LOGIN] Login error:', error);
-        alert('Error al intentar iniciar sesion');
+        showToast('Error al intentar iniciar sesión', 'error');
     }
 }
 
-// Initialize Login
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('[LOGIN] DOMContentLoaded - Initializing login...');
+function setupLoginEventListeners() {
+    console.log('[LOGIN] Setting up login event listeners...');
     const loginOverlay = document.getElementById('loginOverlay');
+
     if (loginOverlay) {
-        loginOverlay.style.display = 'flex'; // Ensure it's visible on load
+        // Don't force display here - let checkUserSession handle visibility
         loadUsers();
     } else {
         console.error('[LOGIN] #loginOverlay not found!');
@@ -9257,24 +9941,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
+        // Remove existing listeners to avoid duplicates if re-run
+        const newForm = loginForm.cloneNode(true);
+        loginForm.parentNode.replaceChild(newForm, loginForm);
+        newForm.addEventListener('submit', handleLogin);
     }
 
     // Toggle password visibility
     const togglePassword = document.getElementById('togglePassword');
     const passwordInput = document.getElementById('passwordInput');
     if (togglePassword && passwordInput) {
-        togglePassword.addEventListener('click', () => {
+        // Clone to remove old listeners
+        const newToggle = togglePassword.cloneNode(true);
+        togglePassword.parentNode.replaceChild(newToggle, togglePassword);
+
+        newToggle.addEventListener('click', () => {
             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
             passwordInput.setAttribute('type', type);
-            togglePassword.querySelector('i').classList.toggle('ri-eye-line');
-            togglePassword.querySelector('i').classList.toggle('ri-eye-off-line');
+            newToggle.querySelector('i').classList.toggle('ri-eye-line');
+            newToggle.querySelector('i').classList.toggle('ri-eye-off-line');
         });
     }
-});
-console.log('[LOGIN] Login script loaded');
-
-// Expose functions globally for inline handlers
+}
 window.toggleComputoOEE = toggleComputoOEE;
 
 // Helper functions (restored)
@@ -9291,47 +9979,7 @@ function updateConnectionStatus(connected) {
     }
 }
 
-function checkUserSession() {
-    const userJson = localStorage.getItem('eipc_user');
-    if (userJson) {
-        try {
-            appData.currentUser = JSON.parse(userJson);
-
-            // Update UI
-            if (document.getElementById('userName'))
-                document.getElementById('userName').textContent = appData.currentUser.nombre_completo;
-
-            const avatar = document.getElementById('userAvatar');
-            if (avatar) avatar.textContent = appData.currentUser.iniciales || 'U';
-
-            // Hide login overlay immediately
-            const loginOverlay = document.getElementById('loginOverlay');
-            if (loginOverlay) loginOverlay.style.display = 'none';
-
-            return true;
-        } catch (e) {
-            console.error('Error parsing user session', e);
-            localStorage.removeItem('eipc_user');
-        }
-    }
-    return false;
-}
-
-function setupLoginEventListeners() {
-    // Only basic setup needed as handleLogin is bound in DOMContentLoaded
-    const togglePassword = document.getElementById('togglePassword');
-    const passwordInput = document.getElementById('passwordInput');
-    if (togglePassword && passwordInput) {
-        togglePassword.onclick = () => {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            const icon = togglePassword.querySelector('i');
-            if (icon) {
-                icon.className = type === 'password' ? 'ri-eye-line' : 'ri-eye-off-line';
-            }
-        };
-    }
-}
+// checkUserSession is defined earlier in the file (around line 4274)
 
 // Codigos Rechazo Functions
 async function fetchCodigosRechazo() {
@@ -9654,7 +10302,7 @@ async function fetchAusencias() {
         if (denominacionFilter?.value) params.append('denominacion', denominacionFilter.value);
         if (absentismoFilter?.value) params.append('absentismo', absentismoFilter.value);
 
-        const response = await fetch(`http://localhost:3001/api/ausencias?${params.toString()}`);
+        const response = await fetch(`/api/ausencias?${params.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -9765,7 +10413,7 @@ async function fetchSecciones() {
         if (codigoFilter?.value) params.append('seccion', codigoFilter.value);
         if (denominacionFilter?.value) params.append('denominacion', denominacionFilter.value);
 
-        const response = await fetch(`http://localhost:3001/api/secciones?${params.toString()}`);
+        const response = await fetch(`/api/secciones?${params.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -10790,3 +11438,789 @@ function renderMaterialesTablePage() {
 
     renderMaterialesTable(pageData);
 }
+
+// ============================================
+// ADMIN PANEL FUNCTIONS
+// ============================================
+
+// Check if current user is admin
+function isAdmin() {
+    return appData.currentUser && appData.currentUser.rol === 'admin';
+}
+
+// Show admin panel
+function showAdminPanel() {
+    if (!isAdmin()) {
+        showToast('No tienes permisos para acceder al panel de administración', 'error');
+        return;
+    }
+    document.getElementById('loginOverlay').style.display = 'none';
+    switchView('admin');
+    loadAdminUsers();
+}
+
+// Load users for admin panel
+async function loadAdminUsers() {
+    try {
+        const response = await fetch('/api/admin/users');
+        const result = await response.json();
+
+        const tbody = document.getElementById('adminUsersTableBody');
+        if (!tbody) return;
+
+        if (result.success && result.users) {
+            tbody.innerHTML = result.users.map(user => `
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 1rem;">${user.username}</td>
+                    <td style="padding: 1rem;">${user.nombre_completo}</td>
+                    <td style="padding: 1rem; text-align: center;">
+                        <span style="background: var(--primary); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: 600;">${user.iniciales || '--'}</span>
+                    </td>
+                    <td style="padding: 1rem; text-align: center;">
+                        <span style="font-family: monospace; color: var(--text-muted); letter-spacing: 2px;">${user.password ? '••••••••' : '--'}</span>
+                    </td>
+                    <td style="padding: 1rem; text-align: center;">
+                        <span style="background: ${user.rol === 'admin' ? '#ef4444' : user.rol === 'supervisor' ? '#f59e0b' : '#22c55e'}; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; text-transform: uppercase;">${user.rol || 'operario'}</span>
+                    </td>
+                    <td style="padding: 1rem; text-align: center;">
+                        ${user.activo ? '<i class="ri-checkbox-circle-fill" style="color: #22c55e; font-size: 1.25rem;"></i>' : '<i class="ri-close-circle-fill" style="color: #ef4444; font-size: 1.25rem;"></i>'}
+                    </td>
+                    <td style="padding: 1rem; text-align: center;">
+                        <button onclick="editUser('${user.username}')" style="background: none; border: none; cursor: pointer; padding: 0.5rem; color: var(--primary);" title="Editar">
+                            <i class="ri-edit-line" style="font-size: 1.25rem;"></i>
+                        </button>
+                        <button onclick="deleteUser('${user.username}')" style="background: none; border: none; cursor: pointer; padding: 0.5rem; color: #ef4444;" title="Eliminar">
+                            <i class="ri-delete-bin-line" style="font-size: 1.25rem;"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="7" style="padding: 2rem; text-align: center; color: var(--text-muted);">No hay usuarios</td></tr>';
+        }
+    } catch (error) {
+        console.error('Error loading admin users:', error);
+    }
+}
+
+// Open user modal for create/edit
+function openUserModal(user = null) {
+    const modal = document.getElementById('userModal');
+    const title = document.getElementById('userModalTitle');
+    const usernameInput = document.getElementById('userFormUsername');
+    const passwordRequired = document.getElementById('passwordRequired');
+    const passwordHelp = document.getElementById('passwordHelp');
+
+    if (user) {
+        // Edit mode
+        title.textContent = 'Editar Usuario';
+        document.getElementById('editingUsername').value = user.username;
+        usernameInput.value = user.username;
+        usernameInput.disabled = true;
+        document.getElementById('userFormNombre').value = user.nombre_completo;
+        document.getElementById('userFormPassword').value = '';
+        document.getElementById('userFormPassword').required = false;
+        passwordRequired.style.display = 'none';
+        passwordHelp.style.display = 'block';
+        document.getElementById('userFormIniciales').value = user.iniciales || '';
+        document.getElementById('userFormRol').value = user.rol || 'operario';
+        document.getElementById('userFormActivo').checked = user.activo;
+    } else {
+        // Create mode
+        title.textContent = 'Nuevo Usuario';
+        document.getElementById('editingUsername').value = '';
+        document.getElementById('userForm').reset();
+        usernameInput.disabled = false;
+        document.getElementById('userFormPassword').required = true;
+        passwordRequired.style.display = 'inline';
+        passwordHelp.style.display = 'none';
+        document.getElementById('userFormActivo').checked = true;
+    }
+
+    modal.style.display = 'flex';
+}
+
+// Close user modal
+function closeUserModal() {
+    document.getElementById('userModal').style.display = 'none';
+}
+
+// Save user (create or update)
+async function saveUser(event) {
+    event.preventDefault();
+
+    const editingUsername = document.getElementById('editingUsername').value;
+    const isEdit = !!editingUsername;
+
+    const userData = {
+        username: document.getElementById('userFormUsername').value,
+        nombre_completo: document.getElementById('userFormNombre').value,
+        password: document.getElementById('userFormPassword').value,
+        iniciales: document.getElementById('userFormIniciales').value,
+        rol: document.getElementById('userFormRol').value,
+        activo: document.getElementById('userFormActivo').checked
+    };
+
+    // Remove password if editing and left empty
+    if (isEdit && !userData.password) {
+        delete userData.password;
+    }
+
+    try {
+        const url = isEdit ? `/api/admin/users/${editingUsername}` : '/api/admin/users';
+        const method = isEdit ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            closeUserModal();
+            loadAdminUsers();
+            showToast(result.message || 'Usuario guardado correctamente', 'success');
+        } else {
+            showToast(result.error || 'Error al guardar usuario', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving user:', error);
+        showToast('Error de conexión', 'error');
+    }
+}
+
+// Edit user - fetch and open modal
+async function editUser(username) {
+    try {
+        const response = await fetch('/api/admin/users');
+        const result = await response.json();
+
+        if (result.success && result.users) {
+            const user = result.users.find(u => u.username === username);
+            if (user) {
+                openUserModal(user);
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching user:', error);
+    }
+}
+
+// Delete user
+async function deleteUser(username) {
+    const confirmed = await showConfirm(
+        '¿Eliminar usuario?',
+        `¿Estás seguro de que deseas eliminar el usuario "${username}"? Esta acción no se puede deshacer.`
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/admin/users/${username}`, {
+            method: 'DELETE'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            loadAdminUsers();
+            showToast('Usuario eliminado correctamente', 'success');
+        } else {
+            showToast(result.error || 'Error al eliminar usuario', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        showToast('Error de conexión', 'error');
+    }
+}
+
+// Show admin section after login if user is admin
+function checkAdminAccess() {
+    const adminSection = document.getElementById('adminSection');
+    if (adminSection) {
+        if (isAdmin()) {
+            adminSection.style.display = 'block';
+        } else {
+            adminSection.style.display = 'none';
+        }
+    }
+}
+
+// ============================================
+// TOAST NOTIFICATION SYSTEM
+// ============================================
+
+/**
+ * Show a styled toast notification
+ * @param {string} message - The message to display
+ * @param {string} type - 'success', 'error', 'warning', 'info'
+ * @param {number} duration - Duration in ms (default 4000)
+ */
+function showToast(message, type = 'info', duration = 4000) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification';
+
+    // Icon based on type
+    const icons = {
+        success: 'ri-checkbox-circle-fill',
+        error: 'ri-error-warning-fill',
+        warning: 'ri-alert-fill',
+        info: 'ri-information-fill'
+    };
+
+    // Colors based on type
+    const colors = {
+        success: { bg: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', icon: '#ffffff' },
+        error: { bg: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', icon: '#ffffff' },
+        warning: { bg: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', icon: '#ffffff' },
+        info: { bg: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', icon: '#ffffff' }
+    };
+
+    const config = colors[type] || colors.info;
+    const iconClass = icons[type] || icons.info;
+
+    toast.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.25rem;
+        background: ${config.bg};
+        color: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2), 0 4px 10px rgba(0,0,0,0.1);
+        font-size: 0.925rem;
+        font-weight: 500;
+        min-width: 280px;
+        max-width: 400px;
+        pointer-events: auto;
+        transform: translateX(120%);
+        transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        backdrop-filter: blur(10px);
+    `;
+
+    toast.innerHTML = `
+        <i class="${iconClass}" style="font-size: 1.5rem; color: ${config.icon};"></i>
+        <span style="flex: 1;">${message}</span>
+        <button onclick="this.parentElement.remove()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+            <i class="ri-close-line"></i>
+        </button>
+    `;
+
+    container.appendChild(toast);
+
+    // Animate in
+    requestAnimationFrame(() => {
+        toast.style.transform = 'translateX(0)';
+    });
+
+    // Auto remove
+    setTimeout(() => {
+        toast.style.transform = 'translateX(120%)';
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
+
+// ============================================
+// CONFIRM MODAL SYSTEM
+// ============================================
+
+let confirmResolve = null;
+
+/**
+ * Show a styled confirmation modal
+ * @param {string} title - The title text
+ * @param {string} message - The message text
+ * @returns {Promise<boolean>} - Resolves to true if confirmed, false if cancelled
+ */
+function showConfirm(title, message) {
+    return new Promise((resolve) => {
+        confirmResolve = resolve;
+
+        const modal = document.getElementById('confirmModal');
+        const titleEl = document.getElementById('confirmTitle');
+        const messageEl = document.getElementById('confirmMessage');
+
+        if (titleEl) titleEl.textContent = title;
+        if (messageEl) messageEl.textContent = message;
+
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+    });
+}
+
+/**
+ * Close the confirm modal
+ * @param {boolean} result - true if confirmed, false if cancelled
+ */
+function closeConfirmModal(result) {
+    const modal = document.getElementById('confirmModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+
+    if (confirmResolve) {
+        confirmResolve(result);
+        confirmResolve = null;
+    }
+}
+
+// ============================================
+// COLOR EDITOR FUNCTIONS
+// ============================================
+
+// Definición de colores por defecto (tema claro)
+const defaultColors = {
+    primary: '#4f46e5',
+    sidebar: '#0f172a',
+    card: '#ffffff',
+    body: '#f8fafc',
+    text: '#0f172a',
+    success: '#10b981',
+    danger: '#ef4444',
+    warning: '#f59e0b'
+};
+
+// Mapeo de IDs a nombres de variable CSS
+const colorMapping = {
+    primary: '--primary',
+    sidebar: '--bg-sidebar',
+    card: '--bg-card',
+    body: '--bg-body',
+    text: '--text-main',
+    success: '--success',
+    danger: '--danger',
+    warning: '--warning'
+};
+
+// Inicializar sincronización entre color picker y input hex
+function setupColorInputs() {
+    const colorNames = Object.keys(defaultColors);
+
+    colorNames.forEach(name => {
+        const colorInput = document.getElementById(`color${name.charAt(0).toUpperCase() + name.slice(1)}`);
+        const hexInput = document.getElementById(`color${name.charAt(0).toUpperCase() + name.slice(1)}Hex`);
+
+        if (colorInput && hexInput) {
+            // Sincronizar cambios del color picker al input hex
+            colorInput.addEventListener('input', () => {
+                hexInput.value = colorInput.value;
+            });
+
+            // Sincronizar cambios del input hex al color picker
+            hexInput.addEventListener('input', () => {
+                if (/^#[0-9A-Fa-f]{6}$/.test(hexInput.value)) {
+                    colorInput.value = hexInput.value;
+                }
+            });
+        }
+    });
+}
+
+// Cargar colores personalizados desde localStorage
+function loadCustomColors() {
+    const savedColors = localStorage.getItem('customColors');
+
+    if (savedColors) {
+        const colors = JSON.parse(savedColors);
+        applyCustomColors(colors);
+        updateColorInputs(colors);
+    }
+}
+
+// Aplicar colores como CSS custom properties
+function applyCustomColors(colors) {
+    const root = document.documentElement;
+
+    Object.entries(colors).forEach(([name, value]) => {
+        const cssVar = colorMapping[name];
+        if (cssVar) {
+            root.style.setProperty(cssVar, value);
+        }
+    });
+}
+
+// Actualizar los inputs de color con los valores actuales
+function updateColorInputs(colors) {
+    Object.entries(colors).forEach(([name, value]) => {
+        const capitalName = name.charAt(0).toUpperCase() + name.slice(1);
+        const colorInput = document.getElementById(`color${capitalName}`);
+        const hexInput = document.getElementById(`color${capitalName}Hex`);
+
+        if (colorInput) colorInput.value = value;
+        if (hexInput) hexInput.value = value;
+    });
+}
+
+// Guardar colores personalizados en localStorage
+function saveCustomColors() {
+    const colors = {};
+
+    Object.keys(defaultColors).forEach(name => {
+        const capitalName = name.charAt(0).toUpperCase() + name.slice(1);
+        const colorInput = document.getElementById(`color${capitalName}`);
+        if (colorInput) {
+            colors[name] = colorInput.value;
+        }
+    });
+
+    localStorage.setItem('customColors', JSON.stringify(colors));
+    applyCustomColors(colors);
+
+    // Mostrar feedback
+    alert('Colores guardados correctamente. Se aplicarán automáticamente al cargar la aplicación.');
+}
+
+// Resetear colores a valores por defecto
+function resetCustomColors() {
+    localStorage.removeItem('customColors');
+
+    // Restaurar CSS custom properties a valores por defecto
+    const root = document.documentElement;
+    Object.entries(colorMapping).forEach(([name, cssVar]) => {
+        root.style.removeProperty(cssVar);
+    });
+
+    // Actualizar inputs con valores por defecto
+    updateColorInputs(defaultColors);
+
+    alert('Colores reseteados a valores por defecto.');
+}
+
+// Inicializar al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+    setupColorInputs();
+    loadCustomColors();
+
+    // ANTIGRAVITY FIX: Restore HeatTreat Functionality
+    // Ensures listeners are attached after main initialization
+    setTimeout(() => {
+        console.log('Antigravity: Initializing HeatTreat functionality setup...');
+        if (typeof setupOrdersEventListeners === 'function') {
+            setupOrdersEventListeners();
+        } else {
+            console.error('Antigravity: setupOrdersEventListeners not defined!');
+        }
+
+        // Re-populate year filters to ensure ordersYearFilter has options
+        if (typeof populateYearFilters === 'function') {
+            populateYearFilters();
+        }
+    }, 500);
+});
+
+// ANTIGRAVITY FIX: HeatTreat (Coladas-TT) Event Listeners Restoration
+function setupOrdersEventListeners() {
+    console.log('Antigravity: Setting up HeatTreat listeners...');
+
+    // Double-check appData availability
+    if (typeof appData === 'undefined') {
+        console.error('Antigravity: appData is undefined, cannot setup HeatTreat.');
+        return;
+    }
+
+    // --- DASHBOARD VIEW LISTENERS ---
+
+    // Dashboard Year Filter
+    const dashboardYearFilter = document.getElementById('dashboardYearFilter');
+    if (dashboardYearFilter) {
+        dashboardYearFilter.addEventListener('change', () => {
+            console.log('Dashboard Year Filter Changed');
+            // Re-analyze data with new filter
+            if (typeof analyzeData === 'function') analyzeData();
+            if (typeof updateUI === 'function') updateUI();
+        });
+    }
+
+    // Treatment Load Table Listeners (Type Filter)
+    document.getElementById('treatmentTypeFilter')?.addEventListener('change', (e) => {
+        if (typeof updateTreatmentLoadTable === 'function' && appData.analysis) {
+            updateTreatmentLoadTable(appData.analysis);
+        }
+    });
+
+    // Treatment Load Table Sorting
+    document.querySelectorAll('.sortable-treatment').forEach(th => {
+        th.addEventListener('click', () => {
+            const sortKey = th.dataset.sort;
+            if (typeof treatmentTableSort !== 'undefined') {
+                if (treatmentTableSort.col === sortKey) {
+                    treatmentTableSort.dir = treatmentTableSort.dir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    treatmentTableSort.col = sortKey;
+                    treatmentTableSort.dir = 'asc';
+                }
+
+                if (typeof updateTreatmentLoadTable === 'function' && appData.analysis) {
+                    updateTreatmentLoadTable(appData.analysis);
+                }
+
+                // Update icons
+                document.querySelectorAll('.sortable-treatment i').forEach(icon => {
+                    icon.className = 'ri-arrow-up-down-line';
+                    icon.style.opacity = '0.5';
+                });
+                const activeIcon = th.querySelector('i');
+                if (activeIcon) {
+                    activeIcon.className = treatmentTableSort.dir === 'asc' ? 'ri-arrow-up-line' : 'ri-arrow-down-line';
+                    activeIcon.style.opacity = '1';
+                }
+            }
+        });
+    });
+
+    // --- ORDERS VIEW LISTENERS ---
+
+    // Coladas-TT (Orders) year and month filters
+    const yearFilter = document.getElementById('ordersYearFilter');
+    if (yearFilter) {
+        yearFilter.addEventListener('change', () => {
+            console.log('Orders Year Filter Changed');
+            appData.pagination.currentPage = 1;
+            filterOrders();
+        });
+    }
+
+    document.getElementById('ordersMonthFilter')?.addEventListener('change', () => {
+        appData.pagination.currentPage = 1;
+        filterOrders();
+    });
+
+    // Familia Filter - cascades to subfamilia and articulo
+    document.getElementById('familiaFilter')?.addEventListener('change', (e) => {
+        appData.filters['familia'] = e.target.value;
+        appData.filters['subfamilia'] = '';
+        appData.filters['articulo'] = '';
+        appData.filters['sequence'] = '';
+        appData.filters['hasReprocess'] = '';
+        const subF = document.getElementById('subfamiliaFilter');
+        if (subF) subF.value = '';
+        const artF = document.getElementById('articuloFilter');
+        if (artF) artF.value = '';
+        const seqF = document.getElementById('sequenceFilterSelect');
+        if (seqF) seqF.value = '';
+        const repF = document.getElementById('reprocessFilter');
+        if (repF) repF.value = '';
+
+        if (typeof updateSubfamiliaFilter === 'function') updateSubfamiliaFilter();
+        if (typeof updateArticuloFilterByFilters === 'function') updateArticuloFilterByFilters();
+
+        appData.pagination.currentPage = 1;
+        filterOrders();
+    });
+
+    // Subfamilia Filter - cascades to articulo
+    document.getElementById('subfamiliaFilter')?.addEventListener('change', (e) => {
+        appData.filters['subfamilia'] = e.target.value;
+        appData.filters['articulo'] = '';
+        appData.filters['sequence'] = '';
+        appData.filters['hasReprocess'] = '';
+        const artF = document.getElementById('articuloFilter');
+        if (artF) artF.value = '';
+        const seqF = document.getElementById('sequenceFilterSelect');
+        if (seqF) seqF.value = '';
+        const repF = document.getElementById('reprocessFilter');
+        if (repF) repF.value = '';
+
+        if (typeof updateArticuloFilterByFilters === 'function') updateArticuloFilterByFilters();
+
+        appData.pagination.currentPage = 1;
+        filterOrders();
+    });
+
+    // Orden Filter (text input with debounce)
+    let ordenTimeout;
+    document.getElementById('ordenFilter')?.addEventListener('input', (e) => {
+        clearTimeout(ordenTimeout);
+        ordenTimeout = setTimeout(() => {
+            appData.filters['orden'] = e.target.value.trim();
+            appData.pagination.currentPage = 1;
+            filterOrders();
+        }, 300);
+    });
+
+    // Articulo Filter
+    document.getElementById('articuloFilter')?.addEventListener('change', (e) => {
+        appData.filters['articulo'] = e.target.value;
+        appData.filters['sequence'] = '';
+        appData.filters['hasReprocess'] = '';
+        const seqF = document.getElementById('sequenceFilterSelect');
+        if (seqF) seqF.value = '';
+        const repF = document.getElementById('reprocessFilter');
+        if (repF) repF.value = '';
+        appData.pagination.currentPage = 1;
+        filterOrders();
+    });
+
+    document.getElementById('reprocessFilter')?.addEventListener('change', (e) => {
+        appData.filters['hasReprocess'] = e.target.value;
+        appData.pagination.currentPage = 1;
+        filterOrders();
+    });
+
+    document.getElementById('sequenceFilterSelect')?.addEventListener('change', (e) => {
+        appData.filters['sequence'] = e.target.value;
+        appData.pagination.currentPage = 1;
+        filterOrders();
+    });
+
+    document.getElementById('prevPageBtn')?.addEventListener('click', () => {
+        if (appData.pagination.currentPage > 1) {
+            appData.pagination.currentPage--;
+            filterOrders();
+        }
+    });
+
+    document.getElementById('nextPageBtn')?.addEventListener('click', () => {
+        const totalPages = Math.ceil(appData.pagination.totalFiltered / appData.pagination.pageSize);
+        if (appData.pagination.currentPage < totalPages) {
+            appData.pagination.currentPage++;
+            filterOrders();
+        }
+    });
+
+    // Generic sorting for Orders Table
+    document.querySelectorAll('#ordersTable th.sortable').forEach(th => {
+        th.addEventListener('click', () => {
+            const col = th.dataset.sort;
+            if (appData.sort.col === col) {
+                appData.sort.dir = appData.sort.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+                appData.sort.col = col;
+                appData.sort.dir = 'asc';
+            }
+            if (typeof updateSortIcons === 'function') updateSortIcons();
+            filterOrders();
+        });
+    });
+}
+if (yearFilter) {
+    // Remove existing listeners by cloning (if simplistic removal isn't possible) 
+    // or just add new one. Adding multiple is fine if logic is idempotent-ish.
+    // But better to execute logic cleanly.
+    yearFilter.addEventListener('change', () => {
+        console.log('Orders Year Filter Changed');
+        appData.pagination.currentPage = 1;
+        filterOrders();
+    });
+}
+
+document.getElementById('ordersMonthFilter')?.addEventListener('change', () => {
+    appData.pagination.currentPage = 1;
+    filterOrders();
+});
+
+// Familia Filter - cascades to subfamilia and articulo
+document.getElementById('familiaFilter')?.addEventListener('change', (e) => {
+    appData.filters['familia'] = e.target.value;
+    appData.filters['subfamilia'] = '';
+    appData.filters['articulo'] = '';
+    appData.filters['sequence'] = '';
+    appData.filters['hasReprocess'] = '';
+    const subF = document.getElementById('subfamiliaFilter');
+    if (subF) subF.value = '';
+    const artF = document.getElementById('articuloFilter');
+    if (artF) artF.value = '';
+    const seqF = document.getElementById('sequenceFilterSelect');
+    if (seqF) seqF.value = '';
+    const repF = document.getElementById('reprocessFilter');
+    if (repF) repF.value = '';
+
+    if (typeof updateSubfamiliaFilter === 'function') updateSubfamiliaFilter();
+    if (typeof updateArticuloFilterByFilters === 'function') updateArticuloFilterByFilters();
+
+    appData.pagination.currentPage = 1;
+    filterOrders();
+});
+
+// Subfamilia Filter - cascades to articulo
+document.getElementById('subfamiliaFilter')?.addEventListener('change', (e) => {
+    appData.filters['subfamilia'] = e.target.value;
+    appData.filters['articulo'] = '';
+    appData.filters['sequence'] = '';
+    appData.filters['hasReprocess'] = '';
+    const artF = document.getElementById('articuloFilter');
+    if (artF) artF.value = '';
+    const seqF = document.getElementById('sequenceFilterSelect');
+    if (seqF) seqF.value = '';
+    const repF = document.getElementById('reprocessFilter');
+    if (repF) repF.value = '';
+
+    if (typeof updateArticuloFilterByFilters === 'function') updateArticuloFilterByFilters();
+
+    appData.pagination.currentPage = 1;
+    filterOrders();
+});
+
+// Orden Filter (text input with debounce)
+let ordenTimeout;
+document.getElementById('ordenFilter')?.addEventListener('input', (e) => {
+    clearTimeout(ordenTimeout);
+    ordenTimeout = setTimeout(() => {
+        appData.filters['orden'] = e.target.value.trim();
+        appData.pagination.currentPage = 1;
+        filterOrders();
+    }, 300);
+});
+
+// Articulo Filter
+document.getElementById('articuloFilter')?.addEventListener('change', (e) => {
+    appData.filters['articulo'] = e.target.value;
+    appData.filters['sequence'] = '';
+    appData.filters['hasReprocess'] = '';
+    const seqF = document.getElementById('sequenceFilterSelect');
+    if (seqF) seqF.value = '';
+    const repF = document.getElementById('reprocessFilter');
+    if (repF) repF.value = '';
+    appData.pagination.currentPage = 1;
+    filterOrders();
+});
+
+document.getElementById('reprocessFilter')?.addEventListener('change', (e) => {
+    appData.filters['hasReprocess'] = e.target.value;
+    appData.pagination.currentPage = 1;
+    filterOrders();
+});
+
+document.getElementById('sequenceFilterSelect')?.addEventListener('change', (e) => {
+    appData.filters['sequence'] = e.target.value;
+    appData.pagination.currentPage = 1;
+    filterOrders();
+});
+
+document.getElementById('prevPageBtn')?.addEventListener('click', () => {
+    if (appData.pagination.currentPage > 1) {
+        appData.pagination.currentPage--;
+        filterOrders();
+    }
+});
+
+document.getElementById('nextPageBtn')?.addEventListener('click', () => {
+    const totalPages = Math.ceil(appData.pagination.totalFiltered / appData.pagination.pageSize);
+    if (appData.pagination.currentPage < totalPages) {
+        appData.pagination.currentPage++;
+        filterOrders();
+    }
+});
+
+// Generic sorting for Orders Table
+document.querySelectorAll('#ordersTable th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+        const col = th.dataset.sort;
+        if (appData.sort.col === col) {
+            appData.sort.dir = appData.sort.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+            appData.sort.col = col;
+            appData.sort.dir = 'asc';
+        }
+        if (typeof updateSortIcons === 'function') updateSortIcons();
+        filterOrders();
+    });
+});

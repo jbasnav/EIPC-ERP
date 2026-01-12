@@ -77,15 +77,16 @@ async function initializeDatabase(pool) {
 app.get('/api/users', async (req, res) => {
     try {
         const result = await sql.query`
-            SELECT id_usuario as id, username, nombre_completo 
-            FROM USUARIOS_APP 
-            WHERE activo = 1
-            ORDER BY nombre_completo
+            SELECT [username], [nombre_completo], [iniciales]
+            FROM [USUARIOS_APP] 
+            WHERE [activo] = 1
+            ORDER BY [nombre_completo]
         `;
 
         res.json({
             success: true,
-            data: result.recordset
+            users: result.recordset,
+            count: result.recordset.length
         });
     } catch (err) {
         console.error('Error en /api/users:', err);
@@ -99,24 +100,28 @@ app.get('/api/users', async (req, res) => {
 // Endpoint para login
 app.post('/api/login', async (req, res) => {
     try {
-        const { userId, password } = req.body;
+        const { userId, username, password } = req.body;
+        const loginUser = userId || username;  // Support both field names
 
-        const result = await sql.query`
-            SELECT id_usuario as id, username, nombre_completo, iniciales, rol
-            FROM USUARIOS_APP 
-            WHERE id_usuario = ${userId} AND password = ${password} AND activo = 1
-        `;
+        const request = new sql.Request();
+        request.input('username', sql.NVarChar, loginUser);
+        request.input('password', sql.NVarChar, password);
+
+        const result = await request.query(`
+            SELECT [username], [nombre_completo], [iniciales], [rol]
+            FROM [USUARIOS_APP] 
+            WHERE [username] = @username AND [password] = @password AND [activo] = 1
+        `);
 
         if (result.recordset.length > 0) {
             const user = result.recordset[0];
             res.json({
                 success: true,
                 user: {
-                    id: user.id,
-                    username: user.username,
-                    nombre_completo: user.nombre_completo,
-                    iniciales: user.iniciales,
-                    rol: user.rol || 'operario'  // Default rol if null
+                    id: user.username,
+                    name: user.nombre_completo,
+                    initials: user.iniciales,
+                    rol: user.rol || 'operario'
                 }
             });
         } else {
@@ -130,6 +135,161 @@ app.post('/api/login', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Error en el servidor'
+        });
+    }
+});
+
+// ============================================
+// ADMIN ENDPOINTS - User Management
+// ============================================
+
+// GET all users (admin only)
+app.get('/api/admin/users', async (req, res) => {
+    try {
+        const result = await sql.query`
+            SELECT [username], [nombre_completo], [iniciales], [password], [rol], [activo], [fecha_creacion]
+            FROM [USUARIOS_APP]
+            ORDER BY [nombre_completo]
+        `;
+
+        res.json({
+            success: true,
+            users: result.recordset,
+            count: result.recordset.length
+        });
+    } catch (err) {
+        console.error('Error en /api/admin/users:', err);
+        res.status(500).json({
+            success: false,
+            error: 'Error al obtener usuarios'
+        });
+    }
+});
+
+// CREATE new user (admin only)
+app.post('/api/admin/users', async (req, res) => {
+    try {
+        const { username, password, nombre_completo, iniciales, rol } = req.body;
+
+        if (!username || !password || !nombre_completo) {
+            return res.status(400).json({
+                success: false,
+                error: 'Username, password y nombre_completo son requeridos'
+            });
+        }
+
+        const request = new sql.Request();
+        request.input('username', sql.NVarChar, username);
+        request.input('password', sql.NVarChar, password);
+        request.input('nombre_completo', sql.NVarChar, nombre_completo);
+        request.input('iniciales', sql.NVarChar, iniciales || username.substring(0, 2).toUpperCase());
+        request.input('rol', sql.NVarChar, rol || 'operario');
+
+        await request.query(`
+            INSERT INTO [USUARIOS_APP] ([username], [password], [nombre_completo], [iniciales], [rol], [activo])
+            VALUES (@username, @password, @nombre_completo, @iniciales, @rol, 1)
+        `);
+
+        res.json({
+            success: true,
+            message: 'Usuario creado correctamente'
+        });
+    } catch (err) {
+        console.error('Error en POST /api/admin/users:', err);
+        if (err.message.includes('UNIQUE') || err.message.includes('duplicate')) {
+            res.status(400).json({
+                success: false,
+                error: 'El username ya existe'
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                error: 'Error al crear usuario'
+            });
+        }
+    }
+});
+
+// UPDATE user (admin only)
+app.put('/api/admin/users/:username', async (req, res) => {
+    try {
+        const { username } = req.params;
+        const { password, nombre_completo, iniciales, rol, activo } = req.body;
+
+        const request = new sql.Request();
+        request.input('username', sql.NVarChar, username);
+
+        let updateFields = [];
+
+        if (password) {
+            request.input('password', sql.NVarChar, password);
+            updateFields.push('[password] = @password');
+        }
+        if (nombre_completo) {
+            request.input('nombre_completo', sql.NVarChar, nombre_completo);
+            updateFields.push('[nombre_completo] = @nombre_completo');
+        }
+        if (iniciales) {
+            request.input('iniciales', sql.NVarChar, iniciales);
+            updateFields.push('[iniciales] = @iniciales');
+        }
+        if (rol) {
+            request.input('rol', sql.NVarChar, rol);
+            updateFields.push('[rol] = @rol');
+        }
+        if (activo !== undefined) {
+            request.input('activo', sql.Bit, activo ? 1 : 0);
+            updateFields.push('[activo] = @activo');
+        }
+
+        if (updateFields.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'No hay campos para actualizar'
+            });
+        }
+
+        await request.query(`
+            UPDATE [USUARIOS_APP]
+            SET ${updateFields.join(', ')}
+            WHERE [username] = @username
+        `);
+
+        res.json({
+            success: true,
+            message: 'Usuario actualizado correctamente'
+        });
+    } catch (err) {
+        console.error('Error en PUT /api/admin/users:', err);
+        res.status(500).json({
+            success: false,
+            error: 'Error al actualizar usuario'
+        });
+    }
+});
+
+// DELETE user (admin only)
+app.delete('/api/admin/users/:username', async (req, res) => {
+    try {
+        const { username } = req.params;
+
+        const request = new sql.Request();
+        request.input('username', sql.NVarChar, username);
+
+        await request.query(`
+            DELETE FROM [USUARIOS_APP]
+            WHERE [username] = @username
+        `);
+
+        res.json({
+            success: true,
+            message: 'Usuario eliminado correctamente'
+        });
+    } catch (err) {
+        console.error('Error en DELETE /api/admin/users:', err);
+        res.status(500).json({
+            success: false,
+            error: 'Error al eliminar usuario'
         });
     }
 });
@@ -1837,7 +1997,7 @@ app.post('/api/login', async (req, res) => {
         request.input('password', sql.NVarChar, password);
 
         const result = await request.query(`
-            SELECT [username], [nombre_completo], [iniciales]
+            SELECT [username], [nombre_completo], [iniciales], [rol]
             FROM [USUARIOS_APP]
             WHERE [username] = @username AND [password] = @password AND [activo] = 1
         `);
@@ -1849,7 +2009,8 @@ app.post('/api/login', async (req, res) => {
                 user: {
                     id: user.username,
                     name: user.nombre_completo,
-                    initials: user.iniciales
+                    initials: user.iniciales,
+                    rol: user.rol || 'usuario'
                 }
             });
         } else {
@@ -1975,9 +2136,12 @@ app.get('/api/ensayos/dashboard', async (req, res) => {
 app.get('/api/ensayos/rt', async (req, res) => {
     try {
         const { articulo, tratamiento, page = 1, pageSize = 50, sortBy, sortOrder } = req.query;
-        const offset = (parseInt(page) - 1) * parseInt(pageSize);
+        const pageNum = parseInt(page) || 1;
+        const pageSizeNum = parseInt(pageSize) || 50;
+        const offset = Math.max(0, (pageNum - 1) * pageSizeNum);
         const request = new sql.Request();
         let whereConditions = [];
+
 
         if (articulo) {
             request.input('articulo', sql.NVarChar, articulo);
@@ -2014,7 +2178,7 @@ app.get('/api/ensayos/rt', async (req, res) => {
         if (articulo) request2.input('articulo', sql.NVarChar, articulo);
         if (tratamiento) request2.input('tratamiento', sql.NVarChar, tratamiento);
         request2.input('offset', sql.Int, offset);
-        request2.input('pageSize', sql.Int, parseInt(pageSize));
+        request2.input('pageSize', sql.Int, pageSizeNum);
 
         const dataQuery = `
             SELECT T.Fecha, T.Referencia, T.Informe, T.Colada, T.Lingote, T.Tratamiento, ISNULL(C.Nombre, T.[Inspeccionado Por]) as Inspector
@@ -2029,9 +2193,9 @@ app.get('/api/ensayos/rt', async (req, res) => {
         res.json({
             data: result.recordset,
             total: total,
-            page: parseInt(page),
-            pageSize: parseInt(pageSize),
-            totalPages: Math.ceil(total / parseInt(pageSize)),
+            page: pageNum,
+            pageSize: pageSizeNum,
+            totalPages: Math.ceil(total / pageSizeNum),
             tratamientos: tratamientos
         });
     } catch (err) {
@@ -2044,9 +2208,12 @@ app.get('/api/ensayos/rt', async (req, res) => {
 app.get('/api/ensayos/vt', async (req, res) => {
     try {
         const { articulo, tratamiento, page = 1, pageSize = 50, sortBy, sortOrder } = req.query;
-        const offset = (parseInt(page) - 1) * parseInt(pageSize);
+        const pageNum = parseInt(page) || 1;
+        const pageSizeNum = parseInt(pageSize) || 50;
+        const offset = Math.max(0, (pageNum - 1) * pageSizeNum);
         const request = new sql.Request();
         let whereConditions = [];
+
 
         if (articulo) {
             request.input('articulo', sql.NVarChar, articulo);
@@ -2083,7 +2250,7 @@ app.get('/api/ensayos/vt', async (req, res) => {
         if (articulo) request2.input('articulo', sql.NVarChar, articulo);
         if (tratamiento) request2.input('tratamiento', sql.NVarChar, tratamiento);
         request2.input('offset', sql.Int, offset);
-        request2.input('pageSize', sql.Int, parseInt(pageSize));
+        request2.input('pageSize', sql.Int, pageSizeNum);
 
         const dataQuery = `
             SELECT T.Fecha, T.Referencia, T.Informe, T.Colada, T.Lingote, T.Tratamiento, ISNULL(C.Nombre, T.[Inspeccionado Por]) as Inspector
@@ -2098,9 +2265,9 @@ app.get('/api/ensayos/vt', async (req, res) => {
         res.json({
             data: result.recordset,
             total: total,
-            page: parseInt(page),
-            pageSize: parseInt(pageSize),
-            totalPages: Math.ceil(total / parseInt(pageSize)),
+            page: pageNum,
+            pageSize: pageSizeNum,
+            totalPages: Math.ceil(total / pageSizeNum),
             tratamientos: tratamientos
         });
     } catch (err) {
@@ -2113,9 +2280,12 @@ app.get('/api/ensayos/vt', async (req, res) => {
 app.get('/api/ensayos/pt', async (req, res) => {
     try {
         const { articulo, tratamiento, page = 1, pageSize = 50, sortBy, sortOrder } = req.query;
-        const offset = (parseInt(page) - 1) * parseInt(pageSize);
+        const pageNum = parseInt(page) || 1;
+        const pageSizeNum = parseInt(pageSize) || 50;
+        const offset = Math.max(0, (pageNum - 1) * pageSizeNum);
         const request = new sql.Request();
         let whereConditions = [];
+
 
         if (articulo) {
             request.input('articulo', sql.NVarChar, articulo);
@@ -2152,7 +2322,7 @@ app.get('/api/ensayos/pt', async (req, res) => {
         if (articulo) request2.input('articulo', sql.NVarChar, articulo);
         if (tratamiento) request2.input('tratamiento', sql.NVarChar, tratamiento);
         request2.input('offset', sql.Int, offset);
-        request2.input('pageSize', sql.Int, parseInt(pageSize));
+        request2.input('pageSize', sql.Int, pageSizeNum);
 
         const dataQuery = `
             SELECT T.Fecha, T.Referencia, T.Informe, T.Colada, T.Lingote, T.Tratamiento, ISNULL(C.Nombre, T.[Inspeccionado Por]) as Inspector
@@ -2167,9 +2337,9 @@ app.get('/api/ensayos/pt', async (req, res) => {
         res.json({
             data: result.recordset,
             total: total,
-            page: parseInt(page),
-            pageSize: parseInt(pageSize),
-            totalPages: Math.ceil(total / parseInt(pageSize)),
+            page: pageNum,
+            pageSize: pageSizeNum,
+            totalPages: Math.ceil(total / pageSizeNum),
             tratamientos: tratamientos
         });
     } catch (err) {
@@ -3927,23 +4097,34 @@ app.get('/api/compras/dashboard', async (req, res) => {
         request4.input('year', sql.Int, parseInt(year));
         let kpisQuery = `
         SELECT
-        SUM(FL.[importe parcial]) as comprasTotales,
+            SUM(FL.[importe parcial]) as comprasSeleccion,
             COUNT(DISTINCT FC.[numero factura]) as numFacturas,
             COUNT(DISTINCT FC.[codigo proveedor]) as numProveedores,
             AVG(FL.[importe parcial]) as ticketMedio
-        FROM[FACTURAS CABECERA]FC
-            INNER JOIN[FACTURAS LINEAS] FL ON FC.[numero factura] = FL.[numero factura]
-            LEFT JOIN[MAESTRO ARTICULOS] MA ON FL.[codigo material] = MA.[codigo articulo]
+        FROM [FACTURAS CABECERA] FC
+            INNER JOIN [FACTURAS LINEAS] FL ON FC.[numero factura] = FL.[numero factura]
+            LEFT JOIN [MAESTRO ARTICULOS] MA ON FL.[codigo material] = MA.[codigo articulo]
             WHERE YEAR(FC.[fecha factura]) = @year
             ${filterConditions}
         `;
         const kpisResult = await request4.query(kpisQuery);
 
+        // 4b. KPI Totales Año (Fixed, ignoring filters)
+        const request4b = new sql.Request();
+        request4b.input('year', sql.Int, parseInt(year));
+        let kpisFixedQuery = `
+        SELECT SUM(FL.[importe parcial]) as comprasTotalesSinFiltro
+        FROM [FACTURAS CABECERA] FC
+            INNER JOIN [FACTURAS LINEAS] FL ON FC.[numero factura] = FL.[numero factura]
+        WHERE YEAR(FC.[fecha factura]) = @year
+        `;
+        const kpisFixedResult = await request4b.query(kpisFixedQuery);
+
         // 5. Años disponibles
         const añosResult = await sql.query`
             SELECT DISTINCT YEAR([fecha factura]) as anio
-        FROM[FACTURAS CABECERA]
-        WHERE[fecha factura] IS NOT NULL
+        FROM [FACTURAS CABECERA]
+        WHERE [fecha factura] IS NOT NULL
             ORDER BY anio DESC
             `;
 
@@ -4012,6 +4193,7 @@ app.get('/api/compras/dashboard', async (req, res) => {
         const subfamiliasResult = await sql.query(subfamiliasQuery);
 
         const kpis = kpisResult.recordset[0] || {};
+        const kpisFixed = kpisFixedResult.recordset[0] || {};
 
         res.json({
             success: true,
@@ -4021,7 +4203,8 @@ app.get('/api/compras/dashboard', async (req, res) => {
             topTipos: topTiposResult.recordset,
             topFamilias: topFamiliasResult.recordset,
             kpis: {
-                comprasTotales: kpis.comprasTotales || 0,
+                comprasTotales: kpisFixed.comprasTotalesSinFiltro || 0,
+                comprasSeleccion: kpis.comprasSeleccion || 0,
                 numFacturas: kpis.numFacturas || 0,
                 numProveedores: kpis.numProveedores || 0,
                 ticketMedio: kpis.ticketMedio || 0

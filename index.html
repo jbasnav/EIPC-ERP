@@ -16,8 +16,9 @@
 
     <!-- Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=20260109">
     <link rel="icon" type="image/png" href="favicon.png">
 </head>
 
@@ -55,8 +56,16 @@
                 <button type="submit" class="login-btn">Iniciar sesión</button>
             </form>
 
+            <!-- Admin Panel Link (hidden by default, shown for admins after login redirect) -->
+            <div id="adminPanelLink" class="admin-link" style="display: none; margin-top: 1rem; text-align: center;">
+                <a href="#" onclick="showAdminPanel(); return false;"
+                    style="color: var(--primary); text-decoration: none; font-size: 0.875rem;">
+                    <i class="ri-settings-3-line"></i> Panel de Administración
+                </a>
+            </div>
+
             <div class="login-footer">
-                © 2025 Eibar Precision Casting
+                © 2026 Eibar Precision Casting
             </div>
         </div>
     </div>
@@ -316,10 +325,7 @@
                             <i class="ri-file-list-3-line"></i>
                             <span>Ordenes</span>
                         </a>
-                        <a href="#" class="nav-item" data-view="rechazos">
-                            <i class="ri-close-circle-line"></i>
-                            <span>Rechazos</span>
-                        </a>
+
                     </nav>
                 </div>
 
@@ -366,10 +372,6 @@
                             <i class="ri-truck-line"></i>
                             <span>OTD</span>
                         </a>
-                        <a href="#" class="nav-item" data-view="certificados-conformidad">
-                            <i class="ri-file-shield-line"></i>
-                            <span>Certificados Conformidad</span>
-                        </a>
                         <a href="#" class="nav-item" data-view="capa-charge">
                             <i class="ri-bar-chart-grouped-line"></i>
                             <span>Capa Charge</span>
@@ -377,6 +379,16 @@
                     </nav>
                 </div>
 
+            </div>
+
+            <!-- ADMIN Section - Hidden by default, shown only for admins -->
+            <div id="adminSection" class="nav-section"
+                style="display: none; margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                <a href="#" class="nav-item" data-view="admin"
+                    style="margin: 0 0.5rem; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border-radius: 8px;">
+                    <i class="ri-settings-3-line"></i>
+                    <span style="font-weight: 600;">ADMINISTRACIÓN</span>
+                </a>
             </div>
 
             <div class="sidebar-footer" style="text-align: center;">
@@ -412,9 +424,9 @@
                     <!-- User Profile -->
                     <div class="header-separator"></div>
                     <div class="user-profile" id="userProfile">
-                        <div class="user-avatar" id="userAvatar">JB</div>
-                        <span class="user-name" id="userName">Jon Basterrika</span>
-                        <button class="btn-icon" id="logoutBtn" title="Cerrar sesión">
+                        <div class="user-avatar" id="userAvatar">U</div>
+                        <span class="user-name" id="userName">Usuario</span>
+                        <button class="btn-icon" id="logoutBtn" title="Cerrar sesión" onclick="handleLogout()">
                             <i class="ri-logout-box-r-line"></i>
                         </button>
                     </div>
@@ -436,9 +448,7 @@
                             </div>
                             <div class="kpi-info">
                                 <h3>MAESTROS</h3>
-                                <p class="kpi-value">Contr
-
-                                    ol</p>
+                                <p class="kpi-value">Control</p>
                                 <span class="kpi-trend">Gestión de datos maestros</span>
                             </div>
                         </div>
@@ -532,11 +542,12 @@
             <!-- MAESTROS View - Dashboard Maestros -->
             <div id="maestrosView" class="view-section">
                 <div style="padding: 2rem;">
-                    <h1 style="margin: 0 0 0.5rem 0; color: var(--text-main); font-size: 2rem;">Dashboard Maestros</h1>
-                    <p style="color: var(--text-muted); margin: 0 0 2rem 0;">Gestión de datos maestros</p>
 
-                    <div class="kpi-grid">
-                        <div class="kpi-card">
+                    <div class="kpi-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+
+                        <!-- Articulos -->
+                        <div class="kpi-card" onclick="switchView('articulos')"
+                            style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
                             <div class="kpi-icon"
                                 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                                 <i class="ri-file-list-2-line" style="font-size: 2rem;"></i>
@@ -548,19 +559,23 @@
                             </div>
                         </div>
 
-                        <div class="kpi-card">
+                        <!-- Operarios -->
+                        <div class="kpi-card" onclick="switchView('operarios')"
+                            style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
                             <div class="kpi-icon"
                                 style="background: linear-gradient(135deg, #fa709a 0%, #fe9488 100%);">
                                 <i class="ri-team-line" style="font-size: 2rem;"></i>
                             </div>
                             <div class="kpi-info">
                                 <h3>OPERARIOS</h3>
-                                <p class="kpi-value">Activos</p>
-                                <span class="kpi-trend">Personal de producción</span>
+                                <p class="kpi-value">Personal</p>
+                                <span class="kpi-trend">Gestión de operarios</span>
                             </div>
                         </div>
 
-                        <div class="kpi-card">
+                        <!-- Operaciones -->
+                        <div class="kpi-card" onclick="switchView('operaciones')"
+                            style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
                             <div class="kpi-icon"
                                 style="background: linear-gradient(135deg, #30cfd0 0%, #c43ad6 100%);">
                                 <i class="ri-tools-line" style="font-size: 2rem;"></i>
@@ -568,11 +583,13 @@
                             <div class="kpi-info">
                                 <h3>OPERACIONES</h3>
                                 <p class="kpi-value">Procesos</p>
-                                <span class="kpi-trend">Operaciones productivas</span>
+                                <span class="kpi-trend">Catálogo de operaciones</span>
                             </div>
                         </div>
 
-                        <div class="kpi-card">
+                        <!-- Activos -->
+                        <div class="kpi-card" onclick="switchView('activos')"
+                            style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
                             <div class="kpi-icon"
                                 style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
                                 <i class="ri-device-line" style="font-size: 2rem;"></i>
@@ -580,9 +597,150 @@
                             <div class="kpi-info">
                                 <h3>ACTIVOS</h3>
                                 <p class="kpi-value">Equipos</p>
-                                <span class="kpi-trend">Maquinaria y equipos</span>
+                                <span class="kpi-trend">Maquinaria y recursos</span>
                             </div>
                         </div>
+
+                        <!-- Centros -->
+                        <div class="kpi-card" onclick="switchView('centros')"
+                            style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                            <div class="kpi-icon"
+                                style="background: linear-gradient(135deg, #0dcaf0 0%, #0d6efd 100%);">
+                                <i class="ri-building-line" style="font-size: 2rem;"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>CENTROS</h3>
+                                <p class="kpi-value">Plantas</p>
+                                <span class="kpi-trend">Centros de trabajo</span>
+                            </div>
+                        </div>
+
+                        <!-- Especificaciones -->
+                        <div class="kpi-card" onclick="switchView('especificaciones')"
+                            style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                            <div class="kpi-icon"
+                                style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%);">
+                                <i class="ri-file-text-line" style="font-size: 2rem;"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>ESPECIF.</h3>
+                                <p class="kpi-value">Docs</p>
+                                <span class="kpi-trend">Especificaciones técnicas</span>
+                            </div>
+                        </div>
+
+                        <!-- Proveedores -->
+                        <div class="kpi-card" onclick="switchView('proveedores')"
+                            style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                            <div class="kpi-icon"
+                                style="background: linear-gradient(135deg, #fd7e14 0%, #dc3545 100%);">
+                                <i class="ri-truck-line" style="font-size: 2rem;"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>PROVEEDORES</h3>
+                                <p class="kpi-value">Jom</p>
+                                <span class="kpi-trend">Gestión de proveedores</span>
+                            </div>
+                        </div>
+
+                        <!-- Clientes -->
+                        <div class="kpi-card" onclick="switchView('clientes')"
+                            style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                            <div class="kpi-icon"
+                                style="background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);">
+                                <i class="ri-user-star-line" style="font-size: 2rem;"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>CLIENTES</h3>
+                                <p class="kpi-value">Cartera</p>
+                                <span class="kpi-trend">Gestión de clientes</span>
+                            </div>
+                        </div>
+
+                        <!-- Códigos Rechazo -->
+                        <div class="kpi-card" onclick="switchView('codigos-rechazo')"
+                            style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                            <div class="kpi-icon"
+                                style="background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%);">
+                                <i class="ri-alert-line" style="font-size: 2rem;"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>COD. RECHAZO</h3>
+                                <p class="kpi-value">Defectos</p>
+                                <span class="kpi-trend">Catálogo de defectos</span>
+                            </div>
+                        </div>
+
+                        <!-- Incidencias -->
+                        <div class="kpi-card" onclick="switchView('incidencias')"
+                            style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                            <div class="kpi-icon"
+                                style="background: linear-gradient(135deg, #ff5722 0%, #e64a19 100%);">
+                                <i class="ri-error-warning-line" style="font-size: 2rem;"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>INCIDENCIAS</h3>
+                                <p class="kpi-value">Eventos</p>
+                                <span class="kpi-trend">Tipos de incidencias</span>
+                            </div>
+                        </div>
+
+                        <!-- Utillajes -->
+                        <div class="kpi-card" onclick="switchView('utillajes')"
+                            style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                            <div class="kpi-icon"
+                                style="background: linear-gradient(135deg, #607d8b 0%, #455a64 100%);">
+                                <i class="ri-tools-fill" style="font-size: 2rem;"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>UTILLAJES</h3>
+                                <p class="kpi-value">Moldes</p>
+                                <span class="kpi-trend">Gestión de utillajes</span>
+                            </div>
+                        </div>
+
+                        <!-- Ausencias -->
+                        <div class="kpi-card" onclick="switchView('ausencias')"
+                            style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                            <div class="kpi-icon"
+                                style="background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);">
+                                <i class="ri-calendar-close-line" style="font-size: 2rem;"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>AUSENCIAS</h3>
+                                <p class="kpi-value">Bajas</p>
+                                <span class="kpi-trend">Motivos de ausencia</span>
+                            </div>
+                        </div>
+
+                        <!-- Materiales -->
+                        <div class="kpi-card" onclick="switchView('materiales')"
+                            style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                            <div class="kpi-icon"
+                                style="background: linear-gradient(135deg, #795548 0%, #5d4037 100%);">
+                                <i class="ri-box-3-line" style="font-size: 2rem;"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>MATERIALES</h3>
+                                <p class="kpi-value">Stock</p>
+                                <span class="kpi-trend">Materias primas</span>
+                            </div>
+                        </div>
+
+                        <!-- Normas -->
+                        <div class="kpi-card" onclick="switchView('normas')"
+                            style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                            <div class="kpi-icon"
+                                style="background: linear-gradient(135deg, #20c997 0%, #198754 100%);">
+                                <i class="ri-book-2-line" style="font-size: 2rem;"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>NORMAS</h3>
+                                <p class="kpi-value">ISO/UNE</p>
+                                <span class="kpi-trend">Normativa técnica</span>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -596,6 +754,7 @@
                     <select id="dashboardYearFilter"
                         style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 120px; cursor: pointer;">
                         <option value="" selected>Todos</option>
+                        <option value="2026">2026</option>
                         <option value="2025">2025</option>
                         <option value="2024">2024</option>
                         <option value="2023">2023</option>
@@ -703,13 +862,92 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Treatment Load Table -->
+                <div class="table-card" style="margin-top: 2rem;">
+                    <div
+                        style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600;"><i class="ri-fire-line"
+                                style="margin-right: 0.5rem; color: var(--primary);"></i>Carga de Tratamientos</h3>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <label for="treatmentTypeFilter"
+                                    style="font-weight: 500; font-size: 0.875rem;">Tipo:</label>
+                                <select id="treatmentTypeFilter"
+                                    style="padding: 0.4rem 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); min-width: 100px;">
+                                    <option value="">Todos</option>
+                                    <option value="T4">T4</option>
+                                    <option value="T6">T6</option>
+                                </select>
+                            </div>
+                            <span id="treatmentLoadCount" style="font-size: 0.875rem; color: var(--text-muted);">0
+                                tratamientos</span>
+                        </div>
+                    </div>
+                    <div class="table-wrapper" style="max-height: 400px; overflow-y: auto;">
+                        <table id="treatmentLoadTable" style="min-width: 600px;">
+                            <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">
+                                <tr>
+                                    <th class="sortable-treatment" data-sort="numero"
+                                        style="width: 25%; cursor: pointer;">Nº Tratamiento <i
+                                            class="ri-arrow-up-down-line" style="font-size: 0.75rem; opacity: 0.5;"></i>
+                                    </th>
+                                    <th class="sortable-treatment" data-sort="tipo"
+                                        style="width: 20%; cursor: pointer;">Tipo <i class="ri-arrow-up-down-line"
+                                            style="font-size: 0.75rem; opacity: 0.5;"></i></th>
+                                    <th class="sortable-treatment" data-sort="fecha"
+                                        style="width: 15%; cursor: pointer;">Fecha <i class="ri-arrow-up-down-line"
+                                            style="font-size: 0.75rem; opacity: 0.5;"></i></th>
+                                    <th class="sortable-treatment" data-sort="ordenes"
+                                        style="width: 20%; cursor: pointer;">Órdenes <i class="ri-arrow-up-down-line"
+                                            style="font-size: 0.75rem; opacity: 0.5;"></i></th>
+                                    <th class="sortable-treatment" data-sort="piezas"
+                                        style="width: 20%; cursor: pointer;">Piezas <i class="ri-arrow-up-down-line"
+                                            style="font-size: 0.75rem; opacity: 0.5;"></i></th>
+                                </tr>
+                            </thead>
+                            <tbody id="treatmentLoadTableBody">
+                                <tr>
+                                    <td colspan="5" style="text-align: center; color: var(--text-muted);">Cargando...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <!-- Orders View -->
             <div id="ordersView" class="view-section">
-                <!-- Filter Bar Row 1 -->
+                <!-- Filter Bar Row 1: Year, Month, Familia, Subfamilia -->
                 <div class="filter-bar"
                     style="display: flex; gap: 1rem; margin-bottom: 0.5rem; padding: 1rem; background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm); flex-wrap: wrap; align-items: center;">
+                    <div class="filter-group" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <label for="ordersYearFilter" style="font-weight: 500;">Año:</label>
+                        <select id="ordersYearFilter"
+                            style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 100px;">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div class="filter-group" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <label for="ordersMonthFilter" style="font-weight: 500;">Mes:</label>
+                        <select id="ordersMonthFilter"
+                            style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 120px;">
+                            <option value="">Todos</option>
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
                     <div class="filter-group" style="display: flex; align-items: center; gap: 0.5rem;">
                         <label for="familiaFilter" style="font-weight: 500;">Familia:</label>
                         <select id="familiaFilter"
@@ -3869,38 +4107,57 @@
                     </div>
 
                     <!-- Detalle Albaranes Table -->
-                    <div class="chart-card"
-                        style="background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm); overflow: hidden;">
+                    <div class="table-card" style="margin-top: 1.5rem;">
                         <div
-                            style="padding: 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-                            <h3 style="margin: 0; color: var(--text-main); font-size: 1rem;">Detalle de Entregas</h3>
-                            <div id="otdPaginationInfo" style="font-size: 0.875rem; color: var(--text-muted);">Mostrando
-                                0 de 0</div>
+                            style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                            <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600;"><i class="ri-truck-line"
+                                    style="margin-right: 0.5rem; color: var(--primary);"></i>Detalle de Entregas</h3>
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <span id="otdPaginationInfo" style="font-size: 0.875rem; color: var(--text-muted);">
+                                    Mostrando 0 de 0
+                                </span>
+                            </div>
                         </div>
-                        <div class="table-wrapper" style="overflow-x: hidden; max-height: 400px; overflow-y: auto;">
-                            <table id="otdDetalleTable"
-                                style="width: 100%; border-collapse: collapse; font-size: 0.8rem; table-layout: fixed;">
-                                <thead style="position: sticky; top: 0; z-index: 1;">
-                                    <tr style="background: #0078d4; color: white;">
-                                        <th
-                                            style="padding: 0.5rem; text-align: center; border: 1px solid #005a9e; width: 3%; color: white; background: #0078d4;">
-                                            Nº</th>
-                                        <th style="padding: 0.5rem; text-align: left; border: 1px solid #005a9e; cursor: pointer; width: 8%; color: white; background: #0078d4;"
-                                            data-sort="numAlbaran">Nº Albarán ↕</th>
-                                        <th style="padding: 0.5rem; text-align: left; border: 1px solid #005a9e; cursor: pointer; width: 8%; color: white; background: #0078d4;"
-                                            data-sort="articulo">Artículo ↕</th>
-                                        <th style="padding: 0.5rem; text-align: right; border: 1px solid #005a9e; cursor: pointer; width: 8%; color: white; background: #0078d4;"
-                                            data-sort="cantidadPedida">Cant. Pedida ↕</th>
-                                        <th style="padding: 0.5rem; text-align: right; border: 1px solid #005a9e; cursor: pointer; width: 8%; color: white; background: #0078d4;"
-                                            data-sort="cantidadServida">Cant. Servida ↕</th>
-                                        <th style="padding: 0.5rem; text-align: left; border: 1px solid #005a9e; cursor: pointer; width: 9%; color: white; background: #0078d4;"
-                                            data-sort="fechaAlbaran">F.Albarán ↕</th>
-                                        <th style="padding: 0.5rem; text-align: left; border: 1px solid #005a9e; cursor: pointer; width: 9%; color: white; background: #0078d4;"
-                                            data-sort="fechaEntrega">F.Entrega ↕</th>
-                                        <th style="padding: 0.5rem; text-align: center; border: 1px solid #005a9e; cursor: pointer; width: 5%; color: white; background: #0078d4;"
-                                            data-sort="diferenciaDias">Días ↕</th>
-                                        <th style="padding: 0.5rem; text-align: left; border: 1px solid #005a9e; cursor: pointer; width: 42%; color: white; background: #0078d4;"
-                                            data-sort="cliente">Cliente ↕</th>
+                        <div class="table-wrapper" style="max-height: 400px; overflow-y: auto;">
+                            <table id="otdDetalleTable" style="width: 100%; min-width: 1000px;">
+                                <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">
+                                    <tr>
+                                        <th style="width: 40px; text-align: center;">Nº</th>
+                                        <th style="width: 100px; cursor: pointer;" data-sort="numAlbaran">
+                                            Nº Albarán <i class="ri-arrow-up-down-line"
+                                                style="font-size: 0.75rem; opacity: 0.5;"></i>
+                                        </th>
+                                        <th style="width: 120px; cursor: pointer;" data-sort="articulo">
+                                            Artículo <i class="ri-arrow-up-down-line"
+                                                style="font-size: 0.75rem; opacity: 0.5;"></i>
+                                        </th>
+                                        <th style="width: 100px; text-align: right; cursor: pointer;"
+                                            data-sort="cantidadPedida">
+                                            Pedida <i class="ri-arrow-up-down-line"
+                                                style="font-size: 0.75rem; opacity: 0.5;"></i>
+                                        </th>
+                                        <th style="width: 100px; text-align: right; cursor: pointer;"
+                                            data-sort="cantidadServida">
+                                            Servida <i class="ri-arrow-up-down-line"
+                                                style="font-size: 0.75rem; opacity: 0.5;"></i>
+                                        </th>
+                                        <th style="width: 100px; cursor: pointer;" data-sort="fechaAlbaran">
+                                            F.Albarán <i class="ri-arrow-up-down-line"
+                                                style="font-size: 0.75rem; opacity: 0.5;"></i>
+                                        </th>
+                                        <th style="width: 100px; cursor: pointer;" data-sort="fechaEntrega">
+                                            F.Entrega <i class="ri-arrow-up-down-line"
+                                                style="font-size: 0.75rem; opacity: 0.5;"></i>
+                                        </th>
+                                        <th style="width: 70px; text-align: center; cursor: pointer;"
+                                            data-sort="diferenciaDias">
+                                            Días <i class="ri-arrow-up-down-line"
+                                                style="font-size: 0.75rem; opacity: 0.5;"></i>
+                                        </th>
+                                        <th style="cursor: pointer;" data-sort="cliente">
+                                            Cliente <i class="ri-arrow-up-down-line"
+                                                style="font-size: 0.75rem; opacity: 0.5;"></i>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody id="otdDetalleBody">
@@ -3933,7 +4190,19 @@
                     <!-- Header con título y selector de año -->
                     <div
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-                        <!-- AI Insight Placeholder -->
+                        <!-- Year Filter (left) -->
+                        <div
+                            style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm);">
+                            <label for="comercialYearFilter"
+                                style="font-weight: 600; color: var(--text-main);">Año:</label>
+                            <select id="comercialYearFilter"
+                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 100px; cursor: pointer;">
+                                <option value="2026">2026</option>
+                                <option value="2025" selected>2025</option>
+                            </select>
+                        </div>
+
+                        <!-- AI Insight Placeholder (right) -->
                         <div
                             style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; background: rgba(88, 86, 214, 0.05); border: 1px solid rgba(88, 86, 214, 0.2); border-radius: 8px; flex: 1; max-width: 800px;">
                             <div
@@ -3944,16 +4213,6 @@
                                 <strong>Insight AI:</strong> Las ventas en 2025 muestran una tendencia positiva,
                                 impulsadas por el crecimiento del 15% en el sector "Automoción".
                             </span>
-                        </div>
-
-                        <div
-                            style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm);">
-                            <label for="comercialYearFilter"
-                                style="font-weight: 600; color: var(--text-main);">Año:</label>
-                            <select id="comercialYearFilter"
-                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 100px; cursor: pointer;">
-                                <option value="2025" selected>2025</option>
-                            </select>
                         </div>
                     </div>
 
@@ -4232,6 +4491,7 @@
                                 style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Año</label>
                             <select id="capacidadYearFilter"
                                 style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 100px;">
+                                <option value="2026">2026</option>
                                 <option value="2025" selected>2025</option>
                                 <option value="2024">2024</option>
                                 <option value="2023">2023</option>
@@ -4400,38 +4660,30 @@
                     <!-- Data Table -->
                     <div class="table-card">
                         <div class="card-header"
-                            style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-                            <h3 style="margin: 0;"><i class="ri-table-line"
+                            style="padding: 1rem 1.5rem 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                            <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600;"><i class="ri-table-line"
                                     style="margin-right: 0.5rem; color: var(--primary);"></i>Detalle por Sección</h3>
                         </div>
                         <div class="table-wrapper" style="overflow-x: auto;">
                             <table id="capacidadTable"
                                 style="width: 100%; min-width: 900px; border-collapse: collapse;">
-                                <thead>
-                                    <tr style="background: var(--primary); color: white;">
-                                        <th
-                                            style="padding: 0.75rem; text-align: left; border: 1px solid rgba(255,255,255,0.2);">
+                                <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">
+                                    <tr>
+                                        <th style="text-align: left;">
                                             Sección</th>
-                                        <th
-                                            style="padding: 0.75rem; text-align: center; border: 1px solid rgba(255,255,255,0.2); width: 80px;">
+                                        <th style="text-align: center; width: 80px;">
                                             Plantilla</th>
-                                        <th
-                                            style="padding: 0.75rem; text-align: center; border: 1px solid rgba(255,255,255,0.2); width: 80px;">
+                                        <th style="text-align: center; width: 80px;">
                                             OEE %</th>
-                                        <th
-                                            style="padding: 0.75rem; text-align: center; border: 1px solid rgba(255,255,255,0.2); width: 80px;">
+                                        <th style="text-align: center; width: 80px;">
                                             Absent. %</th>
-                                        <th
-                                            style="padding: 0.75rem; text-align: center; border: 1px solid rgba(255,255,255,0.2); width: 80px;">
+                                        <th style="text-align: center; width: 80px;">
                                             Rechazo %</th>
-                                        <th
-                                            style="padding: 0.75rem; text-align: right; border: 1px solid rgba(255,255,255,0.2); width: 120px;">
+                                        <th style="text-align: right; width: 120px;">
                                             Cap. Demostrada</th>
-                                        <th
-                                            style="padding: 0.75rem; text-align: right; border: 1px solid rgba(255,255,255,0.2); width: 120px;">
+                                        <th style="text-align: right; width: 120px;">
                                             Cap. Máxima</th>
-                                        <th
-                                            style="padding: 0.75rem; text-align: right; border: 1px solid rgba(255,255,255,0.2); width: 120px;">
+                                        <th style="text-align: right; width: 120px;">
                                             Cap. Instalación</th>
                                     </tr>
                                 </thead>
@@ -4458,7 +4710,19 @@
                     <!-- Header con título y selector de año -->
                     <div
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-                        <!-- AI Insight Placeholder -->
+                        <!-- Year Filter (left) -->
+                        <div
+                            style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm);">
+                            <label for="comprasYearFilter"
+                                style="font-weight: 600; color: var(--text-main);">Año:</label>
+                            <select id="comprasYearFilter"
+                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 100px; cursor: pointer;">
+                                <option value="2026">2026</option>
+                                <option value="2025" selected>2025</option>
+                            </select>
+                        </div>
+
+                        <!-- AI Insight Placeholder (right) -->
                         <div
                             style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; background: rgba(88, 86, 214, 0.05); border: 1px solid rgba(88, 86, 214, 0.2); border-radius: 8px; flex: 1; max-width: 800px;">
                             <div
@@ -4469,16 +4733,6 @@
                                 <strong>Insight AI:</strong> El volumen de compras en 2025 se mantiene estable,
                                 destacando un incremento del 12% en "Rodamientos" respecto al año pasado.
                             </span>
-                        </div>
-
-                        <div
-                            style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm);">
-                            <label for="comprasYearFilter"
-                                style="font-weight: 600; color: var(--text-main);">Año:</label>
-                            <select id="comprasYearFilter"
-                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 100px; cursor: pointer;">
-                                <option value="2025" selected>2025</option>
-                            </select>
                         </div>
                     </div>
 
@@ -4528,7 +4782,18 @@
                             <div class="kpi-info">
                                 <h3>Compras Totales</h3>
                                 <p class="kpi-value" id="comprasKpiTotal">0 €</p>
-                                <span class="kpi-trend">Importe total</span>
+                                <span class="kpi-trend">Importe total (sin filtrar)</span>
+                            </div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-icon"
+                                style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);">
+                                <i class="ri-filter-line" style="font-size: 2rem;"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>Total Selección</h3>
+                                <p class="kpi-value" id="comprasKpiSeleccion">0 €</p>
+                                <span class="kpi-trend">Tipo/Familia/Subfamilia seleccionados</span>
                             </div>
                         </div>
                         <div class="kpi-card">
@@ -4840,8 +5105,11 @@
                             <label for="oeeYearFilter" style="font-weight: 600; color: var(--text-main);">Año:</label>
                             <select id="oeeYearFilter"
                                 style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); cursor: pointer;">
+                                <option value="2026" selected>2026</option>
                                 <option value="2025">2025</option>
                                 <option value="2024">2024</option>
+                                <option value="2023">2023</option>
+                                <option value="2022">2022</option>
                             </select>
                         </div>
                         <!-- Month -->
@@ -5011,60 +5279,61 @@
                             style="margin-bottom: 1rem; color: var(--text-main); font-size: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
                             <i class="ri-settings-3-line"></i> OEE por Operación
                         </h3>
+                        <!-- Primera fila de encabezado FUERA del scroll -->
+                        <div
+                            style="background: #1e293b; color: white; border-radius: 8px 8px 0 0; display: grid; grid-template-columns: 510px 200px 270px 360px; min-width: 1340px;">
+                            <div
+                                style="padding: 0.75rem 1rem; text-align: center; font-weight: 700; border-right: 1px solid #334155;">
+                                OPERACIÓN</div>
+                            <div
+                                style="padding: 0.75rem 1rem; text-align: center; font-weight: 700; border-right: 1px solid #334155;">
+                                PIEZAS</div>
+                            <div
+                                style="padding: 0.75rem 1rem; text-align: center; font-weight: 700; border-right: 1px solid #334155;">
+                                HORAS</div>
+                            <div style="padding: 0.75rem 1rem; text-align: center; font-weight: 700;">OEE INDICADORES
+                            </div>
+                        </div>
+                        <!-- Contenedor con scroll que empieza en el segundo encabezado -->
                         <div class="table-container"
-                            style="max-height: 500px; overflow-y: auto; overflow-x: auto; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+                            style="max-height: 450px; overflow-y: auto; overflow-x: auto; background: var(--bg-card); border-radius: 0 0 8px 8px; border: 1px solid var(--border); border-top: none; box-shadow: var(--shadow-sm);">
                             <table class="data-table"
-                                style="width: 100%; border-collapse: collapse; min-width: 1400px;">
+                                style="width: 100%; border-collapse: collapse; min-width: 1340px;">
                                 <thead style="z-index: 10;">
-                                    <!-- Group headers row -->
-                                    <tr style="background: var(--bg-body);">
-                                        <th colspan="2"
-                                            style="position: sticky; top: 0; z-index: 20; padding: 0.75rem 1rem; text-align: center; font-weight: 700; color: var(--text-main); background: var(--bg-body); border-bottom: 2px solid var(--border);">
-                                            OPERACIÓN</th>
-                                        <th colspan="2"
-                                            style="position: sticky; top: 0; z-index: 20; padding: 0.75rem 1rem; text-align: center; font-weight: 700; color: var(--primary); background: var(--bg-body); border-bottom: 2px solid var(--border);">
-                                            PIEZAS</th>
-                                        <th colspan="3"
-                                            style="position: sticky; top: 0; z-index: 20; padding: 0.75rem 1rem; text-align: center; font-weight: 700; color: #fbbf24; background: var(--bg-body); border-bottom: 2px solid var(--border);">
-                                            HORAS</th>
-                                        <th colspan="4"
-                                            style="position: sticky; top: 0; z-index: 20; padding: 0.75rem 1rem; text-align: center; font-weight: 700; color: #8b5cf6; background: var(--bg-body); border-bottom: 2px solid var(--border);">
-                                            OEE INDICADORES</th>
-                                    </tr>
                                     <!-- Column headers row -->
-                                    <tr style="background: var(--bg-body);">
+                                    <tr style="background: #0f172a;">
                                         <th
-                                            style="position: sticky; top: 46px; z-index: 20; padding: 0.75rem 0.5rem; text-align: left; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border); white-space: nowrap; width: 60px; background: var(--bg-body);">
+                                            style="position: sticky; top: 0; z-index: 20; padding: 0.75rem 0.5rem; text-align: left; font-weight: 600; color: #64748b; border-bottom: 1px solid #334155; white-space: nowrap; width: 60px; background: #0f172a;">
                                             Código</th>
                                         <th
-                                            style="position: sticky; top: 46px; z-index: 20; padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border); width: 450px; max-width: 450px; background: var(--bg-body);">
+                                            style="position: sticky; top: 0; z-index: 20; padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: #64748b; border-bottom: 1px solid #334155; width: 450px; background: #0f172a;">
                                             Descripción</th>
                                         <th
-                                            style="position: sticky; top: 46px; z-index: 20; padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border); border-left: 2px solid rgba(67, 233, 123, 0.3); white-space: nowrap; width: 100px; background: var(--bg-body);">
+                                            style="position: sticky; top: 0; z-index: 20; padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: #64748b; border-bottom: 1px solid #334155; white-space: nowrap; width: 100px; background: #0f172a;">
                                             Pzas OK</th>
                                         <th
-                                            style="position: sticky; top: 46px; z-index: 20; padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border); white-space: nowrap; width: 100px; background: var(--bg-body);">
+                                            style="position: sticky; top: 0; z-index: 20; padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: #64748b; border-bottom: 1px solid #334155; white-space: nowrap; width: 100px; background: #0f172a;">
                                             Pzas RC</th>
                                         <th
-                                            style="position: sticky; top: 46px; z-index: 20; padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border); border-left: 2px solid rgba(251, 191, 36, 0.3); white-space: nowrap; width: 110px; background: var(--bg-body);">
+                                            style="position: sticky; top: 0; z-index: 20; padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: #64748b; border-bottom: 1px solid #334155; white-space: nowrap; width: 90px; background: #0f172a;">
                                             H.Teóricas</th>
                                         <th
-                                            style="position: sticky; top: 46px; z-index: 20; padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border); white-space: nowrap; width: 90px; background: var(--bg-body);">
+                                            style="position: sticky; top: 0; z-index: 20; padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: #64748b; border-bottom: 1px solid #334155; white-space: nowrap; width: 90px; background: #0f172a;">
                                             H.Disp.</th>
                                         <th
-                                            style="position: sticky; top: 46px; z-index: 20; padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border); white-space: nowrap; width: 90px; background: var(--bg-body);">
+                                            style="position: sticky; top: 0; z-index: 20; padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: #64748b; border-bottom: 1px solid #334155; white-space: nowrap; width: 90px; background: #0f172a;">
                                             H.Plan.</th>
                                         <th
-                                            style="position: sticky; top: 46px; z-index: 20; padding: 0.75rem 1rem; text-align: center; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border); border-left: 2px solid rgba(139, 92, 246, 0.3); white-space: nowrap; width: 90px; background: var(--bg-body);">
+                                            style="position: sticky; top: 0; z-index: 20; padding: 0.75rem 1rem; text-align: center; font-weight: 600; color: #64748b; border-bottom: 1px solid #334155; white-space: nowrap; width: 90px; background: #0f172a;">
                                             OEED</th>
                                         <th
-                                            style="position: sticky; top: 46px; z-index: 20; padding: 0.75rem 1rem; text-align: center; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border); white-space: nowrap; width: 90px; background: var(--bg-body);">
+                                            style="position: sticky; top: 0; z-index: 20; padding: 0.75rem 1rem; text-align: center; font-weight: 600; color: #64748b; border-bottom: 1px solid #334155; white-space: nowrap; width: 90px; background: #0f172a;">
                                             OEER</th>
                                         <th
-                                            style="position: sticky; top: 46px; z-index: 20; padding: 0.75rem 1rem; text-align: center; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border); white-space: nowrap; width: 90px; background: var(--bg-body);">
+                                            style="position: sticky; top: 0; z-index: 20; padding: 0.75rem 1rem; text-align: center; font-weight: 600; color: #64748b; border-bottom: 1px solid #334155; white-space: nowrap; width: 90px; background: #0f172a;">
                                             OEEQ</th>
                                         <th
-                                            style="position: sticky; top: 46px; z-index: 20; padding: 0.75rem 1rem; text-align: center; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border); white-space: nowrap; width: 90px; background: var(--bg-body);">
+                                            style="position: sticky; top: 0; z-index: 20; padding: 0.75rem 1rem; text-align: center; font-weight: 600; color: #64748b; border-bottom: 1px solid #334155; white-space: nowrap; width: 90px; background: #0f172a;">
                                             OEE</th>
                                     </tr>
                                 </thead>
@@ -5077,15 +5346,299 @@
                 </div> <!-- Close padding div -->
             </div> <!-- Close view section -->
 
-            <!-- Loading Overlay -->
-            <div class="loading-overlay" id="loadingOverlay">
-                <div class="spinner"></div>
-                <p>Cargando datos de SQL Server...</p>
-            </div>
+            <!-- Admin Panel View -->
+            <div id="adminView" class="view-section">
+                <div style="padding: 2rem;">
+                    <div style="padding: 2rem;">
+                        <div
+                            style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 1.5rem;">
+                            <button onclick="openUserModal()" class="btn-primary"
+                                style="padding: 0.75rem 1.5rem; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="ri-user-add-line"></i> Nuevo Usuario
+                            </button>
+                        </div>
+
+                        <!-- Users Table -->
+                        <div class="table-card"
+                            style="background: var(--bg-card); border-radius: 12px; overflow: hidden;">
+                            <div class="table-wrapper" style="overflow-x: auto;">
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background: var(--primary); color: white;">
+                                            <th style="padding: 1rem; text-align: left;">Username</th>
+                                            <th style="padding: 1rem; text-align: left;">Nombre Completo</th>
+                                            <th style="padding: 1rem; text-align: center;">Iniciales</th>
+                                            <th style="padding: 1rem; text-align: center;">Password</th>
+                                            <th style="padding: 1rem; text-align: center;">Rol</th>
+                                            <th style="padding: 1rem; text-align: center;">Activo</th>
+                                            <th style="padding: 1rem; text-align: center;">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adminUsersTableBody">
+                                        <!-- Populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Color Editor Section -->
+                    <div style="padding: 0 2rem 2rem 2rem;">
+                        <div class="table-card"
+                            style="background: var(--bg-card); border-radius: 12px; padding: 1.5rem;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                                <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600;">
+                                    <i class="ri-palette-line" style="margin-right: 0.5rem;"></i>Personalización de
+                                    Colores
+                                </h3>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button onclick="resetCustomColors()"
+                                        style="padding: 0.5rem 1rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-body); color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 0.25rem;">
+                                        <i class="ri-refresh-line"></i> Resetear
+                                    </button>
+                                    <button onclick="saveCustomColors()"
+                                        style="padding: 0.5rem 1rem; border: none; border-radius: 6px; background: var(--primary); color: white; cursor: pointer; display: flex; align-items: center; gap: 0.25rem;">
+                                        <i class="ri-save-line"></i> Guardar
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div
+                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+                                <!-- Primary Color -->
+                                <div class="color-picker-group"
+                                    style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <label style="font-weight: 500; font-size: 0.875rem;">Color Principal</label>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="color" id="colorPrimary" value="#4f46e5"
+                                            style="width: 40px; height: 40px; border: none; cursor: pointer; border-radius: 6px;">
+                                        <input type="text" id="colorPrimaryHex" value="#4f46e5"
+                                            style="flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-body); color: var(--text-main); font-family: monospace;">
+                                    </div>
+                                </div>
+
+                                <!-- Sidebar Background -->
+                                <div class="color-picker-group"
+                                    style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <label style="font-weight: 500; font-size: 0.875rem;">Fondo Sidebar</label>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="color" id="colorSidebar" value="#0f172a"
+                                            style="width: 40px; height: 40px; border: none; cursor: pointer; border-radius: 6px;">
+                                        <input type="text" id="colorSidebarHex" value="#0f172a"
+                                            style="flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-body); color: var(--text-main); font-family: monospace;">
+                                    </div>
+                                </div>
+
+                                <!-- Card Background -->
+                                <div class="color-picker-group"
+                                    style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <label style="font-weight: 500; font-size: 0.875rem;">Fondo Cards</label>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="color" id="colorCard" value="#ffffff"
+                                            style="width: 40px; height: 40px; border: none; cursor: pointer; border-radius: 6px;">
+                                        <input type="text" id="colorCardHex" value="#ffffff"
+                                            style="flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-body); color: var(--text-main); font-family: monospace;">
+                                    </div>
+                                </div>
+
+                                <!-- Body Background -->
+                                <div class="color-picker-group"
+                                    style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <label style="font-weight: 500; font-size: 0.875rem;">Fondo General</label>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="color" id="colorBody" value="#f8fafc"
+                                            style="width: 40px; height: 40px; border: none; cursor: pointer; border-radius: 6px;">
+                                        <input type="text" id="colorBodyHex" value="#f8fafc"
+                                            style="flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-body); color: var(--text-main); font-family: monospace;">
+                                    </div>
+                                </div>
+
+                                <!-- Text Main -->
+                                <div class="color-picker-group"
+                                    style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <label style="font-weight: 500; font-size: 0.875rem;">Texto Principal</label>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="color" id="colorText" value="#0f172a"
+                                            style="width: 40px; height: 40px; border: none; cursor: pointer; border-radius: 6px;">
+                                        <input type="text" id="colorTextHex" value="#0f172a"
+                                            style="flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-body); color: var(--text-main); font-family: monospace;">
+                                    </div>
+                                </div>
+
+                                <!-- Success Color -->
+                                <div class="color-picker-group"
+                                    style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <label style="font-weight: 500; font-size: 0.875rem;">Color Éxito</label>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="color" id="colorSuccess" value="#10b981"
+                                            style="width: 40px; height: 40px; border: none; cursor: pointer; border-radius: 6px;">
+                                        <input type="text" id="colorSuccessHex" value="#10b981"
+                                            style="flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-body); color: var(--text-main); font-family: monospace;">
+                                    </div>
+                                </div>
+
+                                <!-- Danger Color -->
+                                <div class="color-picker-group"
+                                    style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <label style="font-weight: 500; font-size: 0.875rem;">Color Peligro</label>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="color" id="colorDanger" value="#ef4444"
+                                            style="width: 40px; height: 40px; border: none; cursor: pointer; border-radius: 6px;">
+                                        <input type="text" id="colorDangerHex" value="#ef4444"
+                                            style="flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-body); color: var(--text-main); font-family: monospace;">
+                                    </div>
+                                </div>
+
+                                <!-- Warning Color -->
+                                <div class="color-picker-group"
+                                    style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <label style="font-weight: 500; font-size: 0.875rem;">Color Advertencia</label>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="color" id="colorWarning" value="#f59e0b"
+                                            style="width: 40px; height: 40px; border: none; cursor: pointer; border-radius: 6px;">
+                                        <input type="text" id="colorWarningHex" value="#f59e0b"
+                                            style="flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-body); color: var(--text-main); font-family: monospace;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-body); border-radius: 8px;">
+                                <p style="margin: 0; font-size: 0.875rem; color: var(--text-muted);">
+                                    <i class="ri-information-line" style="margin-right: 0.25rem;"></i>
+                                    Los colores se guardan en tu navegador y se aplicarán automáticamente al cargar la
+                                    aplicación.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Edit Modal -->
+                <div id="userModal"
+                    style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+                    <div
+                        style="background: var(--bg-card); border-radius: 16px; padding: 2rem; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <h2 id="userModalTitle" style="margin: 0; color: var(--text-main);">Nuevo Usuario</h2>
+                            <button onclick="closeUserModal()"
+                                style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">
+                                <i class="ri-close-line"></i>
+                            </button>
+                        </div>
+
+                        <form id="userForm" onsubmit="saveUser(event)">
+                            <input type="hidden" id="editingUsername">
+
+                            <div style="margin-bottom: 1rem;">
+                                <label
+                                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-main);">Username
+                                    *</label>
+                                <input type="text" id="userFormUsername" required
+                                    style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-main); color: var(--text-main);">
+                            </div>
+
+                            <div style="margin-bottom: 1rem;">
+                                <label
+                                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-main);">Nombre
+                                    Completo *</label>
+                                <input type="text" id="userFormNombre" required
+                                    style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-main); color: var(--text-main);">
+                            </div>
+
+                            <div style="margin-bottom: 1rem;">
+                                <label
+                                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-main);">Password
+                                    <span id="passwordRequired">*</span></label>
+                                <input type="password" id="userFormPassword"
+                                    style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-main); color: var(--text-main);">
+                                <small id="passwordHelp" style="color: var(--text-muted); display: none;">Dejar vacío
+                                    para
+                                    mantener la contraseña actual</small>
+                            </div>
+
+                            <div style="margin-bottom: 1rem;">
+                                <label
+                                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-main);">Iniciales</label>
+                                <input type="text" id="userFormIniciales" maxlength="5"
+                                    style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-main); color: var(--text-main);">
+                            </div>
+
+                            <div style="margin-bottom: 1rem;">
+                                <label
+                                    style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-main);">Rol</label>
+                                <select id="userFormRol"
+                                    style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-main); color: var(--text-main);">
+                                    <option value="operario">Operario</option>
+                                    <option value="supervisor">Supervisor</option>
+                                    <option value="admin">Administrador</option>
+                                </select>
+                            </div>
+
+                            <div style="margin-bottom: 1.5rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input type="checkbox" id="userFormActivo" checked
+                                        style="width: 18px; height: 18px;">
+                                    <span style="color: var(--text-main);">Usuario Activo</span>
+                                </label>
+                            </div>
+
+                            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                                <button type="button" onclick="closeUserModal()"
+                                    style="padding: 0.75rem 1.5rem; background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">
+                                    Cancelar
+                                </button>
+                                <button type="submit"
+                                    style="padding: 0.75rem 1.5rem; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer;">
+                                    Guardar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Loading Overlay -->
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="spinner"></div>
+                    <p>Cargando datos de SQL Server...</p>
+                </div>
         </main>
     </div>
 
-    <script src="app.js?v=202412231220"></script>
+    <!-- Toast Notifications Container -->
+    <div id="toastContainer"
+        style="position: fixed; top: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; pointer-events: none;">
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirmModal"
+        style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+        <div
+            style="background: var(--bg-card); border-radius: 16px; padding: 2rem; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.3);">
+            <div
+                style="width: 60px; height: 60px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                <i class="ri-delete-bin-line" style="font-size: 2rem; color: white;"></i>
+            </div>
+            <h3 id="confirmTitle" style="margin: 0 0 0.75rem; color: var(--text-main); font-size: 1.25rem;">¿Eliminar
+                usuario?</h3>
+            <p id="confirmMessage" style="margin: 0 0 1.5rem; color: var(--text-muted);">Esta acción no se puede
+                deshacer.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="closeConfirmModal(false)"
+                    style="padding: 0.75rem 1.5rem; background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 500;">
+                    Cancelar
+                </button>
+                <button onclick="closeConfirmModal(true)"
+                    style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                    Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=202412231302"></script>
 </body>
 
 </html>
