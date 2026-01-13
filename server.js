@@ -1662,7 +1662,7 @@ app.get('/api/equipos', async (req, res) => {
             whereConditions.push('C.[EMPRESA] = @empresa');
         }
         if (req.query.seccion) {
-            request.input('seccion', sql.Int, parseInt(req.query.seccion));
+            request.input('seccion', sql.NVarChar, req.query.seccion);
             whereConditions.push('C.[Seccion] = @seccion');
         }
         if (area) {

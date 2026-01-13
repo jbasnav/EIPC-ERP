@@ -2595,9 +2595,9 @@ async function fetchEquipos(page = 1) {
     // Search input removed as per request
     equiposState.filters.equipo = document.getElementById('equiposRefFilter')?.value || '';
     equiposState.filters.empresa = document.getElementById('equiposEmpresaFilter')?.value || '';
-    equiposState.filters.area = document.getElementById('equiposAreaFilter')?.value || '';
     equiposState.filters.seccion = document.getElementById('equiposSeccionFilter')?.value || '';
     equiposState.filters.subseccion = document.getElementById('equiposSubseccionFilter')?.value || '';
+    equiposState.filters.area = document.getElementById('equiposAreaFilter')?.value || '';
     equiposState.filters.entidad = document.getElementById('equiposEntidadFilter')?.value || '';
     equiposState.filters.retirado = document.getElementById('equiposRetiradoFilter')?.value || '';
 
@@ -2749,6 +2749,8 @@ function clearEquiposFilters() {
     document.getElementById('equiposEmpresaFilter').value = '';
     document.getElementById('equiposSeccionFilter').value = '';
     document.getElementById('equiposSubseccionFilter').value = '';
+    document.getElementById('equiposAreaFilter').value = '';
+    document.getElementById('equiposEntidadFilter').value = '';
     document.getElementById('equiposRetiradoFilter').value = '0'; // Default Active
     fetchEquipos(1);
 }
