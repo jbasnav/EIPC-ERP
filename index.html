@@ -748,7 +748,7 @@
             <!-- EQUIPOS View (Calibraciones) -->
             <div id="equiposView" class="view-section">
                 <div style="padding: 2rem;">
-                    <h1 style="margin: 0 0 2rem 0; color: var(--text-main); font-size: 2rem;">Gestión de Equipos</h1>
+                    <h1 style="margin: 0 0 2rem 0; color: var(--text-main); font-size: 2rem;">Calibraciones</h1>
 
                     <!-- KPI Grid -->
                     <div
@@ -800,8 +800,8 @@
                                 <i class="ri-layout-masonry-line" style="font-size: 2rem;"></i>
                             </div>
                             <div class="kpi-info">
-                                <h3>EQUIPOS POR AREA</h3>
-                                <div id="kpiAreaList" style="font-size: 0.85rem; color: var(--text-muted);">
+                                <h3>EQUIPOS POR SECCIÓN</h3>
+                                <div id="kpiSeccionList" style="font-size: 0.85rem; color: var(--text-muted);">
                                     Cargando...
                                 </div>
                             </div>
@@ -814,8 +814,8 @@
                                 <i class="ri-git-merge-line" style="font-size: 2rem;"></i>
                             </div>
                             <div class="kpi-info">
-                                <h3>EQUIPOS POR SUBAREA</h3>
-                                <div id="kpiSubareaList" style="font-size: 0.85rem; color: var(--text-muted);">
+                                <h3>EQUIPOS POR SUBSECCIÓN</h3>
+                                <div id="kpiSubseccionList" style="font-size: 0.85rem; color: var(--text-muted);">
                                     Cargando...
                                 </div>
                             </div>
@@ -879,11 +879,9 @@
                                                 Empresa <i class="ri-arrow-up-down-line sort-icon"
                                                     style="font-size: 0.8rem;"></i>
                                             </th>
-                                            <th class="sortable" data-sort="AREA"
+                                            <th class="sortable" data-sort="Seccion"
                                                 style="padding: 0.75rem 0.5rem; cursor: pointer; width: 20%;">
-                                                Area <i class="ri-arrow-up-down-line sort-icon"
-                                                    style="font-size: 0.8rem;"></i>
-                                            </th>
+                                                Sección <i class="ri-arrow-up-down-line sort-icon" </th>
                                         </tr>
                                     </thead>
                                     <tbody id="expiredCalibrationsTableBody">
@@ -951,11 +949,9 @@
                                                 Empresa <i class="ri-arrow-up-down-line sort-icon"
                                                     style="font-size: 0.8rem;"></i>
                                             </th>
-                                            <th class="sortable" data-sort="AREA"
+                                            <th class="sortable" data-sort="Seccion"
                                                 style="padding: 0.75rem 0.5rem; cursor: pointer; width: 20%;">
-                                                Area <i class="ri-arrow-up-down-line sort-icon"
-                                                    style="font-size: 0.8rem;"></i>
-                                            </th>
+                                                Sección <i class="ri-arrow-up-down-line sort-icon" </th>
                                         </tr>
                                     </thead>
                                     <tbody id="upcomingCalibrationsTableBody">
@@ -978,14 +974,14 @@
                             </select>
                         </div>
                         <div class="filter-group" style="flex: 1; min-width: 200px;">
-                            <label class="filter-label">Area</label>
-                            <select id="equiposAreaFilter" class="filter-select">
+                            <label class="filter-label">Sección</label>
+                            <select id="equiposSeccionFilter" class="filter-select">
                                 <option value="">Todas</option>
                             </select>
                         </div>
                         <div class="filter-group" style="flex: 1; min-width: 200px;">
-                            <label class="filter-label">Subarea</label>
-                            <select id="equiposSubareaFilter" class="filter-select">
+                            <label class="filter-label">Subsección</label>
+                            <select id="equiposSubseccionFilter" class="filter-select">
                                 <option value="">Todas</option>
                             </select>
                         </div>
@@ -1040,11 +1036,11 @@
                                     <th data-sort="EMPRESA" class="sortable"
                                         style="width: 10%; padding: 0.75rem 0.5rem; cursor: pointer;">EMPRESA <i
                                             class="ri-arrow-up-down-line sort-icon"></i></th>
-                                    <th data-sort="AREA" class="sortable"
-                                        style="width: 10%; padding: 0.75rem 0.5rem; cursor: pointer;">AREA <i
+                                    <th data-sort="Seccion" class="sortable"
+                                        style="width: 10%; padding: 0.75rem 0.5rem; cursor: pointer;">SECCIÓN <i
                                             class="ri-arrow-up-down-line sort-icon"></i></th>
-                                    <th data-sort="Subarea" class="sortable"
-                                        style="width: 10%; padding: 0.75rem 0.5rem; cursor: pointer;">SUBAREA <i
+                                    <th data-sort="Subseccion" class="sortable"
+                                        style="width: 10%; padding: 0.75rem 0.5rem; cursor: pointer;">SUBSECCIÓN <i
                                             class="ri-arrow-up-down-line sort-icon"></i></th>
                                     <th style="width: 8%; padding: 0.75rem 0.5rem;">INT/EXT</th>
                                     <th style="width: 10%; padding: 0.75rem 0.5rem;">ENTIDAD</th>

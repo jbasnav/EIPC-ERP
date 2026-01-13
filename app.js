@@ -315,7 +315,7 @@ async function switchView(viewName) {
             } else if (viewName === 'equipos') {
                 headerTitleContainer.innerHTML = `
                     <h1 id="pageTitle" style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-                        <i class="ri-scales-3-line" style="color: #4f46e5; margin-right: 0.5rem;"></i>Calibraciones
+                        Calibraciones
                     </h1>
                     <p id="pageSubtitle" style="margin: 0; color: #64748b; font-size: 0.875rem; display: none;">
                     </p>
@@ -2561,8 +2561,8 @@ const equiposState = {
     filters: {
         equipo: '',
         empresa: '',
-        area: '',
-        subarea: ''
+        seccion: '',
+        subseccion: ''
     }
 };
 
@@ -2595,8 +2595,8 @@ async function fetchEquipos(page = 1) {
     // Search input removed as per request
     equiposState.filters.equipo = '';
     equiposState.filters.empresa = document.getElementById('equiposEmpresaFilter')?.value || '';
-    equiposState.filters.area = document.getElementById('equiposAreaFilter')?.value || '';
-    equiposState.filters.subarea = document.getElementById('equiposSubareaFilter')?.value || '';
+    equiposState.filters.seccion = document.getElementById('equiposSeccionFilter')?.value || '';
+    equiposState.filters.subseccion = document.getElementById('equiposSubseccionFilter')?.value || '';
     equiposState.filters.retirado = document.getElementById('equiposRetiradoFilter')?.value || '';
 
     const tbody = document.getElementById('equiposTableBody');
@@ -2617,8 +2617,8 @@ async function fetchEquipos(page = 1) {
         const params = new URLSearchParams();
         if (equiposState.filters.equipo) params.append('equipo', equiposState.filters.equipo);
         if (equiposState.filters.empresa) params.append('empresa', equiposState.filters.empresa);
-        if (equiposState.filters.area) params.append('area', equiposState.filters.area);
-        if (equiposState.filters.subarea) params.append('subarea', equiposState.filters.subarea);
+        if (equiposState.filters.seccion) params.append('seccion', equiposState.filters.seccion);
+        if (equiposState.filters.subseccion) params.append('subseccion', equiposState.filters.subseccion);
         if (equiposState.filters.retirado) params.append('retirado', equiposState.filters.retirado);
 
         params.append('page', equiposState.page);
@@ -2668,30 +2668,30 @@ async function fetchEquipos(page = 1) {
                 kpiEmpresaList.textContent = 'Sin datos';
             }
 
-            // Update Area List KPI (Show all)
-            const kpiAreaList = document.getElementById('kpiAreaList');
-            if (kpiAreaList && Array.isArray(data.kpiArea)) {
-                kpiAreaList.innerHTML = data.kpiArea
+            // Update Seccion List KPI (Show all)
+            const kpiSeccionList = document.getElementById('kpiSeccionList');
+            if (kpiSeccionList && Array.isArray(data.kpiSeccion)) {
+                kpiSeccionList.innerHTML = data.kpiSeccion
                     .map(item => `<div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size: 0.8rem;">
-                        <span style="color: var(--text-main);">${item.AREA || 'Otras'}</span>
+                        <span style="color: var(--text-main);">${item.Seccion || 'Otras'}</span>
                         <strong style="color: var(--primary);">${item.count}</strong>
                     </div>`)
                     .join('');
-            } else if (kpiAreaList) {
-                kpiAreaList.textContent = 'Sin datos';
+            } else if (kpiSeccionList) {
+                kpiSeccionList.textContent = 'Sin datos';
             }
 
-            // Update Subarea List KPI (Show all)
-            const kpiSubareaList = document.getElementById('kpiSubareaList');
-            if (kpiSubareaList && Array.isArray(data.kpiSubarea)) {
-                kpiSubareaList.innerHTML = data.kpiSubarea
+            // Update Subseccion List KPI (Show all)
+            const kpiSubseccionList = document.getElementById('kpiSubseccionList');
+            if (kpiSubseccionList && Array.isArray(data.kpiSubseccion)) {
+                kpiSubseccionList.innerHTML = data.kpiSubseccion
                     .map(item => `<div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size: 0.8rem;">
-                        <span style="color: var(--text-main);">${item.Subarea || 'Otras'}</span>
+                        <span style="color: var(--text-main);">${item.Subseccion || 'Otras'}</span>
                         <strong style="color: var(--primary);">${item.count}</strong>
                     </div>`)
                     .join('');
-            } else if (kpiSubareaList) {
-                kpiSubareaList.textContent = 'Sin datos';
+            } else if (kpiSubseccionList) {
+                kpiSubseccionList.textContent = 'Sin datos';
             }
 
             // Fetch Upcoming and Expired Calibrations
@@ -2743,8 +2743,8 @@ function updateEquiposPaginationUI() {
 
 function clearEquiposFilters() {
     document.getElementById('equiposEmpresaFilter').value = '';
-    document.getElementById('equiposAreaFilter').value = '';
-    document.getElementById('equiposSubareaFilter').value = '';
+    document.getElementById('equiposSeccionFilter').value = '';
+    document.getElementById('equiposSubseccionFilter').value = '';
     document.getElementById('equiposRetiradoFilter').value = '0'; // Default Active
     fetchEquipos(1);
 }
@@ -2752,8 +2752,8 @@ function clearEquiposFilters() {
 // Populate Filters (Dependent Logic)
 function populateEquiposFilters(data) {
     const empresaSelect = document.getElementById('equiposEmpresaFilter');
-    const areaSelect = document.getElementById('equiposAreaFilter');
-    const subareaSelect = document.getElementById('equiposSubareaFilter');
+    const seccionSelect = document.getElementById('equiposSeccionFilter');
+    const subseccionSelect = document.getElementById('equiposSubseccionFilter');
 
     // Helper to populate select keeping current value if valid
     const populate = (select, items, placeholder = 'Todas') => {
@@ -2788,8 +2788,8 @@ function populateEquiposFilters(data) {
     // i.e. If I select Empresa="A", the backend returns only Areas belonging to "A".
 
     if (data.empresas) populate(empresaSelect, data.empresas);
-    if (data.areas) populate(areaSelect, data.areas);
-    if (data.subareas) populate(subareaSelect, data.subareas);
+    if (data.secciones) populate(seccionSelect, data.secciones);
+    if (data.subsecciones) populate(subseccionSelect, data.subsecciones);
 }
 
 // Render Equipos Table
@@ -2834,8 +2834,8 @@ function renderEquiposTable(equipos) {
                 <span style="${getStatusStyle(eq['proxima'])}" title="${eq['proxima'] ? new Date(eq['proxima']).toLocaleDateString() : ''}"></span>
             </td>
             <td>${eq['EMPRESA'] || '-'}</td>
-            <td>${eq['AREA'] || '-'}</td>
-            <td>${eq['Subarea'] || '-'}</td>
+            <td>${eq['Seccion'] || '-'}</td>
+            <td>${eq['Subseccion'] || '-'}</td>
             <td>${eq['INTERNO/EXTERNO'] || '-'}</td>
             <td>${eq['ORGANISMO EXTERIOR DE CALIBRACION'] || '-'}</td>
             <td>${eq['PERIODICIDAD'] || '-'}</td>
@@ -2919,8 +2919,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') fetchEquipos(1);
     });
     document.getElementById('equiposEmpresaFilter')?.addEventListener('change', () => fetchEquipos(1));
-    document.getElementById('equiposAreaFilter')?.addEventListener('change', () => fetchEquipos(1));
-    document.getElementById('equiposSubareaFilter')?.addEventListener('change', () => fetchEquipos(1));
+    document.getElementById('equiposSeccionFilter')?.addEventListener('change', () => fetchEquipos(1));
+    document.getElementById('equiposSubseccionFilter')?.addEventListener('change', () => fetchEquipos(1));
     document.getElementById('equiposRetiradoFilter')?.addEventListener('change', () => fetchEquipos(1));
 
     // Sort listeners
@@ -2988,7 +2988,7 @@ async function fetchCaducadasCalibraciones() {
                             ${eq.EMPRESA || '-'}
                         </td>
                         <td style="padding: 0.75rem 0.5rem; color: var(--text-muted);">
-                             ${eq.AREA || '-'}
+                             ${eq.Seccion || '-'}
                         </td>
                     </tr>
                     `).join('');
@@ -4221,7 +4221,7 @@ function switchView(viewName) {
         'operarios': 'Gesti\u00F3n de Operarios',
         'operaciones': 'Gesti\u00F3n de Operaciones',
         'activos': 'Gesti\u00F3n de Activos',
-        'equipos': '',
+        'equipos': 'Calibraciones',
         'ensayos-vt': 'Informes VT',
         'ensayos-pt': 'Informes PT',
         'ensayos-rt': 'Informes RT',
@@ -12587,7 +12587,7 @@ function renderProximasTablePage() {
                 <strong onclick="openEquipoModal('${item['Nº REF']}')" style="cursor: pointer; text-decoration: underline; color: var(--primary);">${item['Nº REF'] || '-'}</strong>
             </td>
             <td style="padding: 0.5rem; color: var(--text-muted); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.EMPRESA || '-'}</td>
-            <td style="padding: 0.5rem; color: var(--text-muted); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.AREA || '-'}</td>
+            <td style="padding: 0.5rem; color: var(--text-muted); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.Seccion || '-'}</td>
         </tr>
     `).join('');
 }
@@ -12640,7 +12640,7 @@ async function openEquipoModal(id) {
             document.getElementById('em-nombre').textContent = eq['NOMBRE INSTRUMENTO'];
             document.getElementById('em-marca').textContent = `${eq['MARCA/FABRICANTE'] || '-'} / ${eq['MODELO/TIPO'] || '-'}`;
             document.getElementById('em-serie').textContent = eq['Nº DE SERIE'] || '-';
-            document.getElementById('em-ubicacion').textContent = `${eq.EMPRESA || '-'} - ${eq.AREA || '-'}`;
+            document.getElementById('em-ubicacion').textContent = `${eq.EMPRESA || '-'} - ${eq.Seccion || '-'}`;
 
             const badge = document.getElementById('em-estado');
             if (eq.RETIRADO === -1 || eq['Fecha Retirada']) {

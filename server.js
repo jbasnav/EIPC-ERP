@@ -1636,13 +1636,13 @@ app.get('/api/equipos', async (req, res) => {
         // 1. Get Distinct values for filters (Empresa, Area, Subarea)
         const filtersQuery = `
             SELECT DISTINCT [EMPRESA] FROM [CALIBRACIONES] WHERE [EMPRESA] IS NOT NULL AND [EMPRESA] <> '' ORDER BY [EMPRESA];
-            SELECT DISTINCT [AREA] FROM [CALIBRACIONES] WHERE [AREA] IS NOT NULL AND [AREA] <> '' ORDER BY [AREA];
-            SELECT DISTINCT [Subarea] FROM [CALIBRACIONES] WHERE [Subarea] IS NOT NULL AND [Subarea] <> '' ORDER BY [Subarea];
+            SELECT DISTINCT [Seccion] FROM [CALIBRACIONES] WHERE [Seccion] IS NOT NULL ORDER BY [Seccion];
+            SELECT DISTINCT [Subseccion] FROM [CALIBRACIONES] WHERE [Subseccion] IS NOT NULL ORDER BY [Subseccion];
         `;
         const filtersResult = await pool.request().query(filtersQuery);
         const empresas = filtersResult.recordsets[0].map(r => r.EMPRESA);
-        const areas = filtersResult.recordsets[1].map(r => r.AREA);
-        const subareas = filtersResult.recordsets[2].map(r => r.Subarea);
+        const secciones = filtersResult.recordsets[1].map(r => r.Seccion);
+        const subsecciones = filtersResult.recordsets[2].map(r => r.Subseccion);
 
         // 2. Main Data Query Setup
         const request = pool.request();
@@ -1657,13 +1657,13 @@ app.get('/api/equipos', async (req, res) => {
             request.input('empresa', sql.NVarChar, empresa);
             whereConditions.push('C.[EMPRESA] = @empresa');
         }
-        if (area) {
-            request.input('area', sql.NVarChar, area);
-            whereConditions.push('C.[AREA] = @area');
+        if (req.query.seccion) {
+            request.input('seccion', sql.Int, parseInt(req.query.seccion));
+            whereConditions.push('C.[Seccion] = @seccion');
         }
-        if (subarea) {
-            request.input('subarea', sql.NVarChar, subarea);
-            whereConditions.push('C.[Subarea] = @subarea');
+        if (req.query.subseccion) {
+            request.input('subseccion', sql.Int, parseInt(req.query.subseccion));
+            whereConditions.push('C.[Subseccion] = @subseccion');
         }
 
         // Retirado filter
@@ -1684,8 +1684,8 @@ app.get('/api/equipos', async (req, res) => {
             'Nº REF': 'C.[Nº REF]',
             'NOMBRE INSTRUMENTO': 'C.[NOMBRE INSTRUMENTO]',
             'EMPRESA': 'C.[EMPRESA]',
-            'AREA': 'C.[AREA]',
-            'Subarea': 'C.[Subarea]',
+            'Seccion': 'C.[Seccion]',
+            'Subseccion': 'C.[Subseccion]',
             'NºEC': 'C.[NºEC]',
             'PERIODICIDAD': 'C.[PERIODICIDAD]',
             'ORGANISMO': 'C.[ORGANISMO EXTERIOR DE CALIBRACION]',
@@ -1724,22 +1724,21 @@ app.get('/api/equipos', async (req, res) => {
         const empresaCountResult = await request.query(empresaCountQuery);
         const empresaCounts = empresaCountResult.recordset;
 
-        // KPI: Count by Area
-        // KPI: Count by Area
-        const areaCountQuery = `SELECT C.[AREA], COUNT(DISTINCT C.[Nº REF]) as count FROM [CALIBRACIONES] C GROUP BY C.[AREA] ORDER BY count DESC`;
-        const areaCountResult = await request.query(areaCountQuery);
-        const areaCounts = areaCountResult.recordset;
+        // KPI: Count by Seccion
+        const seccionCountQuery = `SELECT C.[Seccion], COUNT(DISTINCT C.[Nº REF]) as count FROM [CALIBRACIONES] C GROUP BY C.[Seccion] ORDER BY count DESC`;
+        const seccionCountResult = await request.query(seccionCountQuery);
+        const seccionCounts = seccionCountResult.recordset;
 
-        // KPI: Count by Subarea
-        const subareaCountQuery = `SELECT C.[Subarea], COUNT(DISTINCT C.[Nº REF]) as count FROM [CALIBRACIONES] C WHERE C.[Subarea] IS NOT NULL AND C.[Subarea] <> '' GROUP BY C.[Subarea] ORDER BY count DESC`;
-        const subareaCountResult = await request.query(subareaCountQuery);
-        const subareaCounts = subareaCountResult.recordset;
+        // KPI: Count by Subseccion
+        const subseccionCountQuery = `SELECT C.[Subseccion], COUNT(DISTINCT C.[Nº REF]) as count FROM [CALIBRACIONES] C WHERE C.[Subseccion] IS NOT NULL GROUP BY C.[Subseccion] ORDER BY count DESC`;
+        const subseccionCountResult = await request.query(subseccionCountQuery);
+        const subseccionCounts = subseccionCountResult.recordset;
 
         // Data Query
         const query = `
             SELECT
-                C.EMPRESA,
-                C.AREA,
+                C.Seccion,
+                C.Subseccion,
                 C.[Nº REF],
                 MAX(CASE 
                     WHEN P.tipo IS NULL THEN NULL
@@ -1768,7 +1767,7 @@ app.get('/api/equipos', async (req, res) => {
                 C.[CRITERIO DE ACEPTACION Y RECHAZO],
                 CASE WHEN ISNULL(C.PERIODICIDAD, 'X') = 'INICIAL' THEN -1 ELSE 0 END AS inicial,
                 C.[NºEC],
-                C.[Subarea],
+                C.[Subseccion],
                 C.[Fecha Retirada],
                 C.[Fecha Apertura/Instalacion]
             FROM [CALIBRACIONES] C
@@ -1776,14 +1775,14 @@ app.get('/api/equipos', async (req, res) => {
             LEFT JOIN [PERIODOS] P ON C.PERIODICIDAD = P.periodo
             ${whereClause}
             GROUP BY 
-                C.EMPRESA, C.AREA, C.[Nº REF], C.[NOMBRE INSTRUMENTO], 
+                C.EMPRESA, C.Seccion, C.Subseccion, C.[Nº REF], C.[NOMBRE INSTRUMENTO], 
                 C.[ORGANISMO EXTERIOR DE CALIBRACION], C.FAMILIA, C.PERIODICIDAD, 
                 C.[INTERNO/EXTERNO], C.[CAMPO MEDIDA], C.OBSERVACIONES, 
                 C.[MARCA/FABRICANTE], C.[MODELO/TIPO], C.[Nº DE SERIE], 
                 C.[DIVISION DE ESCALA], C.[FECHA DE RECEPCION], C.[PROCEDIMIENTO CALIBRACION], 
                 C.[CRITERIO DE ACEPTACION Y RECHAZO], 
                 CASE WHEN ISNULL(C.PERIODICIDAD, 'X') = 'INICIAL' THEN -1 ELSE 0 END, 
-                C.[NºEC], C.[Subarea], C.[Fecha Retirada], C.[Fecha Apertura/Instalacion]
+                C.[NºEC], C.[Fecha Retirada], C.[Fecha Apertura/Instalacion]
             ORDER BY ${sortCol} ${sortDir}
             OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
         `;
@@ -1803,15 +1802,14 @@ app.get('/api/equipos', async (req, res) => {
             totalActive: totalActive,
             totalInactive: totalInactive,
             kpiEmpresa: empresaCounts,
-            kpiEmpresa: empresaCounts,
-            kpiArea: areaCounts,
-            kpiSubarea: subareaCounts,
+            kpiSeccion: seccionCounts,
+            kpiSubseccion: subseccionCounts,
             page: parseInt(page),
             pageSize: parseInt(pageSize),
             totalPages: Math.ceil(total / parseInt(pageSize)),
             empresas: empresas,
-            areas: areas,
-            subareas: subareas,
+            secciones: secciones,
+            subsecciones: subsecciones,
             timestamp: new Date()
         });
 
