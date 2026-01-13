@@ -1621,7 +1621,7 @@ app.get('/api/centros', async (req, res) => {
 // Endpoint para obtener equipos (CALIBRACIONES from Fw_Comunes database)
 app.get('/api/equipos', async (req, res) => {
     try {
-        const { equipo, empresa, area, subarea, page = 1, pageSize = 50, sortBy, sortOrder } = req.query;
+        const { equipo, empresa, area, subarea, entidad, page = 1, pageSize = 50, sortBy, sortOrder } = req.query;
         console.log('API EQUIPOS CALLED - v2 (Fixed Columns)'); // DEBUG LOG
         const offset = (parseInt(page) - 1) * parseInt(pageSize);
 
@@ -1638,11 +1638,15 @@ app.get('/api/equipos', async (req, res) => {
             SELECT DISTINCT [EMPRESA] FROM [CALIBRACIONES] WHERE [EMPRESA] IS NOT NULL AND [EMPRESA] <> '' ORDER BY [EMPRESA];
             SELECT DISTINCT [Seccion] FROM [CALIBRACIONES] WHERE [Seccion] IS NOT NULL ORDER BY [Seccion];
             SELECT DISTINCT [Subseccion] FROM [CALIBRACIONES] WHERE [Subseccion] IS NOT NULL ORDER BY [Subseccion];
+            SELECT DISTINCT [AREA] FROM [CALIBRACIONES] WHERE [AREA] IS NOT NULL AND [AREA] <> '' ORDER BY [AREA];
+            SELECT DISTINCT [ORGANISMO EXTERIOR DE CALIBRACION] FROM [CALIBRACIONES] WHERE [ORGANISMO EXTERIOR DE CALIBRACION] IS NOT NULL AND [ORGANISMO EXTERIOR DE CALIBRACION] <> '' ORDER BY [ORGANISMO EXTERIOR DE CALIBRACION];
         `;
         const filtersResult = await pool.request().query(filtersQuery);
         const empresas = filtersResult.recordsets[0].map(r => r.EMPRESA);
         const secciones = filtersResult.recordsets[1].map(r => r.Seccion);
         const subsecciones = filtersResult.recordsets[2].map(r => r.Subseccion);
+        const areas = filtersResult.recordsets[3].map(r => r.AREA);
+        const entidades = filtersResult.recordsets[4].map(r => r['ORGANISMO EXTERIOR DE CALIBRACION']);
 
         // 2. Main Data Query Setup
         const request = pool.request();
@@ -1661,8 +1665,16 @@ app.get('/api/equipos', async (req, res) => {
             request.input('seccion', sql.Int, parseInt(req.query.seccion));
             whereConditions.push('C.[Seccion] = @seccion');
         }
+        if (area) {
+            request.input('area', sql.NVarChar, area);
+            whereConditions.push('C.[AREA] = @area');
+        }
+        if (entidad) {
+            request.input('entidad', sql.NVarChar, entidad);
+            whereConditions.push('C.[ORGANISMO EXTERIOR DE CALIBRACION] = @entidad');
+        }
         if (req.query.subseccion) {
-            request.input('subseccion', sql.Int, parseInt(req.query.subseccion));
+            request.input('subseccion', sql.NVarChar, req.query.subseccion);
             whereConditions.push('C.[Subseccion] = @subseccion');
         }
 
@@ -1767,7 +1779,6 @@ app.get('/api/equipos', async (req, res) => {
                 C.[CRITERIO DE ACEPTACION Y RECHAZO],
                 CASE WHEN ISNULL(C.PERIODICIDAD, 'X') = 'INICIAL' THEN -1 ELSE 0 END AS inicial,
                 C.[NºEC],
-                C.[Subseccion],
                 C.[Fecha Retirada],
                 C.[Fecha Apertura/Instalacion]
             FROM [CALIBRACIONES] C
@@ -1810,6 +1821,8 @@ app.get('/api/equipos', async (req, res) => {
             empresas: empresas,
             secciones: secciones,
             subsecciones: subsecciones,
+            areas: areas,
+            entidades: entidades,
             timestamp: new Date()
         });
 

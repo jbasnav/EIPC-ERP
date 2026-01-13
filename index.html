@@ -745,10 +745,8 @@
                 </div>
             </div>
 
-            <!-- EQUIPOS View (Calibraciones) -->
             <div id="equiposView" class="view-section">
                 <div style="padding: 2rem;">
-                    <h1 style="margin: 0 0 2rem 0; color: var(--text-main); font-size: 2rem;">Calibraciones</h1>
 
                     <!-- KPI Grid -->
                     <div
@@ -966,26 +964,43 @@
                     <div class="filters-container"
                         style="display: flex; gap: 1rem; margin-bottom: 2rem; background: var(--bg-card); padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow-sm); flex-wrap: wrap; align-items: end;">
 
-                        <!-- Filter Inputs (Empresa, Area, Subarea on one line roughly) -->
-                        <div class="filter-group" style="flex: 1; min-width: 200px;">
+                        <!-- Filter Inputs -->
+                        <div class="filter-group" style="flex: 1; min-width: 150px;">
+                            <label class="filter-label">Nº ID</label>
+                            <input type="text" id="equiposRefFilter" class="filter-input" placeholder="Buscar ID..."
+                                style="width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main);">
+                        </div>
+                        <div class="filter-group" style="flex: 1; min-width: 150px;">
                             <label class="filter-label">Empresa</label>
                             <select id="equiposEmpresaFilter" class="filter-select">
                                 <option value="">Todas</option>
                             </select>
                         </div>
-                        <div class="filter-group" style="flex: 1; min-width: 200px;">
+                        <div class="filter-group" style="flex: 1; min-width: 150px;">
+                            <label class="filter-label">Area</label>
+                            <select id="equiposAreaFilter" class="filter-select">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+                        <div class="filter-group" style="flex: 1; min-width: 150px;">
                             <label class="filter-label">Sección</label>
                             <select id="equiposSeccionFilter" class="filter-select">
                                 <option value="">Todas</option>
                             </select>
                         </div>
-                        <div class="filter-group" style="flex: 1; min-width: 200px;">
+                        <div class="filter-group" style="flex: 1; min-width: 150px;">
                             <label class="filter-label">Subsección</label>
                             <select id="equiposSubseccionFilter" class="filter-select">
                                 <option value="">Todas</option>
                             </select>
                         </div>
-                        <div class="filter-group" style="flex: 1; min-width: 200px;">
+                        <div class="filter-group" style="flex: 1; min-width: 150px;">
+                            <label class="filter-label">Entidad</label>
+                            <select id="equiposEntidadFilter" class="filter-select">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+                        <div class="filter-group" style="flex: 1; min-width: 120px;">
                             <label class="filter-label">Estado</label>
                             <select id="equiposRetiradoFilter" class="filter-select">
                                 <option value="">Todos</option>
@@ -1023,11 +1038,11 @@
                             style="width: 100%; border-collapse: collapse; table-layout: fixed;">
                             <thead>
                                 <tr>
+                                    <th data-sort="Nº REF" class="sortable"
+                                        style="width: 10%; padding: 0.75rem 0.5rem; cursor: pointer;">Nº ID <i
+                                            class="ri-arrow-up-down-line sort-icon"></i></th>
                                     <th data-sort="NOMBRE INSTRUMENTO" class="sortable"
                                         style="width: 20%; padding: 0.75rem 0.5rem; cursor: pointer;">NOMBRE <i
-                                            class="ri-arrow-up-down-line sort-icon"></i></th>
-                                    <th data-sort="Nº REF" class="sortable"
-                                        style="width: 10%; padding: 0.75rem 0.5rem; cursor: pointer;">Nº REF <i
                                             class="ri-arrow-up-down-line sort-icon"></i></th>
                                     <th data-sort="proxima" class="sortable"
                                         style="width: 10%; padding: 0.75rem 0.5rem; cursor: pointer;">PROX. CALIB <i
@@ -1037,16 +1052,12 @@
                                         style="width: 10%; padding: 0.75rem 0.5rem; cursor: pointer;">EMPRESA <i
                                             class="ri-arrow-up-down-line sort-icon"></i></th>
                                     <th data-sort="Seccion" class="sortable"
-                                        style="width: 10%; padding: 0.75rem 0.5rem; cursor: pointer;">SECCIÓN <i
+                                        style="width: 15%; padding: 0.75rem 0.5rem; cursor: pointer;">SECCIÓN <i
                                             class="ri-arrow-up-down-line sort-icon"></i></th>
-                                    <th data-sort="Subseccion" class="sortable"
-                                        style="width: 10%; padding: 0.75rem 0.5rem; cursor: pointer;">SUBSECCIÓN <i
-                                            class="ri-arrow-up-down-line sort-icon"></i></th>
-                                    <th style="width: 8%; padding: 0.75rem 0.5rem;">INT/EXT</th>
-                                    <th style="width: 10%; padding: 0.75rem 0.5rem;">ENTIDAD</th>
-                                    <th style="width: 8%; padding: 0.75rem 0.5rem;">PERIOD.</th>
+                                    <th style="width: 15%; padding: 0.75rem 0.5rem;">INT/EXT - ENTIDAD</th>
+                                    <th style="width: 10%; padding: 0.75rem 0.5rem;">PERIOD.</th>
                                     <th style="width: 8%; padding: 0.75rem 0.5rem;">Nº EC</th>
-                                    <th style="width: 8%; padding: 0.75rem 0.5rem;">PC</th>
+                                    <th style="width: 7%; padding: 0.75rem 0.5rem;">PC</th>
                                 </tr>
                             </thead>
                             <tbody id="equiposTableBody">
@@ -3065,8 +3076,8 @@
                 </div>
             </div>
 
-            <!-- Equipos View -->
-            <div id="equiposView" class="view-section">
+            <!-- Equipos View (Historical/Maestros - Renamed to avoid conflicts) -->
+            <div id="equiposView_Maestros" class="view-section">
                 <div class="equipos-content" style="padding: 2rem;">
                     <div class="equipos-header" style="margin-bottom: 2rem;">
                         <!-- Title removed as requested -->

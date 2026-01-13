@@ -2593,10 +2593,12 @@ async function fetchEquipos(page = 1) {
 
     // Get filter values
     // Search input removed as per request
-    equiposState.filters.equipo = '';
+    equiposState.filters.equipo = document.getElementById('equiposRefFilter')?.value || '';
     equiposState.filters.empresa = document.getElementById('equiposEmpresaFilter')?.value || '';
+    equiposState.filters.area = document.getElementById('equiposAreaFilter')?.value || '';
     equiposState.filters.seccion = document.getElementById('equiposSeccionFilter')?.value || '';
     equiposState.filters.subseccion = document.getElementById('equiposSubseccionFilter')?.value || '';
+    equiposState.filters.entidad = document.getElementById('equiposEntidadFilter')?.value || '';
     equiposState.filters.retirado = document.getElementById('equiposRetiradoFilter')?.value || '';
 
     const tbody = document.getElementById('equiposTableBody');
@@ -2617,8 +2619,10 @@ async function fetchEquipos(page = 1) {
         const params = new URLSearchParams();
         if (equiposState.filters.equipo) params.append('equipo', equiposState.filters.equipo);
         if (equiposState.filters.empresa) params.append('empresa', equiposState.filters.empresa);
+        if (equiposState.filters.area) params.append('area', equiposState.filters.area);
         if (equiposState.filters.seccion) params.append('seccion', equiposState.filters.seccion);
         if (equiposState.filters.subseccion) params.append('subseccion', equiposState.filters.subseccion);
+        if (equiposState.filters.entidad) params.append('entidad', equiposState.filters.entidad);
         if (equiposState.filters.retirado) params.append('retirado', equiposState.filters.retirado);
 
         params.append('page', equiposState.page);
@@ -2751,9 +2755,10 @@ function clearEquiposFilters() {
 
 // Populate Filters (Dependent Logic)
 function populateEquiposFilters(data) {
-    const empresaSelect = document.getElementById('equiposEmpresaFilter');
+    const areaSelect = document.getElementById('equiposAreaFilter');
     const seccionSelect = document.getElementById('equiposSeccionFilter');
     const subseccionSelect = document.getElementById('equiposSubseccionFilter');
+    const entidadSelect = document.getElementById('equiposEntidadFilter');
 
     // Helper to populate select keeping current value if valid
     const populate = (select, items, placeholder = 'Todas') => {
@@ -2788,8 +2793,10 @@ function populateEquiposFilters(data) {
     // i.e. If I select Empresa="A", the backend returns only Areas belonging to "A".
 
     if (data.empresas) populate(empresaSelect, data.empresas);
+    if (data.areas) populate(areaSelect, data.areas);
     if (data.secciones) populate(seccionSelect, data.secciones);
     if (data.subsecciones) populate(subseccionSelect, data.subsecciones);
+    if (data.entidades) populate(entidadSelect, data.entidades);
 }
 
 // Render Equipos Table
@@ -2825,19 +2832,22 @@ function renderEquiposTable(equipos) {
         const refId = (eq['Nº REF'] || '').toString().replace(/'/g, "\\'").replace(/"/g, '\\"');
         return `
             <tr>
-            <td>${eq['NOMBRE INSTRUMENTO'] || '-'}</td>
             <td onclick="openEquipoModal('${refId}')" style="cursor: pointer; font-weight: bold; color: var(--primary); text-decoration: underline;">
                 ${eq['Nº REF'] || '-'}
             </td>
+            <td>${eq['NOMBRE INSTRUMENTO'] || '-'}</td>
             <td><strong>${formatDate(eq['proxima'])}</strong></td>
             <td style="text-align: center;">
                 <span style="${getStatusStyle(eq['proxima'])}" title="${eq['proxima'] ? new Date(eq['proxima']).toLocaleDateString() : ''}"></span>
             </td>
-            <td>${eq['EMPRESA'] || '-'}</td>
-            <td>${eq['Seccion'] || '-'}</td>
-            <td>${eq['Subseccion'] || '-'}</td>
-            <td>${eq['INTERNO/EXTERNO'] || '-'}</td>
-            <td>${eq['ORGANISMO EXTERIOR DE CALIBRACION'] || '-'}</td>
+            <td>
+                <div style="font-weight: 500;">${eq['Seccion'] || '-'}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 400;">${eq['Subseccion'] || '-'}</div>
+            </td>
+            <td>
+                <div style="font-weight: 500;">${eq['INTERNO/EXTERNO'] || '-'}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 400;">${eq['ORGANISMO EXTERIOR DE CALIBRACION'] || '-'}</div>
+            </td>
             <td>${eq['PERIODICIDAD'] || '-'}</td>
             <td>${eq['NºEC'] || '-'}</td>
             <td>${eq['PROCEDIMIENTO CALIBRACION'] || '-'}</td>
@@ -12569,7 +12579,7 @@ function renderProximasTablePage() {
         const icon = th.querySelector('i');
         if (col === sortCol && icon) {
             icon.className = sortDir === 'asc' ? 'ri-arrow-up-line sort-icon' : 'ri-arrow-down-line sort-icon';
-            th.style.color = 'var(--danger)';
+            th.style.color = '';
         } else if (icon) {
             icon.className = 'ri-arrow-up-down-line sort-icon';
             th.style.color = 'var(--text-muted)';
@@ -12579,7 +12589,7 @@ function renderProximasTablePage() {
     // Render Rows with text-overflow handling
     tbody.innerHTML = pageData.map(item => `
         <tr style="border-bottom: 1px solid var(--border-light);">
-            <td style="padding: 0.5rem; color: var(--danger); font-weight: 500; white-space: nowrap;">
+            <td style="padding: 0.5rem; color: #f59e0b; font-weight: 500; white-space: nowrap;">
                 ${item.proxima ? new Date(item.proxima).toLocaleDateString() : '-'}
             </td>
             <td style="padding: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item['NOMBRE INSTRUMENTO'] || ''}">${item['NOMBRE INSTRUMENTO'] || '-'}</td>
