@@ -303,6 +303,23 @@ async function switchView(viewName) {
                         Gestión y análisis de capacidad de carga comercial
                     </p>
                 `;
+            } else if (viewName === 'top-orders') {
+                headerTitleContainer.innerHTML = `
+                    <h1 id="pageTitle" style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                        <i class="ri-trophy-line" style="color: #4f46e5; margin-right: 0.5rem;"></i>Top Pedidos
+                    </h1>
+                    <p id="pageSubtitle" style="margin: 0; color: #64748b; font-size: 0.875rem; display: block;">
+                        Análisis de pedidos más frecuentes por cliente y artículo
+                    </p>
+                `;
+            } else if (viewName === 'equipos') {
+                headerTitleContainer.innerHTML = `
+                    <h1 id="pageTitle" style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                        <i class="ri-scales-3-line" style="color: #4f46e5; margin-right: 0.5rem;"></i>Calibraciones
+                    </h1>
+                    <p id="pageSubtitle" style="margin: 0; color: #64748b; font-size: 0.875rem; display: none;">
+                    </p>
+                `;
             } else {
                 // Default behavior
                 const niceName = viewName.charAt(0).toUpperCase() + viewName.slice(1).replace('-', ' ');
@@ -774,6 +791,19 @@ function setupEventListeners() {
         }
     });
 
+    // Equipos Pagination
+    document.getElementById('equiposPrevPageBtn')?.addEventListener('click', () => {
+        if (equiposState.page > 1) {
+            fetchEquipos(equiposState.page - 1);
+        }
+    });
+
+    document.getElementById('equiposNextPageBtn')?.addEventListener('click', () => {
+        if (equiposState.page < equiposState.totalPages) {
+            fetchEquipos(equiposState.page + 1);
+        }
+    });
+
     // Codigos Rechazo Listeners
     document.getElementById('buscarCodigosRechazoBtn')?.addEventListener('click', fetchCodigosRechazo);
     document.getElementById('codigosRechazoSeccionFilter')?.addEventListener('change', fetchCodigosRechazo);
@@ -1027,7 +1057,7 @@ async function fetchRutas() {
         if (familiaFilter) params.append('familia', familiaFilter);
         if (clasificacionFilter) params.append('clasificacion', clasificacionFilter);
 
-        let url = `http://localhost:3001/api/rutas?${params.toString()}`;
+        let url = `/api/rutas?${params.toString()}`;
 
         const response = await fetch(url);
         const data = await response.json();
@@ -1301,7 +1331,7 @@ function renderRutasTop10Operaciones(data) {
 async function loadRutasTop10() {
     try {
         // Call the rutas API to get just the TOP 10 data
-        const response = await fetch('http://localhost:3001/api/rutas?ruta=PR');
+        const response = await fetch('/api/rutas?ruta=PR');
         const data = await response.json();
 
         if (data.success) {
@@ -1319,7 +1349,7 @@ async function loadEstructurasTop10() {
     if (!container) return;
 
     try {
-        const response = await fetch('http://localhost:3001/api/estructuras?page=1&pageSize=1');
+        const response = await fetch('/api/estructuras?page=1&pageSize=1');
         const data = await response.json();
 
         if (data.success && data.top10Articulos) {
@@ -1398,7 +1428,7 @@ async function loadOperacionesSelect(fase = '') {
     if (!select) return;
 
     try {
-        let url = 'http://localhost:3001/api/operaciones';
+        let url = '/api/operaciones';
         if (fase) {
             url += `?fase=${encodeURIComponent(fase)}`;
         }
@@ -1436,7 +1466,7 @@ async function loadFasesSelect() {
     }
 
     try {
-        const response = await fetch('http://localhost:3001/api/fases');
+        const response = await fetch('/api/fases');
         const data = await response.json();
 
         if (data.success && data.fases) {
@@ -1461,7 +1491,7 @@ async function loadRutasFiltros() {
     if (!familiaSelect && !clasificacionSelect) return;
 
     try {
-        const response = await fetch('http://localhost:3001/api/rutas-filtros');
+        const response = await fetch('/api/rutas-filtros');
         const data = await response.json();
 
         if (data.success) {
@@ -1531,7 +1561,7 @@ async function fetchArticulosForTable() {
         if (cliente) params.append('cliente', cliente);
         if (material) params.append('material', material);
 
-        const response = await fetch(`http://localhost:3001/api/articulos?${params.toString()}`);
+        const response = await fetch(`/api/articulos?${params.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -1657,7 +1687,7 @@ async function updateArticulosFilterOptions() {
         if (cliente) params.append('cliente', cliente);
         // Don't include material in filter options fetch
 
-        const response = await fetch(`http://localhost:3001/api/articulos?${params.toString()}`);
+        const response = await fetch(`/api/articulos?${params.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -1797,7 +1827,7 @@ async function showArticuloModal(codigo) {
     document.getElementById('modalArticuloDenominacion').textContent = 'Cargando...';
 
     try {
-        const response = await fetch(`http://localhost:3001/api/articulo-detalle?articulo=${encodeURIComponent(codigo)}`);
+        const response = await fetch(`/api/articulo-detalle?articulo=${encodeURIComponent(codigo)}`);
         const data = await response.json();
 
         if (data.success && data.data) {
@@ -1857,7 +1887,7 @@ async function fetchOperarios() {
     `;
 
     try {
-        let url = 'http://localhost:3001/api/operarios?';
+        let url = '/api/operarios?';
         const params = [];
         if (seccion) params.push(`seccion=${encodeURIComponent(seccion)}`);
         if (activo !== '') params.push(`activo=${encodeURIComponent(activo)}`);
@@ -2086,7 +2116,7 @@ async function loadOperariosSecciones() {
     if (!seccionSelect) return;
 
     try {
-        const response = await fetch('http://localhost:3001/api/operarios?');
+        const response = await fetch('/api/operarios?');
         const data = await response.json();
 
         if (data.success && data.secciones && data.secciones.length > 0) {
@@ -2111,7 +2141,7 @@ async function loadOperacionesSecciones() {
     if (!seccionSelect && !operacionSelect) return;
 
     try {
-        const response = await fetch('http://localhost:3001/api/operaciones?');
+        const response = await fetch('/api/operaciones?');
         const data = await response.json();
 
         if (data.success) {
@@ -2156,7 +2186,7 @@ async function fetchOperaciones() {
         if (activo) params.append('activo', activo);
         if (computoOEE) params.append('computoOEE', computoOEE);
 
-        const response = await fetch(`http://localhost:3001/api/operaciones?${params.toString()}`);
+        const response = await fetch(`/api/operaciones?${params.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -2282,7 +2312,7 @@ async function showOperacionRutasModal(codigoOperacion, descripcion) {
     modal.style.display = 'flex';
 
     try {
-        const response = await fetch(`http://localhost:3001/api/operaciones/${encodeURIComponent(codigoOperacion)}/rutas`);
+        const response = await fetch(`/api/operaciones/${encodeURIComponent(codigoOperacion)}/rutas`);
         const data = await response.json();
 
         if (data.success && data.data.length > 0) {
@@ -2342,7 +2372,7 @@ async function toggleComputoOEE(codigoOperacion, currentValue) {
     });
 
     try {
-        const url = `http://localhost:3001/api/operaciones/${encodeURIComponent(codigoOperacion)}/computo-oee`;
+        const url = `/api/operaciones/${encodeURIComponent(codigoOperacion)}/computo-oee`;
         console.log('[toggleComputoOEE] URL:', url);
 
         const response = await fetch(url, {
@@ -2408,7 +2438,7 @@ async function loadActivosZonas() {
     if (!activoSelect && !zonaSelect) return;
 
     try {
-        const response = await fetch('http://localhost:3001/api/activos?');
+        const response = await fetch('/api/activos?');
         const data = await response.json();
 
         if (data.success) {
@@ -2449,7 +2479,7 @@ async function fetchActivos() {
         if (activo) params.append('activo', activo);
         if (zona) params.append('zona', zona);
 
-        const response = await fetch(`http://localhost:3001/api/activos?${params.toString()}`);
+        const response = await fetch(`/api/activos?${params.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -2536,12 +2566,34 @@ const equiposState = {
     }
 };
 
-// Fetch Equipos
+// Initialize Sort Listeners for Equipos (Main Table)
+function initEquiposSortListeners() {
+    document.querySelectorAll('#equiposTable th.sortable').forEach(th => {
+        // Clone to remove old listeners
+        const newTh = th.cloneNode(true);
+        th.parentNode.replaceChild(newTh, th);
+
+        newTh.addEventListener('click', () => {
+            const col = newTh.dataset.sort;
+            if (equiposState.sortBy === col) {
+                equiposState.sortOrder = equiposState.sortOrder === 'ASC' ? 'DESC' : 'ASC';
+            } else {
+                equiposState.sortBy = col;
+                equiposState.sortOrder = 'ASC';
+            }
+            fetchEquipos(1); // Reset to page 1 on sort
+        });
+    });
+}
+
+// Main Equipos Function
 async function fetchEquipos(page = 1) {
     equiposState.page = page;
+    equiposState.pageSize = 50; // Updated to 50
 
     // Get filter values
-    equiposState.filters.equipo = document.getElementById('equiposRefFilter')?.value || '';
+    // Search input removed as per request
+    equiposState.filters.equipo = '';
     equiposState.filters.empresa = document.getElementById('equiposEmpresaFilter')?.value || '';
     equiposState.filters.area = document.getElementById('equiposAreaFilter')?.value || '';
     equiposState.filters.subarea = document.getElementById('equiposSubareaFilter')?.value || '';
@@ -2550,9 +2602,10 @@ async function fetchEquipos(page = 1) {
     const tbody = document.getElementById('equiposTableBody');
     // Show loading
     if (tbody) {
+        // Placeholder for loading
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                <td colspan="12" style="text-align: center; padding: 2rem; color: var(--text-muted);">
                     <div class="spinner" style="width: 30px; height: 30px; margin: 0 auto 0.5rem;"></div>
                     Cargando equipos...
                 </td>
@@ -2573,7 +2626,7 @@ async function fetchEquipos(page = 1) {
         params.append('sortBy', equiposState.sortBy);
         params.append('sortOrder', equiposState.sortOrder);
 
-        const response = await fetch(`http://localhost:3001/api/equipos?${params.toString()}`);
+        const response = await fetch(`/api/equipos?${params.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -2591,7 +2644,62 @@ async function fetchEquipos(page = 1) {
             document.getElementById('equiposInfo').style.display = 'flex';
             document.getElementById('equiposResultCount').textContent = `${data.total} registros encontrados`;
 
+            // Update Active Equipos KPI
+            const kpiActive = document.getElementById('kpiActiveEquipos');
+            if (kpiActive && data.totalActive !== undefined) {
+                kpiActive.textContent = data.totalActive;
+            }
+
+            // Update Inactive KPI
+            const kpiInactive = document.getElementById('kpiInactiveEquipos');
+            if (kpiInactive && data.totalInactive !== undefined) {
+                kpiInactive.textContent = data.totalInactive;
+            }
+
+            // Update Empresa List KPI
+            if (kpiEmpresaList && Array.isArray(data.kpiEmpresa)) {
+                kpiEmpresaList.innerHTML = data.kpiEmpresa
+                    .map(item => `<div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size: 0.8rem;">
+                        <span style="color: var(--text-main);">${item.EMPRESA || 'Otros'}</span>
+                        <strong style="color: var(--primary);">${item.count}</strong>
+                    </div>`)
+                    .join('');
+            } else if (kpiEmpresaList) {
+                kpiEmpresaList.textContent = 'Sin datos';
+            }
+
+            // Update Area List KPI (Show all)
+            const kpiAreaList = document.getElementById('kpiAreaList');
+            if (kpiAreaList && Array.isArray(data.kpiArea)) {
+                kpiAreaList.innerHTML = data.kpiArea
+                    .map(item => `<div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size: 0.8rem;">
+                        <span style="color: var(--text-main);">${item.AREA || 'Otras'}</span>
+                        <strong style="color: var(--primary);">${item.count}</strong>
+                    </div>`)
+                    .join('');
+            } else if (kpiAreaList) {
+                kpiAreaList.textContent = 'Sin datos';
+            }
+
+            // Update Subarea List KPI (Show all)
+            const kpiSubareaList = document.getElementById('kpiSubareaList');
+            if (kpiSubareaList && Array.isArray(data.kpiSubarea)) {
+                kpiSubareaList.innerHTML = data.kpiSubarea
+                    .map(item => `<div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size: 0.8rem;">
+                        <span style="color: var(--text-main);">${item.Subarea || 'Otras'}</span>
+                        <strong style="color: var(--primary);">${item.count}</strong>
+                    </div>`)
+                    .join('');
+            } else if (kpiSubareaList) {
+                kpiSubareaList.textContent = 'Sin datos';
+            }
+
+            // Fetch Upcoming and Expired Calibrations
+            fetchProximasCalibraciones();
+            fetchCaducadasCalibraciones();
+
             populateEquiposFilters(data);
+            initEquiposSortListeners(); // Initialize sort listeners
             updateEquiposSortIcons();
 
         } else {
@@ -2604,47 +2712,84 @@ async function fetchEquipos(page = 1) {
     }
 }
 
-// Populate Filters
+// Update Pagination Controls
+function updateEquiposPaginationUI() {
+    const prevBtn = document.getElementById('equiposPrevBtn');
+    const nextBtn = document.getElementById('equiposNextBtn');
+    const pageInfo = document.getElementById('equiposPageInfo');
+
+    if (pageInfo) {
+        const start = (equiposState.page - 1) * equiposState.pageSize + 1;
+        const end = Math.min(equiposState.page * equiposState.pageSize, equiposState.totalRecords);
+        pageInfo.textContent = `${start} -${end} de ${equiposState.totalRecords} `;
+    }
+
+    if (prevBtn) {
+        prevBtn.disabled = equiposState.page <= 1;
+        prevBtn.style.opacity = equiposState.page <= 1 ? '0.5' : '1';
+        prevBtn.onclick = () => {
+            if (equiposState.page > 1) fetchEquipos(equiposState.page - 1);
+        };
+    }
+
+    if (nextBtn) {
+        nextBtn.disabled = equiposState.page >= equiposState.totalPages;
+        nextBtn.style.opacity = equiposState.page >= equiposState.totalPages ? '0.5' : '1';
+        nextBtn.onclick = () => {
+            if (equiposState.page < equiposState.totalPages) fetchEquipos(equiposState.page + 1);
+        };
+    }
+}
+
+function clearEquiposFilters() {
+    document.getElementById('equiposEmpresaFilter').value = '';
+    document.getElementById('equiposAreaFilter').value = '';
+    document.getElementById('equiposSubareaFilter').value = '';
+    document.getElementById('equiposRetiradoFilter').value = '0'; // Default Active
+    fetchEquipos(1);
+}
+
+// Populate Filters (Dependent Logic)
 function populateEquiposFilters(data) {
     const empresaSelect = document.getElementById('equiposEmpresaFilter');
     const areaSelect = document.getElementById('equiposAreaFilter');
     const subareaSelect = document.getElementById('equiposSubareaFilter');
 
-    if (empresaSelect && data.empresas) {
-        const current = empresaSelect.value;
-        empresaSelect.innerHTML = '<option value="">Todas</option>';
-        data.empresas.forEach(e => {
+    // Helper to populate select keeping current value if valid
+    const populate = (select, items, placeholder = 'Todas') => {
+        if (!select) return;
+        const current = select.value;
+        select.innerHTML = `<option value="">${placeholder}</option>`;
+        items.forEach(item => {
+            // Check if item is an object or string
+            const val = typeof item === 'object' ? item.value : item;
+            const text = typeof item === 'object' ? item.text : item;
             const opt = document.createElement('option');
-            opt.value = e;
-            opt.textContent = e;
-            empresaSelect.appendChild(opt);
+            opt.value = val;
+            opt.textContent = text;
+            select.appendChild(opt);
         });
-        empresaSelect.value = current;
-    }
+        // Restore selection if it exists in new options
+        if (current && Array.from(select.options).some(o => o.value === current)) {
+            select.value = current;
+        } else {
+            select.value = "";
+        }
+    };
 
-    if (areaSelect && data.areas) {
-        const current = areaSelect.value;
-        areaSelect.innerHTML = '<option value="">Todas</option>';
-        data.areas.forEach(a => {
-            const opt = document.createElement('option');
-            opt.value = a;
-            opt.textContent = a;
-            areaSelect.appendChild(opt);
-        });
-        areaSelect.value = current;
-    }
+    // If 'Empresa' changed or init, populate it (usually static or from full list, but here from backend filtered list)
+    // Actually backend returns distinct list based on OTHER filters too? 
+    // Standard approach: 
+    // 1. If NO filter selected in Empresa, show ALL companies.
+    // 2. If NO filter selected in Area, show ALL Areas (or filtered by Empresa if selected).
 
-    if (subareaSelect && data.subareas) {
-        const current = subareaSelect.value;
-        subareaSelect.innerHTML = '<option value="">Todas</option>';
-        data.subareas.forEach(s => {
-            const opt = document.createElement('option');
-            opt.value = s;
-            opt.textContent = s;
-            subareaSelect.appendChild(opt);
-        });
-        subareaSelect.value = current;
-    }
+    // Optimization: The backend logic currently aggregates distinct values based on current WHERE clause.
+    // This allows "dependent" filtering automatically if we just re-render.
+    // i.e. If I select Empresa="A", the backend returns only Areas belonging to "A".
+
+    if (data.empresas) populate(empresaSelect, data.empresas);
+    if (data.areas) populate(areaSelect, data.areas);
+    if (data.subareas) populate(subareaSelect, data.subareas);
 }
 
 // Render Equipos Table
@@ -2655,52 +2800,69 @@ function renderEquiposTable(equipos) {
     if (!equipos || equipos.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                    <i class="ri-cpu-line" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
-                    No se encontraron equipos
-                </td>
-            </tr>
-        `;
+            <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                <i class="ri-cpu-line" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                No se encontraron equipos
+            </td>
+        </tr>
+            `;
         return;
     }
 
-    tbody.innerHTML = equipos.map(eq => `
-        <tr>
-            <td><strong>${eq['N REF'] || '-'}</strong></td>
+    // Helper for status cell color
+    const getStatusStyle = (nextDate) => {
+        if (!nextDate) return 'background-color: transparent;';
+        const now = new Date();
+        const next = new Date(nextDate);
+        const diffDays = (next - now) / (1000 * 60 * 60 * 24);
+
+        if (diffDays < 0) return 'background-color: var(--danger); width: 20px; height: 20px; border-radius: 4px; display: inline-block;'; // Expired
+        if (diffDays < 30) return 'background-color: var(--warning); width: 20px; height: 20px; border-radius: 4px; display: inline-block;'; // < 1 month
+        return 'background-color: var(--success); width: 20px; height: 20px; border-radius: 4px; display: inline-block;'; // OK
+    };
+
+    tbody.innerHTML = equipos.map(eq => {
+        const refId = (eq['Nº REF'] || '').toString().replace(/'/g, "\\'").replace(/"/g, '\\"');
+        return `
+            <tr>
             <td>${eq['NOMBRE INSTRUMENTO'] || '-'}</td>
+            <td onclick="openEquipoModal('${refId}')" style="cursor: pointer; font-weight: bold; color: var(--primary); text-decoration: underline;">
+                ${eq['Nº REF'] || '-'}
+            </td>
+            <td><strong>${formatDate(eq['proxima'])}</strong></td>
+            <td style="text-align: center;">
+                <span style="${getStatusStyle(eq['proxima'])}" title="${eq['proxima'] ? new Date(eq['proxima']).toLocaleDateString() : ''}"></span>
+            </td>
             <td>${eq['EMPRESA'] || '-'}</td>
-            <td>${eq['PERIODICIDAD'] || '-'}</td>
-            <td>${eq['ORGANISMO EXTERIOR DE CALIBRACION'] || '-'}</td>
             <td>${eq['AREA'] || '-'}</td>
             <td>${eq['Subarea'] || '-'}</td>
-            <td>${eq['NEC'] || '-'}</td>
+            <td>${eq['INTERNO/EXTERNO'] || '-'}</td>
+            <td>${eq['ORGANISMO EXTERIOR DE CALIBRACION'] || '-'}</td>
+            <td>${eq['PERIODICIDAD'] || '-'}</td>
+            <td>${eq['NºEC'] || '-'}</td>
+            <td>${eq['PROCEDIMIENTO CALIBRACION'] || '-'}</td>
         </tr>
-    `).join('');
+            `;
+    }).join('');
 }
 
 function updateEquiposPaginationUI() {
-    // Update pagination bar visibility
-    const paginationBar = document.getElementById('equiposPaginationBar');
-    if (paginationBar) {
-        paginationBar.style.display = equiposState.totalRecords > 0 ? 'flex' : 'none';
+    // Update page info
+    const pageInfo = document.getElementById('equiposPageInfo');
+    if (pageInfo) {
+        const currentStart = equiposState.totalRecords > 0 ? ((equiposState.page - 1) * equiposState.pageSize) + 1 : 0;
+        const currentEnd = Math.min(equiposState.page * equiposState.pageSize, equiposState.totalRecords);
+        pageInfo.textContent = `${currentStart} -${currentEnd} de ${equiposState.totalRecords} `;
         console.log(`[App] Pagination UI: Page ${equiposState.page} of ${equiposState.totalPages} (Total: ${equiposState.totalRecords})`);
     }
 
-    const currentStart = ((equiposState.page - 1) * equiposState.pageSize) + 1;
-    const currentEnd = Math.min(equiposState.page * equiposState.pageSize, equiposState.totalRecords);
-
-    const infoText = `Mostrando ${currentStart}-${currentEnd} de ${equiposState.totalRecords}`;
-
-    const infoEl = document.getElementById('equiposPaginationInfo');
-    if (infoEl) infoEl.textContent = infoText;
-
-    const prevBtn = document.getElementById('equiposPrevPageBtn');
-    const nextBtn = document.getElementById('equiposNextPageBtn');
+    const prevBtn = document.getElementById('equiposPrevBtn');
+    const nextBtn = document.getElementById('equiposNextBtn');
 
     if (prevBtn) {
         prevBtn.disabled = equiposState.page <= 1;
         prevBtn.style.opacity = equiposState.page <= 1 ? '0.5' : '1';
-        // Remove old listeners to avoid duplicates if any
+        // Remove old listeners to avoid duplicates by cloning
         const newPrev = prevBtn.cloneNode(true);
         prevBtn.parentNode.replaceChild(newPrev, prevBtn);
         newPrev.addEventListener('click', () => {
@@ -2712,7 +2874,7 @@ function updateEquiposPaginationUI() {
     if (nextBtn) {
         nextBtn.disabled = equiposState.page >= equiposState.totalPages;
         nextBtn.style.opacity = equiposState.page >= equiposState.totalPages ? '0.5' : '1';
-        // Remove old listeners to avoid duplicates if any
+        // Remove old listeners to avoid duplicates by cloning
         const newNext = nextBtn.cloneNode(true);
         nextBtn.parentNode.replaceChild(newNext, nextBtn);
         newNext.addEventListener('click', () => {
@@ -2778,6 +2940,105 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+// Function to fetch Expired Calibrations
+async function fetchCaducadasCalibraciones() {
+    try {
+        const response = await fetch('/api/equipos/caducadas');
+        const data = await response.json();
+
+        const container = document.getElementById('expiredCalibrationsContainer');
+        const countSpan = document.getElementById('expiredCount');
+        const tbody = document.getElementById('expiredCalibrationsTableBody');
+        const pageInfo = document.getElementById('expiredPageInfo');
+        const prevBtn = document.getElementById('expiredPrevBtn');
+        const nextBtn = document.getElementById('expiredNextBtn');
+
+        if (data.success && data.data.length > 0) {
+            if (container) container.style.display = 'block';
+            if (countSpan) countSpan.textContent = `${data.data.length} registros`;
+
+            // Simple Pagination (Client Side for Alert Table)
+            // Reusing same pagination logic as Proximas for simplicity
+            let currentPage = 1;
+            const pageSize = 10;
+            const totalRecords = data.data.length;
+            const totalPages = Math.ceil(totalRecords / pageSize);
+
+            const renderPage = (page) => {
+                if (!tbody) return;
+                const start = (page - 1) * pageSize;
+                const end = start + pageSize;
+                const pageData = data.data.slice(start, end);
+
+                tbody.innerHTML = pageData.map(eq => `
+                    <tr style="border-bottom: 1px solid var(--border-light);">
+                         <td style="padding: 0.75rem 0.5rem; color: var(--danger); font-weight: 600;">
+                            ${formatDate(eq.proxima)}
+                        </td>
+                        <td style="padding: 0.75rem 0.5rem; font-weight: 500;">
+                            ${eq['NOMBRE INSTRUMENTO'] || '-'}
+                        </td>
+                        <td style="padding: 0.75rem 0.5rem;">
+                             <span onclick="openEquipoModal('${(eq['Nº REF'] || '').toString().replace(/'/g, "\\'").replace(/"/g, '\\"')}')" 
+                                style="cursor: pointer; color: var(--primary); text-decoration: underline; font-weight: 500;">
+                                ${eq['Nº REF'] || '-'}
+                            </span>
+                        </td>
+                        <td style="padding: 0.75rem 0.5rem; color: var(--text-muted);">
+                            ${eq.EMPRESA || '-'}
+                        </td>
+                        <td style="padding: 0.75rem 0.5rem; color: var(--text-muted);">
+                             ${eq.AREA || '-'}
+                        </td>
+                    </tr>
+                    `).join('');
+
+                if (pageInfo) pageInfo.textContent = `${start + 1} -${Math.min(end, totalRecords)} de ${totalRecords} `;
+                if (prevBtn) prevBtn.disabled = page <= 1;
+                if (nextBtn) nextBtn.disabled = page >= totalPages;
+
+                // Opacity for disabled state
+                if (prevBtn) prevBtn.style.opacity = page <= 1 ? '0.5' : '1';
+                if (nextBtn) nextBtn.style.opacity = page >= totalPages ? '0.5' : '1';
+            };
+
+            // Initial Render
+            renderPage(1);
+
+            // Pagination Listeners
+            // (Cloning to ensure no duplicate listeners if called multiple times)
+            if (prevBtn) {
+                const newPrev = prevBtn.cloneNode(true);
+                prevBtn.parentNode.replaceChild(newPrev, prevBtn);
+                newPrev.addEventListener('click', () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        renderPage(currentPage);
+                    }
+                });
+            }
+
+            if (nextBtn) {
+                const newNext = nextBtn.cloneNode(true);
+                nextBtn.parentNode.replaceChild(newNext, nextBtn);
+                newNext.addEventListener('click', () => {
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        renderPage(currentPage);
+                    }
+                });
+            }
+
+        } else {
+            if (container) container.style.display = 'none';
+        }
+
+    } catch (error) {
+        console.error('Error fetching expired calibrations:', error);
+    }
+}
+
+
 // Update Familia filter dropdown
 function updateFamiliaFilter() {
     const select = document.getElementById('familiaFilter');
@@ -2828,7 +3089,7 @@ function updateSubfamiliaFilter() {
         .forEach(([codigo, desc]) => {
             const option = document.createElement('option');
             option.value = codigo;
-            option.textContent = desc ? `${codigo} - ${desc}` : codigo;
+            option.textContent = desc ? `${codigo}-${desc}` : codigo;
             select.appendChild(option);
         });
 }
@@ -3204,7 +3465,7 @@ function updateKPIs(analysis) {
 
     animateValue('kpiReprocessCount', analysis.reprocessCount);
     document.getElementById('kpiReprocess').textContent = `${reprocessRate}% del total`;
-    document.getElementById('kpiEfficiency').textContent = `${efficiency}%`;
+    document.getElementById('kpiEfficiency').textContent = `${efficiency}% `;
 }
 
 // Actualiza la tabla de carga de tratamientos
@@ -3359,7 +3620,7 @@ function updateTreatmentLoadTable(analysis) {
         }).join('');
 
         return `
-            <tr>
+                    <tr>
                 <td>
                     <button onclick="showTreatmentDetails('${t.numero}'); return false;" 
                         style="background: rgba(79, 70, 229, 0.1); color: var(--primary); border: 1px solid var(--primary); padding: 0.25rem 0.75rem; border-radius: 4px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
@@ -3371,7 +3632,7 @@ function updateTreatmentLoadTable(analysis) {
                 <td>${t.ordenesUnicas}</td>
                 <td><strong>${t.piezas.toLocaleString()}</strong></td>
             </tr>
-        `;
+                    `;
     }).join('');
 
     // Actualizar iconos de ordenación
@@ -3396,18 +3657,18 @@ function showTreatmentDetails(treatmentNum) {
 
     // Crear contenido del modal (Versión Ajustada: 4 columnas iguales, sin scroll horizontal)
     const modalContent = `
-        <div style="width: 100%; overflow-x: hidden;">
-            <table style="width: 100%; border-collapse: collapse; table-layout: fixed; background: #1e293b; border-radius: 8px; overflow: hidden;">
-                <thead>
-                    <tr style="background: #1e3a5f; color: #94a3b8;">
-                        <th style="padding: 0.75rem; text-align: left; width: 30%; font-weight: 600;">Referencia</th>
-                        <th style="padding: 0.75rem; text-align: left; width: 20%; font-weight: 600;">Orden</th>
-                        <th style="padding: 0.75rem; text-align: center; width: 25%; font-weight: 600;">Tipo</th>
-                        <th style="padding: 0.75rem; text-align: right; width: 25%; font-weight: 600;">Piezas</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${treatment.detalles.map(d => {
+                    <div style="width: 100%; overflow-x: hidden;">
+                        <table style="width: 100%; border-collapse: collapse; table-layout: fixed; background: #1e293b; border-radius: 8px; overflow: hidden;">
+                            <thead>
+                                <tr style="background: #1e3a5f; color: #94a3b8;">
+                                    <th style="padding: 0.75rem; text-align: left; width: 30%; font-weight: 600;">Referencia</th>
+                                    <th style="padding: 0.75rem; text-align: left; width: 20%; font-weight: 600;">Orden</th>
+                                    <th style="padding: 0.75rem; text-align: center; width: 25%; font-weight: 600;">Tipo</th>
+                                    <th style="padding: 0.75rem; text-align: right; width: 25%; font-weight: 600;">Piezas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${treatment.detalles.map(d => {
         const isT4 = d.tipo.startsWith('T4');
         const isReprocess = d.tipo.includes('R');
         const bgColor = isReprocess ? '#fecaca' : (isT4 ? '#bfdbfe' : '#ddd6fe');
@@ -3425,13 +3686,13 @@ function showTreatmentDetails(treatmentNum) {
                             </tr>
                         `;
     }).join('')}
-                </tbody>
-            </table>
+                            </tbody>
+                        </table>
         </div>
-    `;
+                    `;
 
     Swal.fire({
-        title: `Tratamiento ${treatment.numero}`,
+        title: `Tratamiento ${treatment.numero} `,
         html: modalContent,
         width: '600px',
         showCloseButton: true,
@@ -3648,7 +3909,7 @@ function renderTable(orders) {
     tbody.innerHTML = sortedOrders.map(order => {
         const displaySequence = order.sequence ? order.sequence.replace(/->/g, ' -> ') : '-';
         return `
-        <tr>
+                    <tr>
                 <td><strong>${order['numero orden'] ?? order.Numero_Orden}</strong></td>
                 <td>${order.articulo || '-'}</td>
                 <td>${order.Colada || '-'}</td>
@@ -3661,13 +3922,13 @@ function renderTable(orders) {
                 ${renderTreatmentCell(order.Tratamiento_T6R2, order.Piezas_T6R2, order.Fecha_T6R2)}
                 ${renderTreatmentCell(order.Tratamiento_T4R3, order.Piezas_T4R3, order.Fecha_T4R3)}
                 ${renderTreatmentCell(order.Tratamiento_T6R3, order.Piezas_T6R3, order.Fecha_T6R3)}
-    <td>
-        <span class="badge ${order.hasReprocess ? 'reprocess' : 'clean'}">
-            ${order.hasReprocess ? 'Reproceso' : 'OK'}
-        </span>
-    </td>
+                <td>
+                    <span class="badge ${order.hasReprocess ? 'reprocess' : 'clean'}">
+                        ${order.hasReprocess ? 'Reproceso' : 'OK'}
+                    </span>
+                </td>
             </tr>
-        `;
+                    `;
     }).join('');
 }
 
@@ -3675,7 +3936,7 @@ function updateSortIcons() {
     document.querySelectorAll('th.sortable').forEach(th => {
         th.classList.remove('sort-asc', 'sort-desc');
         if (th.dataset.sort === appData.sort.col) {
-            th.classList.add(`sort - ${appData.sort.dir} `);
+            th.classList.add(`sort-${appData.sort.dir}`);
         }
     });
 }
@@ -3791,7 +4052,7 @@ function getMonthKey(dateObj) {
     if (!dateObj || !(dateObj instanceof Date) || isNaN(dateObj)) return null;
     const year = dateObj.getFullYear();
     const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-    return `${year} -${month} `;
+    return `${year}-${month}`;
 }
 
 function createChart(id, type, data, options = {}) {
@@ -4604,8 +4865,8 @@ async function fetchEnsayosData(type, tableId, renderRow) {
     showLoading(true);
     try {
         const typeCap = type.charAt(0).toUpperCase() + type.slice(1);
-        const artInput = document.getElementById(`ensayos${typeCap}ArticuloFilter`);
-        const tratInput = document.getElementById(`ensayos${typeCap}TratamientoFilter`);
+        const artInput = document.getElementById(`ensayos${typeCap} ArticuloFilter`);
+        const tratInput = document.getElementById(`ensayos${typeCap} TratamientoFilter`);
 
         const params = new URLSearchParams();
         if (artInput && artInput.value) params.append('articulo', artInput.value);
@@ -4625,7 +4886,7 @@ async function fetchEnsayosData(type, tableId, renderRow) {
         }
 
         tbody.innerHTML = data.map(renderRow).join('');
-        const countEl = document.getElementById(`ensayos${type.charAt(0).toUpperCase() + type.slice(1)}ResultCount`);
+        const countEl = document.getElementById(`ensayos${type.charAt(0).toUpperCase() + type.slice(1)} ResultCount`);
         if (countEl) countEl.textContent = `${data.length} registros encontrados`;
     } catch (error) {
         console.error(`Error fetching ensayos ${type}: `, error);
@@ -4660,14 +4921,14 @@ window.handleEnsayosSort = function (type, column) {
 };
 
 function updateEnsayosSortIcons(type, column, order) {
-    const tableId = `ensayos${type.charAt(0).toUpperCase() + type.slice(1)}Table`;
-    const icons = document.querySelectorAll(`#${tableId} .sort-icon`);
+    const tableId = `ensayos${type.charAt(0).toUpperCase() + type.slice(1)} Table`;
+    const icons = document.querySelectorAll(`#${tableId} .sort - icon`);
     icons.forEach(icon => {
         icon.className = 'ri-arrow-up-down-line sort-icon';
         icon.style.color = 'var(--text-muted)';
     });
 
-    const activeIcon = document.getElementById(`sort-${type}-${column}`);
+    const activeIcon = document.getElementById(`sort - ${type} -${column} `);
     if (activeIcon) {
         activeIcon.className = order === 'ASC' ? 'ri-arrow-up-line sort-icon' : 'ri-arrow-down-line sort-icon';
         activeIcon.style.color = 'var(--primary)';
@@ -4679,8 +4940,8 @@ async function fetchEnsayosPaginated(type, state) {
     showLoading(true);
     const typeCap = type.charAt(0).toUpperCase() + type.slice(1);
     try {
-        const artInput = document.getElementById(`ensayos${typeCap}ArticuloFilter`);
-        const tratInput = document.getElementById(`ensayos${typeCap}TratamientoFilter`);
+        const artInput = document.getElementById(`ensayos${typeCap} ArticuloFilter`);
+        const tratInput = document.getElementById(`ensayos${typeCap} TratamientoFilter`);
 
         const params = new URLSearchParams();
         if (artInput && artInput.value) params.append('articulo', artInput.value);
@@ -4705,7 +4966,7 @@ async function fetchEnsayosPaginated(type, state) {
         }
 
         // Render table
-        const tbody = document.getElementById(`ensayos${typeCap}TableBody`);
+        const tbody = document.getElementById(`ensayos${typeCap} TableBody`);
         if (!tbody) return;
 
         tbody.innerHTML = '';
@@ -4713,7 +4974,7 @@ async function fetchEnsayosPaginated(type, state) {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 2rem;">No hay registros</td></tr>';
         } else {
             tbody.innerHTML = result.data.map(item => `
-                <tr>
+                    <tr>
                     <td>${formatDate(item.Fecha)}</td>
                     <td>${item.Referencia || ''}</td>
                     <td>${item.Informe || ''}</td>
@@ -4722,17 +4983,17 @@ async function fetchEnsayosPaginated(type, state) {
                     <td>${item.Tratamiento || ''}</td>
                     <td>${item.Inspector || ''}</td>
                 </tr>
-        `).join('');
+                    `).join('');
         }
 
         // Update pagination info
-        const countEl = document.getElementById(`ensayos${typeCap}ResultCount`);
-        const pageInfo = document.getElementById(`ensayos${typeCap}PageInfo`);
-        const prevBtn = document.getElementById(`ensayos${typeCap}PrevBtn`);
-        const nextBtn = document.getElementById(`ensayos${typeCap}NextBtn`);
+        const countEl = document.getElementById(`ensayos${typeCap} ResultCount`);
+        const pageInfo = document.getElementById(`ensayos${typeCap} PageInfo`);
+        const prevBtn = document.getElementById(`ensayos${typeCap} PrevBtn`);
+        const nextBtn = document.getElementById(`ensayos${typeCap} NextBtn`);
 
         if (countEl) countEl.textContent = `${result.total} registros encontrados`;
-        if (pageInfo) pageInfo.textContent = `Pagina ${result.page} de ${result.totalPages}`;
+        if (pageInfo) pageInfo.textContent = `Pagina ${result.page} de ${result.totalPages} `;
         if (prevBtn) {
             prevBtn.disabled = result.page <= 1;
             prevBtn.style.opacity = result.page <= 1 ? '0.5' : '1';
@@ -4795,38 +5056,38 @@ document.getElementById('buscarEnsayosPtBtn')?.addEventListener('click', () => f
 
 function fetchEnsayosDureza() {
     fetchEnsayosData('dureza', 'ensayosDurezaTableBody', item => `
-        < tr >
+                    <tr>
             <td>${formatDate(item.Fecha)}</td>
             <td>${item.Referencia || item.Articulo || ''}</td>
             <td>${item.Tratamiento || ''}</td>
             <td>${item.Valor || ''}</td>
             <td>${item.Unidad || ''}</td>
-        </tr >
-        `);
+        </tr>
+                    `);
 }
 
 function fetchEnsayosTraccion() {
     fetchEnsayosData('traccion', 'ensayosTraccionTableBody', item => `
-        < tr >
+                    <tr>
             <td>${formatDate(item.Fecha)}</td>
             <td>${item.Referencia || item.Articulo || ''}</td>
             <td>${item.Tratamiento || ''}</td>
             <td>${item.Rm || ''}</td>
             <td>${item.Rp02 || ''}</td>
             <td>${item.A || ''}%</td>
-        </tr >
-        `);
+        </tr>
+                    `);
 }
 
 function fetchEnsayosMetalografia() {
     fetchEnsayosData('metalografia', 'ensayosMetalografiaTableBody', item => `
-        < tr >
+                    <tr>
             <td>${formatDate(item.Fecha)}</td>
             <td>${item.Referencia || item.Articulo || ''}</td>
             <td>${item.Tratamiento || ''}</td>
             <td>${item.Observaciones || ''}</td>
-        </tr >
-        `);
+        </tr>
+                    `);
 }
 
 // --- DASHBOARD ENSAYOS LOGIC ---
@@ -5014,13 +5275,13 @@ function renderEnsayosArticlesTable(data) {
     if (data) {
         data.forEach(d => {
             tbody.innerHTML += `
-        < tr >
+                    <tr>
                     <td>${d.Articulo}</td>
                     <td style="font-weight: 600; text-align: center;">${d.Total}</td>
                     <td style="text-align: center; color: var(--success); font-weight: 500;">${d.VT || 0}</td>
                     <td style="text-align: center; color: var(--info); font-weight: 500;">${d.PT || 0}</td>
                     <td style="text-align: center; color: var(--danger); font-weight: 500;">${d.RT || 0}</td>
-                </tr > `;
+                </tr>`;
         });
     }
 }
@@ -5083,67 +5344,67 @@ function exportEnsayosToPdf() {
     const inspectorChartImg = inspectorChart ? inspectorChart.toDataURL('image/png') : '';
 
     printWindow.document.write(`
-        < !DOCTYPE html >
-            <html>
-                <head>
-                    <title>Dashboard Ensayos - ${year} ${month}</title>
-                    <style>
-                        body {font - family: Arial, sans-serif; padding: 20px; color: #333; }
-                        h1 {color: #1f2937; font-size: 24px; margin-bottom: 5px; }
-                        .subtitle {color: #6b7280; margin-bottom: 20px; }
-                        .kpi-row {display: flex; gap: 20px; margin-bottom: 30px; }
-                        .kpi-box {flex: 1; background: #f3f4f6; padding: 15px; border-radius: 8px; text-align: center; }
-                        .kpi-value {font - size: 24px; font-weight: bold; color: #1f2937; }
-                        .kpi-label {font - size: 12px; color: #6b7280; }
-                        .chart-section {margin - bottom: 30px; page-break-inside: avoid; }
-                        .chart-title {font - size: 16px; font-weight: bold; margin-bottom: 10px; }
-                        img {max - width: 100%; height: auto; }
-                        @media print {body {padding: 0; } }
-                    </style>
-                </head>
-                <body>
-                    <h1>Dashboard de Ensayos</h1>
-                    <p class="subtitle">Ano: ${year} | Mes: ${month}</p>
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <title>Dashboard Ensayos - ${year} ${month}</title>
+                <style>
+                    body {font-family: Arial, sans-serif; padding: 20px; color: #333; }
+                    h1 {color: #1f2937; font-size: 24px; margin-bottom: 5px; }
+                    .subtitle {color: #6b7280; margin-bottom: 20px; }
+                    .kpi-row {display: flex; gap: 20px; margin-bottom: 30px; }
+                    .kpi-box {flex: 1; background: #f3f4f6; padding: 15px; border-radius: 8px; text-align: center; }
+                    .kpi-value {font-size: 24px; font-weight: bold; color: #1f2937; }
+                    .kpi-label {font-size: 12px; color: #6b7280; }
+                    .chart-section {margin-bottom: 30px; page-break-inside: avoid; }
+                    .chart-title {font-size: 16px; font-weight: bold; margin-bottom: 10px; }
+                    img {max-width: 100%; height: auto; }
+                    @media print {body {padding: 0; } }
+                </style>
+            </head>
+                            <body>
+                                <h1>Dashboard de Ensayos</h1>
+                                <p class="subtitle">Ano: ${year} | Mes: ${month}</p>
 
-                    <div class="kpi-row">
-                        <div class="kpi-box">
-                            <div class="kpi-value">${kpiTotal}</div>
-                            <div class="kpi-label">Total Informes</div>
-                        </div>
-                        <div class="kpi-box">
-                            <div class="kpi-value">${kpiRt}</div>
-                            <div class="kpi-label">Informes RT</div>
-                        </div>
-                        <div class="kpi-box">
-                            <div class="kpi-value">${kpiPt}</div>
-                            <div class="kpi-label">Informes PT</div>
-                        </div>
-                        <div class="kpi-box">
-                            <div class="kpi-value">${kpiVt}</div>
-                            <div class="kpi-label">Informes VT</div>
-                        </div>
-                    </div>
+                                <div class="kpi-row">
+                                    <div class="kpi-box">
+                                        <div class="kpi-value">${kpiTotal}</div>
+                                        <div class="kpi-label">Total Informes</div>
+                                    </div>
+                                    <div class="kpi-box">
+                                        <div class="kpi-value">${kpiRt}</div>
+                                        <div class="kpi-label">Informes RT</div>
+                                    </div>
+                                    <div class="kpi-box">
+                                        <div class="kpi-value">${kpiPt}</div>
+                                        <div class="kpi-label">Informes PT</div>
+                                    </div>
+                                    <div class="kpi-box">
+                                        <div class="kpi-value">${kpiVt}</div>
+                                        <div class="kpi-label">Informes VT</div>
+                                    </div>
+                                </div>
 
-                    ${trendChartImg ? `
+                                ${trendChartImg ? `
             <div class="chart-section">
                 <div class="chart-title">Evolucion Mensual</div>
                 <img src="${trendChartImg}" />
             </div>` : ''}
 
-                    ${distChartImg ? `
+                                ${distChartImg ? `
             <div class="chart-section">
                 <div class="chart-title">Distribucion por Tipo</div>
                 <img src="${distChartImg}" />
             </div>` : ''}
 
-                    ${inspectorChartImg ? `
+                                ${inspectorChartImg ? `
             <div class="chart-section">
                 <div class="chart-title">Top Inspectores</div>
                 <img src="${inspectorChartImg}" />
             </div>` : ''}
-                </body>
-            </html>
-    `);
+                            </body>
+                        </html>
+                `);
 
     printWindow.document.close();
     printWindow.onload = function () {
@@ -5189,7 +5450,17 @@ async function fetchPersonalDashboard() {
             document.getElementById('personalKpiHorasTrabajo').textContent = parseFloat(data.kpis.horasTrabajo).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             document.getElementById('personalKpiHorasAusencia').textContent = parseFloat(data.kpis.horasAusencia).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             document.getElementById('personalKpiOutliers').textContent = parseInt(data.kpis.outliersCount).toLocaleString('es-ES');
-            document.getElementById('personalKpiMedia').textContent = parseFloat(data.kpis.mediaHoras).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' h';
+            document.getElementById('headerLastUpdate').textContent = `Última actualización: ${new Date().toLocaleString()} `;
+
+            // Change Header Title for Equipos View
+            const headerTitle = document.querySelector('#mainHeaderTitle h1');
+            const headerSubtitle = document.querySelector('#mainHeaderTitle .last-update');
+            if (headerTitle) {
+                headerTitle.innerHTML = '<i class="ri-scales-3-line" style="margin-right: 10px;"></i> Calibraciones';
+            }
+            if (headerSubtitle) {
+                headerSubtitle.style.display = 'none'; // Hide subtitle per request
+            }
 
             // Populate section dropdown if empty
             if (seccionSelect && seccionSelect.options.length <= 1 && data.allSecciones) {
@@ -5215,7 +5486,7 @@ async function fetchPersonalDashboard() {
                     const porcentaje = totalHoras > 0 ? ((horasAusencia / totalHoras) * 100) : 0;
 
                     return `
-        < tr >
+                    <tr>
                         <td>${sec.NombreSeccion || 'Sin seccion'}</td>
                         <td style="text-align: center;"><span style="background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">${periodoLabel}</span></td>
                         <td style="text-align: center;">${sec.empleados}</td>
@@ -5223,8 +5494,8 @@ async function fetchPersonalDashboard() {
                         <td style="text-align: center;">${horasAusencia.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         <td style="text-align: center; color: ${porcentaje > 5 ? '#ef4444' : '#22c55e'};">${porcentaje.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</td>
                         <td style="text-align: center; font-weight: 600;">${totalHoras.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    </tr >
-        `;
+                    </tr>
+                    `;
                 }).join('');
             } else if (tbody) {
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No hay datos</td></tr>';
@@ -5426,82 +5697,82 @@ function exportPersonalToPdf() {
     }
 
     printWindow.document.write(`
-        < !DOCTYPE html >
-            <html>
-                <head>
-                    <title>Dashboard Personal - ${year} ${month}</title>
-                    <style>
-                        body {font - family: Arial, sans-serif; padding: 20px; color: #333; }
-                        h1 {color: #1f2937; font-size: 24px; margin-bottom: 5px; }
-                        .subtitle {color: #6b7280; margin-bottom: 20px; }
-                        .kpi-row {display: flex; gap: 20px; margin-bottom: 30px; }
-                        .kpi-box {flex: 1; background: #f3f4f6; padding: 15px; border-radius: 8px; text-align: center; }
-                        .kpi-value {font - size: 24px; font-weight: bold; color: #1f2937; }
-                        .kpi-label {font - size: 12px; color: #6b7280; }
-                        .chart-section {margin - bottom: 30px; page-break-inside: avoid; }
-                        .chart-title {font - size: 16px; font-weight: bold; margin-bottom: 10px; }
-                        img {max - width: 100%; height: auto; }
-                        table {width: 100%; border-collapse: collapse; margin-top: 20px; }
-                        th, td {border: 1px solid #ddd; padding: 8px; text-align: center; }
-                        th {background: #f3f4f6; }
-                        @media print {body {padding: 0; } }
-                    </style>
-                </head>
-                <body>
-                    <h1>Dashboard de Personal</h1>
-                    <p class="subtitle">Ano: ${year} | Mes: ${month}</p>
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <title>Dashboard Personal - ${year} ${month}</title>
+                <style>
+                    body {font-family: Arial, sans-serif; padding: 20px; color: #333; }
+                                    h1 {color: #1f2937; font-size: 24px; margin-bottom: 5px; }
+                                    .subtitle {color: #6b7280; margin-bottom: 20px; }
+                                    .kpi-row {display: flex; gap: 20px; margin-bottom: 30px; }
+                                    .kpi-box {flex: 1; background: #f3f4f6; padding: 15px; border-radius: 8px; text-align: center; }
+                                    .kpi-value {font - size: 24px; font-weight: bold; color: #1f2937; }
+                                    .kpi-label {font - size: 12px; color: #6b7280; }
+                                    .chart-section {margin - bottom: 30px; page-break-inside: avoid; }
+                                    .chart-title {font - size: 16px; font-weight: bold; margin-bottom: 10px; }
+                                    img {max - width: 100%; height: auto; }
+                                    table {width: 100%; border-collapse: collapse; margin-top: 20px; }
+                                    th, td {border: 1px solid #ddd; padding: 8px; text-align: center; }
+                                    th {background: #f3f4f6; }
+                                    @media print {body {padding: 0; } }
+                                </style>
+                            </head>
+                            <body>
+                                <h1>Dashboard de Personal</h1>
+                                <p class="subtitle">Ano: ${year} | Mes: ${month}</p>
 
-                    <div class="kpi-row">
-                        <div class="kpi-box">
-                            <div class="kpi-value">${kpiEmpleados}</div>
-                            <div class="kpi-label">Total Empleados</div>
-                        </div>
-                        <div class="kpi-box">
-                            <div class="kpi-value">${kpiHorasMes}</div>
-                            <div class="kpi-label">Horas Mes</div>
-                        </div>
-                        <div class="kpi-box">
-                            <div class="kpi-value">${kpiOutliers}</div>
-                            <div class="kpi-label">Outliers</div>
-                        </div>
-                        <div class="kpi-box">
-                            <div class="kpi-value">${kpiMedia}</div>
-                            <div class="kpi-label">Media Horas</div>
-                        </div>
-                    </div>
+                                <div class="kpi-row">
+                                    <div class="kpi-box">
+                                        <div class="kpi-value">${kpiEmpleados}</div>
+                                        <div class="kpi-label">Total Empleados</div>
+                                    </div>
+                                    <div class="kpi-box">
+                                        <div class="kpi-value">${kpiHorasMes}</div>
+                                        <div class="kpi-label">Horas Mes</div>
+                                    </div>
+                                    <div class="kpi-box">
+                                        <div class="kpi-value">${kpiOutliers}</div>
+                                        <div class="kpi-label">Outliers</div>
+                                    </div>
+                                    <div class="kpi-box">
+                                        <div class="kpi-value">${kpiMedia}</div>
+                                        <div class="kpi-label">Media Horas</div>
+                                    </div>
+                                </div>
 
-                    ${evolChartImg ? `
+                                ${evolChartImg ? `
             <div class="chart-section">
                 <div class="chart-title">Evolucion de Horas</div>
                 <img src="${evolChartImg}" />
             </div>` : ''}
 
-                    ${secChartImg ? `
+                                ${secChartImg ? `
             <div class="chart-section">
                 <div class="chart-title">Horas por Seccion</div>
                 <img src="${secChartImg}" />
             </div>` : ''}
 
-                    <div class="chart-section">
-                        <div class="chart-title">Resumen por Seccion</div>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Seccion</th>
-                                    <th>Periodo</th>
-                                    <th>Empleados</th>
-                                    <th>Horas Trabajo</th>
-                                    <th>Horas Ausencia</th>
-                                    <th>% Ausencia</th>
-                                    <th>Total Horas</th>
-                                </tr>
-                            </thead>
-                            <tbody>${tableRows}</tbody>
-                        </table>
-                    </div>
-                </body>
-            </html>
-    `);
+                                <div class="chart-section">
+                                    <div class="chart-title">Resumen por Seccion</div>
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Seccion</th>
+                                                <th>Periodo</th>
+                                                <th>Empleados</th>
+                                                <th>Horas Trabajo</th>
+                                                <th>Horas Ausencia</th>
+                                                <th>% Ausencia</th>
+                                                <th>Total Horas</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>${tableRows}</tbody>
+                                    </table>
+                                </div>
+                            </body>
+                        </html>
+                `);
 
     printWindow.document.close();
     printWindow.onload = function () {
@@ -5582,21 +5853,21 @@ async function fetchBonos(page = 1) {
             const yyyy = today.getFullYear();
             const mm = String(today.getMonth() + 1).padStart(2, '0');
             const dd = String(today.getDate()).padStart(2, '0');
-            fechaDesdeInput.value = `${yyyy} -${mm} -${dd} `;
-            if (fechaHastaInput) fechaHastaInput.value = `${yyyy} -${mm} -${dd} `;
+            fechaDesdeInput.value = `${yyyy}-${mm}-${dd}`;
+            if (fechaHastaInput) fechaHastaInput.value = `${yyyy}-${mm}-${dd}`;
         }
     }
 
     // Show loading
     if (tbody) {
         tbody.innerHTML = `
-        < tr >
-        <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">
-            <div class="spinner" style="width: 30px; height: 30px; margin: 0 auto 0.5rem;"></div>
-            Cargando datos de bonos...
-        </td>
-            </tr >
-        `;
+                    <tr>
+                    <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                        <div class="spinner" style="width: 30px; height: 30px; margin: 0 auto 0.5rem;"></div>
+                        Cargando datos de bonos...
+                    </td>
+            </tr>
+                    `;
     }
 
     try {
@@ -5613,7 +5884,7 @@ async function fetchBonos(page = 1) {
         params.append('sortBy', appData.bonosPagination.sortBy);
         params.append('sortOrder', appData.bonosPagination.sortOrder);
 
-        const response = await fetch(`http://localhost:3001/api/bonos?${params.toString()}`);
+        const response = await fetch(`/api/bonos?${params.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -5913,7 +6184,7 @@ async function fetchProveedores() {
         const params = new URLSearchParams();
         if (proveedorInput?.value) params.append('proveedor', proveedorInput.value);
 
-        const response = await fetch(`http://localhost:3001/api/proveedores?${params.toString()}`);
+        const response = await fetch(`/api/proveedores?${params.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -6040,8 +6311,8 @@ async function fetchUtillajesFiltros() {
     }
 
     try {
-        console.log('[UTILLAJES] Fetching filters from http://localhost:3001/api/utillajes-filtros');
-        const response = await fetch('http://localhost:3001/api/utillajes-filtros');
+        console.log('[UTILLAJES] Fetching filters from /api/utillajes-filtros');
+        const response = await fetch('/api/utillajes-filtros');
         const data = await response.json();
         console.log('[UTILLAJES] Filters received:', data);
 
@@ -6128,7 +6399,7 @@ async function fetchUtillajes() {
             params.append('sortDir', appData.utillajesSort.dir);
         }
 
-        const url = `http://localhost:3001/api/utillajes?${params.toString()}`;
+        const url = `/api/utillajes?${params.toString()}`;
         console.log('[UTILLAJES] Fetching data from:', url);
 
         const response = await fetch(url);
@@ -6326,7 +6597,7 @@ async function fetchNormas() {
         if (clienteInput?.value) params.append('normaCliente', clienteInput.value);
         if (controlSelect?.value) params.append('control', controlSelect.value);
 
-        const response = await fetch(`http://localhost:3001/api/normas?${params.toString()}`);
+        const response = await fetch(`/api/normas?${params.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -9719,7 +9990,7 @@ async function fetchEspecificaciones() {
         if (ambito) params.append('ambito', ambito);
         if (tipo) params.append('tipo', tipo);
 
-        const response = await fetch(`http://localhost:3001/api/especificaciones?${params}`);
+        const response = await fetch(`/api/especificaciones?${params}`);
         const data = await response.json();
 
         if (data.success) {
@@ -10097,7 +10368,7 @@ async function fetchCodigosRechazo() {
         if (seccionFilter?.value) params.append('seccion', seccionFilter.value);
         if (controlFilter?.value) params.append('controlProduccion', controlFilter.value);
 
-        const response = await fetch(`http://localhost:3001/api/codigos-rechazo?${params.toString()}`);
+        const response = await fetch(`/api/codigos-rechazo?${params.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -10217,7 +10488,7 @@ async function fetchIncidencias() {
         if (activoFilter?.value) params.append('activo', activoFilter.value);
         if (tipoVinculacionFilter?.value) params.append('tipoVinculacion', tipoVinculacionFilter.value);
 
-        const response = await fetch(`http://localhost:3001/api/incidencias?${params.toString()}`);
+        const response = await fetch(`/api/incidencias?${params.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -10634,7 +10905,7 @@ async function fetchEstructuras(page = 1) {
         params.append('page', page);
         params.append('pageSize', estructurasState.pageSize);
 
-        const response = await fetch(`http://localhost:3001/api/estructuras?${params.toString()}`);
+        const response = await fetch(`/api/estructuras?${params.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -10743,7 +11014,7 @@ async function mostrarImagenArticulo(articulo) {
     content.innerHTML = '<div class="spinner" style="margin: 3rem auto;"></div>';
 
     // Usar el endpoint que sirve la imagen directamente
-    const imgUrl = `http://localhost:3001/api/articulo-imagen-file/${encodeURIComponent(articulo)}`;
+    const imgUrl = `/api/articulo-imagen-file/${encodeURIComponent(articulo)}`;
 
     content.innerHTML = `
         <img src="${imgUrl}" 
@@ -10876,7 +11147,7 @@ async function loadEstructurasFiltros() {
     }
 
     try {
-        const response = await fetch(`http://localhost:3001/api/estructuras-filtros?articulo=${encodeURIComponent(articulo)}`);
+        const response = await fetch(`/api/estructuras-filtros?articulo=${encodeURIComponent(articulo)}`);
         const data = await response.json();
 
         if (data.success) {
@@ -10942,7 +11213,7 @@ async function fetchMateriales() {
         const params = new URLSearchParams();
         if (codigo) params.append('codigo', codigo);
 
-        const response = await fetch(`http://localhost:3001/api/materiales?${params.toString()}`);
+        const response = await fetch(`/api/materiales?${params.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -11201,7 +11472,7 @@ async function fetchClientes() {
         const params = new URLSearchParams();
         if (clienteInput?.value) params.append('cliente', clienteInput.value);
 
-        const response = await fetch(`http://localhost:3001/api/clientes-maestro?${params.toString()}`);
+        const response = await fetch(`/api/clientes-maestro?${params.toString()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -12190,3 +12461,258 @@ function setupOrdersEventListeners() {
         });
     });
 }
+
+// ============================================
+// CALIBRACIONES HELPER FUNCTIONS
+// ============================================
+
+// State for Proximas Calibraciones
+appData.proximasState = {
+    allData: [],
+    currentPage: 1,
+    pageSize: 10,
+    sortCol: 'proxima',
+    sortDir: 'asc'
+};
+
+// Fetch and Render Upcoming Calibrations
+async function fetchProximasCalibraciones() {
+    try {
+        const response = await fetch('/api/equipos/proximas');
+        const data = await response.json();
+
+        const container = document.getElementById('upcomingCalibrationsContainer');
+
+        if (data.success && data.data && data.data.length > 0) {
+            container.style.display = 'block';
+            appData.proximasState.allData = data.data;
+            appData.proximasState.currentPage = 1;
+            renderProximasTablePage();
+            // Initialize listeners once
+            initProximasListeners();
+        } else {
+            container.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error loading upcoming calibrations:', error);
+    }
+}
+
+function renderProximasTablePage() {
+    const tbody = document.getElementById('upcomingCalibrationsTableBody');
+    const prevBtn = document.getElementById('proximasPrevBtn');
+    const nextBtn = document.getElementById('proximasNextBtn');
+    const pageInfo = document.getElementById('proximasPageInfo');
+    const countInfo = document.getElementById('proximasCount');
+
+    if (!tbody) return;
+
+    let data = [...appData.proximasState.allData];
+
+    // Sort
+    const { sortCol, sortDir } = appData.proximasState;
+    if (sortCol) {
+        data.sort((a, b) => {
+            let valA = a[sortCol];
+            let valB = b[sortCol];
+
+            if (valA === null || valA === undefined) valA = '';
+            if (valB === null || valB === undefined) valB = '';
+
+            if (typeof valA === 'string') valA = valA.toLowerCase();
+            if (typeof valB === 'string') valB = valB.toLowerCase();
+
+            if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+            if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }
+
+    // Paginate
+    const total = data.length;
+    const { currentPage, pageSize } = appData.proximasState;
+    const totalPages = Math.ceil(total / pageSize);
+    const start = (currentPage - 1) * pageSize;
+    const end = Math.min(start + pageSize, total);
+    const pageData = data.slice(start, end);
+
+    // Update UI Controls
+    if (countInfo) countInfo.textContent = `${total} registros`;
+    if (pageInfo) pageInfo.textContent = `${start + 1}-${end} de ${total}`;
+
+    if (prevBtn) {
+        prevBtn.disabled = currentPage <= 1;
+        prevBtn.style.opacity = currentPage <= 1 ? '0.5' : '1';
+        // Need to clear old listener? Simpler to re-assign onclick or clone/replace.
+        // Since this function runs often, simple onclick assignment is safer than addEventListener accumulating.
+        prevBtn.onclick = () => {
+            if (appData.proximasState.currentPage > 1) {
+                appData.proximasState.currentPage--;
+                renderProximasTablePage();
+            }
+        };
+    }
+    if (nextBtn) {
+        nextBtn.disabled = currentPage >= totalPages;
+        nextBtn.style.opacity = currentPage >= totalPages ? '0.5' : '1';
+        nextBtn.onclick = () => {
+            if (appData.proximasState.currentPage < totalPages) {
+                appData.proximasState.currentPage++;
+                renderProximasTablePage();
+            }
+        };
+    }
+
+    // Update Sort Headers visual state
+    document.querySelectorAll('#upcomingCalibrationsContainer th.sortable').forEach(th => {
+        const col = th.dataset.sort;
+        const icon = th.querySelector('i');
+        if (col === sortCol && icon) {
+            icon.className = sortDir === 'asc' ? 'ri-arrow-up-line sort-icon' : 'ri-arrow-down-line sort-icon';
+            th.style.color = 'var(--danger)';
+        } else if (icon) {
+            icon.className = 'ri-arrow-up-down-line sort-icon';
+            th.style.color = 'var(--text-muted)';
+        }
+    });
+
+    // Render Rows with text-overflow handling
+    tbody.innerHTML = pageData.map(item => `
+        <tr style="border-bottom: 1px solid var(--border-light);">
+            <td style="padding: 0.5rem; color: var(--danger); font-weight: 500; white-space: nowrap;">
+                ${item.proxima ? new Date(item.proxima).toLocaleDateString() : '-'}
+            </td>
+            <td style="padding: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item['NOMBRE INSTRUMENTO'] || ''}">${item['NOMBRE INSTRUMENTO'] || '-'}</td>
+            <td style="padding: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <strong onclick="openEquipoModal('${item['Nº REF']}')" style="cursor: pointer; text-decoration: underline; color: var(--primary);">${item['Nº REF'] || '-'}</strong>
+            </td>
+            <td style="padding: 0.5rem; color: var(--text-muted); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.EMPRESA || '-'}</td>
+            <td style="padding: 0.5rem; color: var(--text-muted); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.AREA || '-'}</td>
+        </tr>
+    `).join('');
+}
+
+function initProximasListeners() {
+    const headers = document.querySelectorAll('#upcomingCalibrationsContainer th.sortable');
+    headers.forEach(th => {
+        // Clone to ensure clean listener state
+        const newTh = th.cloneNode(true);
+        th.parentNode.replaceChild(newTh, th);
+
+        newTh.addEventListener('click', () => {
+            const col = newTh.dataset.sort;
+            if (appData.proximasState.sortCol === col) {
+                appData.proximasState.sortDir = appData.proximasState.sortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                appData.proximasState.sortCol = col;
+                appData.proximasState.sortDir = 'asc';
+            }
+            renderProximasTablePage();
+        });
+    });
+}
+
+// Modal Functions
+async function openEquipoModal(id) {
+    const modal = document.getElementById('equipoModal');
+    // Decode ID to handle slashes/spaces properly in URL
+    const encodedId = encodeURIComponent(id);
+
+    // Show loading state in modal if needed, or clear previous data
+    document.getElementById('em-ref').textContent = 'Cargando...';
+
+    modal.style.display = 'flex';
+
+    try {
+        const response = await fetch(`/api/equipos/${encodedId}`);
+        const data = await response.json();
+
+        if (data.success) {
+            const eq = data.data;
+            const history = data.history || [];
+
+            // Header
+            document.getElementById('equipoModalTitle').textContent = `Ficha: ${eq['Nº REF']}`;
+            document.getElementById('equipoModalSubtitle').textContent = eq['NOMBRE INSTRUMENTO'] || '';
+
+            // Main Info
+            document.getElementById('em-ref').textContent = eq['Nº REF'];
+            document.getElementById('em-nombre').textContent = eq['NOMBRE INSTRUMENTO'];
+            document.getElementById('em-marca').textContent = `${eq['MARCA/FABRICANTE'] || '-'} / ${eq['MODELO/TIPO'] || '-'}`;
+            document.getElementById('em-serie').textContent = eq['Nº DE SERIE'] || '-';
+            document.getElementById('em-ubicacion').textContent = `${eq.EMPRESA || '-'} - ${eq.AREA || '-'}`;
+
+            const badge = document.getElementById('em-estado');
+            if (eq.RETIRADO === -1 || eq['Fecha Retirada']) {
+                badge.className = 'badge badge-danger';
+                badge.textContent = 'RETIRADO';
+                badge.style.backgroundColor = 'var(--danger)';
+                badge.style.color = 'white';
+                badge.style.padding = '4px 8px';
+                badge.style.borderRadius = '4px';
+            } else if (eq['Fecha Apertura/Instalacion']) {
+                badge.className = 'badge badge-success';
+                badge.textContent = 'ACTIVO';
+                badge.style.backgroundColor = 'var(--success)';
+                badge.style.color = 'white';
+                badge.style.padding = '4px 8px';
+                badge.style.borderRadius = '4px';
+            } else {
+                badge.className = 'badge badge-warning';
+                badge.textContent = 'PENDIENTE';
+                badge.style.backgroundColor = 'var(--warning)';
+                badge.style.color = 'white';
+                badge.style.padding = '4px 8px';
+                badge.style.borderRadius = '4px';
+            }
+
+            // Specs
+            document.getElementById('em-campo').textContent = eq['CAMPO MEDIDA'] || '-';
+            document.getElementById('em-division').textContent = eq['DIVISION DE ESCALA'] || '-';
+
+            const latestCal = history.length > 0 ? history[0] : {};
+            document.getElementById('em-incertidumbre').textContent = latestCal['INCIDUMBRE'] || latestCal['Incertidumbre'] || '-';
+
+            // Calibracion
+            document.getElementById('em-periodo').textContent = eq.PERIODICIDAD || '-';
+            document.getElementById('em-organismo').textContent = eq['ORGANISMO EXTERIOR DE CALIBRACION'] || '-';
+            document.getElementById('em-proxima').textContent = eq.proxima ? new Date(eq.proxima).toLocaleDateString() : '-';
+
+            // Render History
+            const tbody = document.getElementById('em-history-body');
+            if (history.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 1rem;">No hay histórico de calibraciones</td></tr>';
+            } else {
+                tbody.innerHTML = history.map(h => `
+                    <tr>
+                        <td>${h['Fecha - F'] ? new Date(h['Fecha - F']).toLocaleDateString() : '-'}</td>
+                        <td>${h['Nº CERTIFICADO'] || '-'}</td>
+                        <td>${h['RESULTADO'] || '-'}</td>
+                        <td>${h['REALIZADO POR'] || '-'}</td>
+                        <td>${h['Tª (ºC)'] || '-'}</td>
+                        <td>${h['HUMEDAD (%)'] || '-'}</td>
+                        <td>${h['OBSERVACIONES'] || '-'}</td>
+                        <td>${h['DOCUMENTO'] ? '<a href="' + h['DOCUMENTO'] + '" target="_blank">Ver</a>' : '-'}</td>
+                    </tr>
+                `).join('');
+            }
+
+        } else {
+            alert('No se pudo cargar la información del equipo.');
+            closeEquipoModal();
+        }
+
+    } catch (error) {
+        console.error('Error fetching equipo details:', error);
+        alert('Error de conexión.');
+        closeEquipoModal();
+    }
+}
+
+function closeEquipoModal() {
+    document.getElementById('equipoModal').style.display = 'none';
+}
+
+// Expose modal functions to window for inline onclick handlers
+window.openEquipoModal = openEquipoModal;
+window.closeEquipoModal = closeEquipoModal;

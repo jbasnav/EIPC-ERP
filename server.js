@@ -1622,6 +1622,7 @@ app.get('/api/centros', async (req, res) => {
 app.get('/api/equipos', async (req, res) => {
     try {
         const { equipo, empresa, area, subarea, page = 1, pageSize = 50, sortBy, sortOrder } = req.query;
+        console.log('API EQUIPOS CALLED - v2 (Fixed Columns)'); // DEBUG LOG
         const offset = (parseInt(page) - 1) * parseInt(pageSize);
 
         // Connect to Fw_Comunes database
@@ -1643,72 +1644,146 @@ app.get('/api/equipos', async (req, res) => {
         const areas = filtersResult.recordsets[1].map(r => r.AREA);
         const subareas = filtersResult.recordsets[2].map(r => r.Subarea);
 
-        // 2. Main Data Query
+        // 2. Main Data Query Setup
         const request = pool.request();
         let whereConditions = [];
 
+        // Note: Using aliases C for CALIBRACIONES, P for PERIODOS, D for CALIBRACIONES DETALLE
         if (equipo) {
             request.input('equipo', sql.NVarChar, `%${equipo}%`);
-            whereConditions.push('[Nº REF] LIKE @equipo');
+            whereConditions.push('C.[Nº REF] LIKE @equipo');
         }
         if (empresa) {
             request.input('empresa', sql.NVarChar, empresa);
-            whereConditions.push('[EMPRESA] = @empresa');
+            whereConditions.push('C.[EMPRESA] = @empresa');
         }
         if (area) {
             request.input('area', sql.NVarChar, area);
-            whereConditions.push('[AREA] = @area');
+            whereConditions.push('C.[AREA] = @area');
         }
         if (subarea) {
             request.input('subarea', sql.NVarChar, subarea);
-            whereConditions.push('[Subarea] = @subarea');
+            whereConditions.push('C.[Subarea] = @subarea');
         }
 
         // Retirado filter
-        // User spec: -1 = Sí, 0 = No (or handled as such)
+        // Logic: Active if Fecha Retirada is NULL. Retired if NOT NULL.
+        // Values: '0' = Activos (active), '1' = Retirados (retired)
         if (req.query.retirado) {
-            if (req.query.retirado === 'si') {
-                whereConditions.push('[RETIRADO] = -1');
-            } else if (req.query.retirado === 'no') {
-                // Handle 0 or NULL as "No"
-                whereConditions.push('([RETIRADO] = 0 OR [RETIRADO] IS NULL)');
+            if (req.query.retirado === '1') {
+                whereConditions.push('(C.[Fecha Retirada] IS NOT NULL OR C.[RETIRADO] = -1)');
+            } else if (req.query.retirado === '0') {
+                whereConditions.push('(C.[Fecha Retirada] IS NULL AND (C.[RETIRADO] = 0 OR C.[RETIRADO] IS NULL))');
             }
         }
 
         const whereClause = whereConditions.length > 0 ? ' WHERE ' + whereConditions.join(' AND ') : '';
 
-        // Sorting
+        // Sorting map
         const validSortColumns = {
-            'Nº REF': '[Nº REF]',
-            'NOMBRE INSTRUMENTO': '[NOMBRE INSTRUMENTO]',
-            'EMPRESA': '[EMPRESA]',
-            'AREA': '[AREA]',
-            'Subarea': '[Subarea]',
-            'NºEC': '[NºEC]',
-            'PERIODICIDAD': '[PERIODICIDAD]',
-            'ORGANISMO': '[ORGANISMO EXTERIOR DE CALIBRACION]'
+            'Nº REF': 'C.[Nº REF]',
+            'NOMBRE INSTRUMENTO': 'C.[NOMBRE INSTRUMENTO]',
+            'EMPRESA': 'C.[EMPRESA]',
+            'AREA': 'C.[AREA]',
+            'Subarea': 'C.[Subarea]',
+            'NºEC': 'C.[NºEC]',
+            'PERIODICIDAD': 'C.[PERIODICIDAD]',
+            'ORGANISMO': 'C.[ORGANISMO EXTERIOR DE CALIBRACION]',
+            'proxima': 'proxima',
+            'apto': 'apto',
+            'Fecha Retirada': 'C.[Fecha Retirada]',
+            'inicial': 'inicial'
         };
-        const sortCol = validSortColumns[sortBy] || '[Nº REF]';
+        const sortCol = validSortColumns[sortBy] || 'C.[Nº REF]';
         const sortDir = sortOrder === 'DESC' ? 'DESC' : 'ASC';
 
-        // Count Query
-        const countQuery = `SELECT COUNT(*) as total FROM [CALIBRACIONES] ${whereClause}`;
+        // Count Query (Total items matching filter)
+        const countQuery = `SELECT COUNT(DISTINCT C.[Nº REF]) as total FROM [CALIBRACIONES] C ${whereClause}`;
         const countResult = await request.query(countQuery);
         const total = countResult.recordset[0].total;
+
+        // KPI: Total Active Equipment (Filtered)
+        // Active logic: Fecha Retirada IS NULL AND RETIRADO Is Not 'Si'
+        // Filter logic: Apply all current filters EXCEPT 'retirado' because we want to count actives regardless of if user is looking at retireds?
+        // Actually, usually "Active Equipment" KPI on the dashboard shows the count of active equipment that match the other criteria (Activity/Area/etc).
+        let activeWhereConditions = whereConditions.filter(c => !c.includes('Fecha Retirada') && !c.includes('RETIRADO'));
+        activeWhereConditions.push('(C.[Fecha Retirada] IS NULL AND (C.[RETIRADO] = 0 OR C.[RETIRADO] IS NULL))');
+        const activeWhereClause = activeWhereConditions.length > 0 ? ' WHERE ' + activeWhereConditions.join(' AND ') : '';
+
+        const activeCountQuery = `SELECT COUNT(DISTINCT C.[Nº REF]) as totalActive FROM [CALIBRACIONES] C ${activeWhereClause}`;
+        const activeCountResult = await request.query(activeCountQuery);
+        const totalActive = activeCountResult.recordset[0].totalActive;
+
+        // KPI: Total Inactive (Retirado)
+        const inactiveCountQuery = `SELECT COUNT(DISTINCT C.[Nº REF]) as totalInactive FROM [CALIBRACIONES] C WHERE (C.[Fecha Retirada] IS NOT NULL OR C.[RETIRADO] = -1)`;
+        const inactiveCountResult = await request.query(inactiveCountQuery);
+        const totalInactive = inactiveCountResult.recordset[0].totalInactive;
+
+        // KPI: Count by Empresa
+        const empresaCountQuery = `SELECT C.[EMPRESA], COUNT(DISTINCT C.[Nº REF]) as count FROM [CALIBRACIONES] C GROUP BY C.[EMPRESA] ORDER BY count DESC`;
+        const empresaCountResult = await request.query(empresaCountQuery);
+        const empresaCounts = empresaCountResult.recordset;
+
+        // KPI: Count by Area
+        // KPI: Count by Area
+        const areaCountQuery = `SELECT C.[AREA], COUNT(DISTINCT C.[Nº REF]) as count FROM [CALIBRACIONES] C GROUP BY C.[AREA] ORDER BY count DESC`;
+        const areaCountResult = await request.query(areaCountQuery);
+        const areaCounts = areaCountResult.recordset;
+
+        // KPI: Count by Subarea
+        const subareaCountQuery = `SELECT C.[Subarea], COUNT(DISTINCT C.[Nº REF]) as count FROM [CALIBRACIONES] C WHERE C.[Subarea] IS NOT NULL AND C.[Subarea] <> '' GROUP BY C.[Subarea] ORDER BY count DESC`;
+        const subareaCountResult = await request.query(subareaCountQuery);
+        const subareaCounts = subareaCountResult.recordset;
 
         // Data Query
         const query = `
             SELECT
-                [Nº REF],
-                [NOMBRE INSTRUMENTO],
-                [EMPRESA],
-                [AREA],
-                [Subarea],
-                [NºEC],
-                [PERIODICIDAD],
-                [ORGANISMO EXTERIOR DE CALIBRACION]
-            FROM [CALIBRACIONES]
+                C.EMPRESA,
+                C.AREA,
+                C.[Nº REF],
+                MAX(CASE 
+                    WHEN P.tipo IS NULL THEN NULL
+                    WHEN P.tipo = 'd' THEN DATEADD(day, P.cantidad, D.[Fecha - F])
+                    WHEN P.tipo = 'm' THEN DATEADD(month, P.cantidad, D.[Fecha - F])
+                    WHEN P.tipo = 'yyyy' THEN DATEADD(year, P.cantidad, D.[Fecha - F])
+                    ELSE NULL 
+                END) AS proxima,
+                MAX(CASE 
+                    WHEN [meses apto] IS NULL THEN NULL 
+                    ELSE DATEADD(month, [meses apto], D.[Fecha - F]) 
+                END) AS apto,
+                C.[NOMBRE INSTRUMENTO],
+                C.[ORGANISMO EXTERIOR DE CALIBRACION],
+                C.FAMILIA,
+                C.PERIODICIDAD,
+                C.[INTERNO/EXTERNO],
+                C.[CAMPO MEDIDA],
+                C.OBSERVACIONES,
+                C.[MARCA/FABRICANTE],
+                C.[MODELO/TIPO],
+                C.[Nº DE SERIE],
+                C.[DIVISION DE ESCALA],
+                C.[FECHA DE RECEPCION],
+                C.[PROCEDIMIENTO CALIBRACION],
+                C.[CRITERIO DE ACEPTACION Y RECHAZO],
+                CASE WHEN ISNULL(C.PERIODICIDAD, 'X') = 'INICIAL' THEN -1 ELSE 0 END AS inicial,
+                C.[NºEC],
+                C.[Subarea],
+                C.[Fecha Retirada],
+                C.[Fecha Apertura/Instalacion]
+            FROM [CALIBRACIONES] C
+            LEFT JOIN [CALIBRACIONES DETALLE] D ON C.[Nº REF] = D.[Nº REF]
+            LEFT JOIN [PERIODOS] P ON C.PERIODICIDAD = P.periodo
             ${whereClause}
+            GROUP BY 
+                C.EMPRESA, C.AREA, C.[Nº REF], C.[NOMBRE INSTRUMENTO], 
+                C.[ORGANISMO EXTERIOR DE CALIBRACION], C.FAMILIA, C.PERIODICIDAD, 
+                C.[INTERNO/EXTERNO], C.[CAMPO MEDIDA], C.OBSERVACIONES, 
+                C.[MARCA/FABRICANTE], C.[MODELO/TIPO], C.[Nº DE SERIE], 
+                C.[DIVISION DE ESCALA], C.[FECHA DE RECEPCION], C.[PROCEDIMIENTO CALIBRACION], 
+                C.[CRITERIO DE ACEPTACION Y RECHAZO], 
+                CASE WHEN ISNULL(C.PERIODICIDAD, 'X') = 'INICIAL' THEN -1 ELSE 0 END, 
+                C.[NºEC], C.[Subarea], C.[Fecha Retirada], C.[Fecha Apertura/Instalacion]
             ORDER BY ${sortCol} ${sortDir}
             OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
         `;
@@ -1725,6 +1800,12 @@ app.get('/api/equipos', async (req, res) => {
             success: true,
             data: result.recordset,
             total: total,
+            totalActive: totalActive,
+            totalInactive: totalInactive,
+            kpiEmpresa: empresaCounts,
+            kpiEmpresa: empresaCounts,
+            kpiArea: areaCounts,
+            kpiSubarea: subareaCounts,
             page: parseInt(page),
             pageSize: parseInt(pageSize),
             totalPages: Math.ceil(total / parseInt(pageSize)),
@@ -1743,6 +1824,174 @@ app.get('/api/equipos', async (req, res) => {
             error: 'Error al obtener los equipos.',
             details: err.message
         });
+    }
+});
+
+// Endpoint para obtener próximas calibraciones (próximo mes)
+app.get('/api/equipos/proximas', async (req, res) => {
+    try {
+        const comunesConfig = { ...sqlConfig, database: 'Fw_Comunes' };
+        const pool = await sql.connect(comunesConfig);
+
+        // Logic: Calculate 'proxima', filtering for range [Now, Now + 1 Month]
+        // See implementation_plan.md for calculating 'proxima' logic re-use or simplication
+        const query = `
+            WITH CalibracionesCalculadas AS (
+                SELECT
+                    C.[Nº REF],
+                    C.[NOMBRE INSTRUMENTO],
+                    C.EMPRESA,
+                    C.AREA,
+                    MAX(CASE 
+                        WHEN P.tipo IS NULL THEN NULL
+                        WHEN P.tipo = 'd' THEN DATEADD(day, P.cantidad, D.[Fecha - F])
+                        WHEN P.tipo = 'm' THEN DATEADD(month, P.cantidad, D.[Fecha - F])
+                        WHEN P.tipo = 'yyyy' THEN DATEADD(year, P.cantidad, D.[Fecha - F])
+                        ELSE NULL 
+                    END) AS proxima
+                FROM [CALIBRACIONES] C
+                LEFT JOIN [CALIBRACIONES DETALLE] D ON C.[Nº REF] = D.[Nº REF]
+                LEFT JOIN [PERIODOS] P ON C.PERIODICIDAD = P.periodo
+                WHERE (C.[Fecha Retirada] IS NULL AND (C.[RETIRADO] = 0 OR C.[RETIRADO] IS NULL))
+                GROUP BY C.[Nº REF], C.[NOMBRE INSTRUMENTO], C.EMPRESA, C.AREA
+            )
+            SELECT TOP 50 *
+            FROM CalibracionesCalculadas
+            WHERE proxima BETWEEN GETDATE() AND DATEADD(month, 1, GETDATE())
+            ORDER BY proxima ASC
+        `;
+
+        const result = await pool.request().query(query);
+
+        // Reconnect to main database
+        await sql.connect(sqlConfig);
+
+        res.json({
+            success: true,
+            data: result.recordset,
+            timestamp: new Date()
+        });
+
+    } catch (err) {
+        console.error('Error SQL en /api/equipos/proximas:', err);
+        try { await sql.connect(sqlConfig); } catch (e) { }
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// Endpoint para obtener calibraciones caducadas (anteriores a hoy)
+app.get('/api/equipos/caducadas', async (req, res) => {
+    try {
+        const comunesConfig = { ...sqlConfig, database: 'Fw_Comunes' };
+        const pool = await sql.connect(comunesConfig);
+
+        const query = `
+            WITH CalibracionesCalculadas AS (
+                SELECT
+                    C.[Nº REF],
+                    C.[NOMBRE INSTRUMENTO],
+                    C.EMPRESA,
+                    C.AREA,
+                    MAX(CASE 
+                        WHEN P.tipo IS NULL THEN NULL
+                        WHEN P.tipo = 'd' THEN DATEADD(day, P.cantidad, D.[Fecha - F])
+                        WHEN P.tipo = 'm' THEN DATEADD(month, P.cantidad, D.[Fecha - F])
+                        WHEN P.tipo = 'yyyy' THEN DATEADD(year, P.cantidad, D.[Fecha - F])
+                        ELSE NULL 
+                    END) AS proxima
+                FROM [CALIBRACIONES] C
+                LEFT JOIN [CALIBRACIONES DETALLE] D ON C.[Nº REF] = D.[Nº REF]
+                LEFT JOIN [PERIODOS] P ON C.PERIODICIDAD = P.periodo
+                WHERE (C.[Fecha Retirada] IS NULL AND (C.[RETIRADO] = 0 OR C.[RETIRADO] IS NULL))
+                GROUP BY C.[Nº REF], C.[NOMBRE INSTRUMENTO], C.EMPRESA, C.AREA
+            )
+            SELECT TOP 50 *
+            FROM CalibracionesCalculadas
+            WHERE proxima < GETDATE()
+            ORDER BY proxima ASC
+        `;
+
+        const result = await pool.request().query(query);
+
+        // Reconnect to main database
+        await sql.connect(sqlConfig);
+
+        res.json({
+            success: true,
+            data: result.recordset,
+            timestamp: new Date()
+        });
+
+    } catch (err) {
+        console.error('Error SQL en /api/equipos/caducadas:', err);
+        try { await sql.connect(sqlConfig); } catch (e) { }
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// Endpoint para obtener detalle de un equipo (Modal)
+app.get('/api/equipos/:id', async (req, res) => {
+    try {
+        const { id } = req.params; // id is Nº REF, decoded
+
+        const comuniConfig = { ...sqlConfig, database: 'Fw_Comunes' };
+        const pool = await sql.connect(comuniConfig);
+
+        const request = pool.request();
+        request.input('id', sql.NVarChar, id);
+
+        // Fetch Main Info
+        const queryMain = `
+            SELECT TOP 1 C.*, 
+            MAX(CASE 
+                    WHEN P.tipo IS NULL THEN NULL
+                    WHEN P.tipo = 'd' THEN DATEADD(day, P.cantidad, D.[Fecha - F])
+                    WHEN P.tipo = 'm' THEN DATEADD(month, P.cantidad, D.[Fecha - F])
+                    WHEN P.tipo = 'yyyy' THEN DATEADD(year, P.cantidad, D.[Fecha - F])
+                    ELSE NULL 
+                END) AS proxima
+            FROM [CALIBRACIONES] C
+            LEFT JOIN [PERIODOS] P ON C.PERIODICIDAD = P.periodo
+            LEFT JOIN [CALIBRACIONES DETALLE] D ON C.[Nº REF] = D.[Nº REF]
+            WHERE C.[Nº REF] = @id
+            GROUP BY 
+                C.EMPRESA, C.AREA, C.Subarea, C.[Nº REF], C.[NOMBRE INSTRUMENTO], C.[Nº REF PAREJA],
+                C.[Nº DE SERIE], C.[MODELO/TIPO], C.[MARCA/FABRICANTE], C.OBSERVACIONES,
+                C.[CAMPO MEDIDA], C.[CRITERIO DE ACEPTACION Y RECHAZO], C.FAMILIA,
+                C.[DIVISION DE ESCALA], C.[FECHA DE RECEPCION], C.[PROCEDIMIENTO CALIBRACION],
+                C.[ORGANISMO EXTERIOR DE CALIBRACION], C.PERIODICIDAD, C.[INTERNO/EXTERNO],
+                C.RETIRADO, C.Etiqueta, C.INCIDENCIAS, C.IdEspecificacion, C.[ACCEPTANCE CRITERIA],
+                C.FechaCreacionAudi, C.tm, C.[activo asociado], C.NºEC, C.[meses apto],
+                C.solicitada, C.[codigo tipo], C.[codigo familia], C.[codigo subfamilia],
+                C.descripcion, C.[Fecha Retirada], C.[Fecha Apertura/Instalacion]
+        `;
+        const resultMain = await request.query(queryMain);
+
+        // Fetch Details (History)
+        const queryDetails = `
+            SELECT D.* 
+            FROM [CALIBRACIONES DETALLE] D
+            WHERE D.[Nº REF] = @id
+            ORDER BY D.[Fecha - F] DESC
+        `;
+        const resultDetails = await request.query(queryDetails);
+
+        await sql.connect(sqlConfig);
+
+        if (resultMain.recordset.length === 0) {
+            return res.status(404).json({ success: false, error: 'Equipo no encontrado' });
+        }
+
+        res.json({
+            success: true,
+            data: resultMain.recordset[0],
+            history: resultDetails.recordset
+        });
+
+    } catch (err) {
+        console.error('Error SQL en /api/equipos/:id:', err);
+        try { await sql.connect(sqlConfig); } catch (e) { }
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 
