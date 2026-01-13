@@ -1631,7 +1631,10 @@ app.get('/api/equipos', async (req, res) => {
             database: 'Fw_Comunes'
         };
 
-        const pool = await sql.connect(comunesConfig);
+        // Use a separate connection pool or just switch database for this request
+        // To avoid disrupting the global connection, we should create a new pool
+        const pool = new sql.ConnectionPool(comunesConfig);
+        await pool.connect();
 
         // 1. Get Distinct values for filters (Empresa, Area, Subarea)
         const filtersQuery = `
@@ -1803,8 +1806,8 @@ app.get('/api/equipos', async (req, res) => {
 
         const result = await request.query(query);
 
-        // Reconnect to main database
-        await sql.connect(sqlConfig);
+        // Close the temporary pool
+        await pool.close();
 
         res.json({
             success: true,
@@ -1827,9 +1830,8 @@ app.get('/api/equipos', async (req, res) => {
         });
 
     } catch (err) {
-        console.error('Error SQL en /api/equipos:', err);
-        // Try to reconnect to main database in case of error
-        try { await sql.connect(sqlConfig); } catch (e) { }
+        // Ensure pool is closed on error
+        if (pool) await pool.close().catch(() => { });
         res.status(500).json({
             success: false,
             error: 'Error al obtener los equipos.',
@@ -1946,7 +1948,8 @@ app.get('/api/equipos/:id', async (req, res) => {
         const { id } = req.params; // id is Nº REF, decoded
 
         const comuniConfig = { ...sqlConfig, database: 'Fw_Comunes' };
-        const pool = await sql.connect(comuniConfig);
+        const pool = new sql.ConnectionPool(comuniConfig);
+        await pool.connect();
 
         const request = pool.request();
         request.input('id', sql.NVarChar, id);
@@ -1966,7 +1969,7 @@ app.get('/api/equipos/:id', async (req, res) => {
             LEFT JOIN [CALIBRACIONES DETALLE] D ON C.[Nº REF] = D.[Nº REF]
             WHERE C.[Nº REF] = @id
             GROUP BY 
-                C.EMPRESA, C.AREA, C.Subarea, C.[Nº REF], C.[NOMBRE INSTRUMENTO], C.[Nº REF PAREJA],
+                C.EMPRESA, C.AREA, C.Subarea, C.Seccion, C.Subseccion, C.[Nº REF], C.[NOMBRE INSTRUMENTO], C.[Nº REF PAREJA],
                 C.[Nº DE SERIE], C.[MODELO/TIPO], C.[MARCA/FABRICANTE], C.OBSERVACIONES,
                 C.[CAMPO MEDIDA], C.[CRITERIO DE ACEPTACION Y RECHAZO], C.FAMILIA,
                 C.[DIVISION DE ESCALA], C.[FECHA DE RECEPCION], C.[PROCEDIMIENTO CALIBRACION],
@@ -2001,7 +2004,7 @@ app.get('/api/equipos/:id', async (req, res) => {
 
     } catch (err) {
         console.error('Error SQL en /api/equipos/:id:', err);
-        try { await sql.connect(sqlConfig); } catch (e) { }
+        if (pool) await pool.close().catch(() => { });
         res.status(500).json({ success: false, error: err.message });
     }
 });

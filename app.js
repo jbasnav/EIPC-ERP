@@ -2757,6 +2757,7 @@ function clearEquiposFilters() {
 
 // Populate Filters (Dependent Logic)
 function populateEquiposFilters(data) {
+    const empresaSelect = document.getElementById('equiposEmpresaFilter');
     const areaSelect = document.getElementById('equiposAreaFilter');
     const seccionSelect = document.getElementById('equiposSeccionFilter');
     const subseccionSelect = document.getElementById('equiposSubseccionFilter');
