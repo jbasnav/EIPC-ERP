@@ -995,6 +995,14 @@
                             </select>
                         </div>
                         <div class="filter-group" style="flex: 1; min-width: 150px;">
+                            <label class="filter-label">INT/EXT</label>
+                            <select id="equiposIntExtFilter" class="filter-select">
+                                <option value="">Todas</option>
+                                <option value="INTERNO">INTERNO</option>
+                                <option value="EXTERNO">EXTERNO</option>
+                            </select>
+                        </div>
+                        <div class="filter-group" style="flex: 1; min-width: 150px;">
                             <label class="filter-label">Entidad</label>
                             <select id="equiposEntidadFilter" class="filter-select">
                                 <option value="">Todas</option>
@@ -6277,115 +6285,6 @@
                     </div>
                 </div>
 
-                <!-- Equipo Detail Modal -->
-                <div id="equipoModal"
-                    style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-                    <div
-                        style="background: var(--bg-card); border-radius: 16px; padding: 2rem; width: 90%; max-width: 1000px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 1.5rem;">
-
-                        <!-- Header -->
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div>
-                                <h2 id="equipoModalTitle"
-                                    style="margin: 0; color: var(--text-main); font-size: 1.5rem;">Detalle
-                                    del Equipo
-                                </h2>
-                                <p id="equipoModalSubtitle" style="margin: 0.5rem 0 0 0; color: var(--text-muted);"></p>
-                            </div>
-                            <button onclick="closeEquipoModal()"
-                                style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">
-                                <i class="ri-close-line"></i>
-                            </button>
-                        </div>
-
-                        <!-- Main Info Grid -->
-                        <div
-                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1rem; background: var(--bg-body); border-radius: 12px;">
-                            <div>
-                                <label
-                                    style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Nº
-                                    Identificación</label>
-                                <strong id="em-ref" style="font-size: 1.1rem; color: var(--text-main);">-</strong>
-                            </div>
-                            <div>
-                                <label
-                                    style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Instrumento</label>
-                                <strong id="em-nombre" style="font-size: 1rem; color: var(--text-main);">-</strong>
-                            </div>
-                            <div>
-                                <label
-                                    style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Marca
-                                    / Modelo</label>
-                                <strong id="em-marca" style="font-size: 1rem; color: var(--text-main);">-</strong>
-                            </div>
-                            <div>
-                                <label
-                                    style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Nº
-                                    Serie</label>
-                                <strong id="em-serie" style="font-size: 1rem; color: var(--text-main);">-</strong>
-                            </div>
-                            <div>
-                                <label
-                                    style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Ubicación</label>
-                                <strong id="em-ubicacion" style="font-size: 1rem; color: var(--text-main);">-</strong>
-                            </div>
-                            <div>
-                                <label
-                                    style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Estado
-                                    Operativo</label>
-                                <span id="em-estado" class="badge badge-success">-</span>
-                            </div>
-                        </div>
-
-                        <!-- Additional Specs -->
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
-                            <div style="padding: 1rem; border: 1px solid var(--border); border-radius: 8px;">
-                                <h4 style="margin: 0 0 0.5rem 0; color: var(--text-main);">Especificaciones</h4>
-                                <ul
-                                    style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; color: var(--text-secondary);">
-                                    <li><strong>Campo Medida:</strong> <span id="em-campo">-</span></li>
-                                    <li><strong>División Escala:</strong> <span id="em-division">-</span></li>
-                                    <li><strong>Incertidumbre:</strong> <span id="em-incertidumbre">-</span></li>
-                                </ul>
-                            </div>
-                            <div style="padding: 1rem; border: 1px solid var(--border); border-radius: 8px;">
-                                <h4 style="margin: 0 0 0.5rem 0; color: var(--text-main);">Calibración</h4>
-                                <ul
-                                    style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; color: var(--text-secondary);">
-                                    <li><strong>Periodicidad:</strong> <span id="em-periodo">-</span></li>
-                                    <li><strong>Organismo:</strong> <span id="em-organismo">-</span></li>
-                                    <li><strong>Próxima:</strong> <span id="em-proxima"
-                                            style="font-weight: bold;">-</span></li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <!-- History Table -->
-                        <div>
-                            <h3 style="margin: 0 0 1rem 0; color: var(--text-main);">Histórico de Calibraciones</h3>
-                            <div class="table-container" style="max-height: 300px;">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Fecha</th>
-                                            <th>Certificado (Nº EC)</th>
-                                            <th>Resultado</th>
-                                            <th>Realizado Por</th>
-                                            <th>Temp ºC</th>
-                                            <th>Humedad %</th>
-                                            <th>Observaciones</th>
-                                            <th>Documento</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="em-history-body">
-                                        <!-- Populated via JS -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
 
                 <!-- Loading Overlay -->
                 <div class="loading-overlay" id="loadingOverlay">
@@ -6398,6 +6297,108 @@
     <!-- Toast Notifications Container -->
     <div id="toastContainer"
         style="position: fixed; top: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; pointer-events: none;">
+    </div>
+
+    <!-- Equipo Detail Modal -->
+    <div id="equipoModal"
+        style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div
+            style="background: var(--bg-card); border-radius: 16px; padding: 2rem; width: 90%; max-width: 1000px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 1.5rem;">
+
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h2 id="equipoModalTitle" style="margin: 0; color: var(--text-main); font-size: 1.5rem;">Detalle del
+                        Equipo
+                    </h2>
+                    <p id="equipoModalSubtitle" style="margin: 0.5rem 0 0 0; color: var(--text-muted);"></p>
+                </div>
+                <button onclick="closeEquipoModal()"
+                    style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">
+                    <i class="ri-close-line"></i>
+                </button>
+            </div>
+
+            <!-- Main Info Grid -->
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1rem; background: var(--bg-body); border-radius: 12px;">
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Nº
+                        Identificación</label>
+                    <strong id="em-ref" style="font-size: 1.1rem; color: var(--text-main);">-</strong>
+                </div>
+                <div>
+                    <label
+                        style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Instrumento</label>
+                    <strong id="em-nombre" style="font-size: 1rem; color: var(--text-main);">-</strong>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Marca
+                        / Modelo</label>
+                    <strong id="em-marca" style="font-size: 1rem; color: var(--text-main);">-</strong>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Nº
+                        Serie</label>
+                    <strong id="em-serie" style="font-size: 1rem; color: var(--text-main);">-</strong>
+                </div>
+                <div>
+                    <label
+                        style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Ubicación</label>
+                    <strong id="em-ubicacion" style="font-size: 1rem; color: var(--text-main);">-</strong>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Estado
+                        Operativo</label>
+                    <span id="em-estado" class="badge badge-success">-</span>
+                </div>
+            </div>
+
+            <!-- Additional Specs -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                <div style="padding: 1rem; border: 1px solid var(--border); border-radius: 8px;">
+                    <h4 style="margin: 0 0 0.5rem 0; color: var(--text-main);">Especificaciones</h4>
+                    <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; color: var(--text-secondary);">
+                        <li><strong>Campo Medida:</strong> <span id="em-campo">-</span></li>
+                        <li><strong>División Escala:</strong> <span id="em-division">-</span></li>
+                        <li><strong>Incertidumbre:</strong> <span id="em-incertidumbre">-</span></li>
+                    </ul>
+                </div>
+                <div style="padding: 1rem; border: 1px solid var(--border); border-radius: 8px;">
+                    <h4 style="margin: 0 0 0.5rem 0; color: var(--text-main);">Calibración</h4>
+                    <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; color: var(--text-secondary);">
+                        <li><strong>Periodicidad:</strong> <span id="em-periodo">-</span></li>
+                        <li><strong>Organismo:</strong> <span id="em-organismo">-</span></li>
+                        <li><strong>Próxima:</strong> <span id="em-proxima" style="font-weight: bold;">-</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- History Table -->
+            <div>
+                <h3 style="margin: 0 0 1rem 0; color: var(--text-main);">Histórico de Calibraciones</h3>
+                <div class="table-container" style="max-height: 300px;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Certificado (Nº EC)</th>
+                                <th>Resultado</th>
+                                <th>Realizado Por</th>
+                                <th>Temp ºC</th>
+                                <th>Humedad %</th>
+                                <th>Observaciones</th>
+                                <th>Documento</th>
+                            </tr>
+                        </thead>
+                        <tbody id="em-history-body">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
     </div>
 
     <!-- Confirm Modal -->

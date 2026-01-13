@@ -2599,6 +2599,7 @@ async function fetchEquipos(page = 1) {
     equiposState.filters.subseccion = document.getElementById('equiposSubseccionFilter')?.value || '';
     equiposState.filters.area = document.getElementById('equiposAreaFilter')?.value || '';
     equiposState.filters.entidad = document.getElementById('equiposEntidadFilter')?.value || '';
+    equiposState.filters.intExt = document.getElementById('equiposIntExtFilter')?.value || '';
     equiposState.filters.retirado = document.getElementById('equiposRetiradoFilter')?.value || '';
 
     const tbody = document.getElementById('equiposTableBody');
@@ -2623,6 +2624,7 @@ async function fetchEquipos(page = 1) {
         if (equiposState.filters.seccion) params.append('seccion', equiposState.filters.seccion);
         if (equiposState.filters.subseccion) params.append('subseccion', equiposState.filters.subseccion);
         if (equiposState.filters.entidad) params.append('entidad', equiposState.filters.entidad);
+        if (equiposState.filters.intExt) params.append('intExt', equiposState.filters.intExt);
         if (equiposState.filters.retirado) params.append('retirado', equiposState.filters.retirado);
 
         params.append('page', equiposState.page);
@@ -2843,6 +2845,7 @@ function renderEquiposTable(equipos) {
             <td style="text-align: center;">
                 <span style="${getStatusStyle(eq['proxima'])}" title="${eq['proxima'] ? new Date(eq['proxima']).toLocaleDateString() : ''}"></span>
             </td>
+            <td>${eq['EMPRESA'] || '-'}</td>
             <td>
                 <div style="font-weight: 500;">${eq['Seccion'] || '-'}</div>
                 <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 400;">${eq['Subseccion'] || '-'}</div>
@@ -2934,6 +2937,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('equiposEmpresaFilter')?.addEventListener('change', () => fetchEquipos(1));
     document.getElementById('equiposSeccionFilter')?.addEventListener('change', () => fetchEquipos(1));
     document.getElementById('equiposSubseccionFilter')?.addEventListener('change', () => fetchEquipos(1));
+    document.getElementById('equiposAreaFilter')?.addEventListener('change', () => fetchEquipos(1));
+    document.getElementById('equiposEntidadFilter')?.addEventListener('change', () => fetchEquipos(1));
+    document.getElementById('equiposIntExtFilter')?.addEventListener('change', () => fetchEquipos(1));
     document.getElementById('equiposRetiradoFilter')?.addEventListener('change', () => fetchEquipos(1));
 
     // Sort listeners
@@ -12627,6 +12633,7 @@ function initProximasListeners() {
 
 // Modal Functions
 async function openEquipoModal(id) {
+    console.log('[App] Opening equipo modal for ID:', id);
     const modal = document.getElementById('equipoModal');
     // Decode ID to handle slashes/spaces properly in URL
     const encodedId = encodeURIComponent(id);
@@ -12634,6 +12641,7 @@ async function openEquipoModal(id) {
     // Show loading state in modal if needed, or clear previous data
     document.getElementById('em-ref').textContent = 'Cargando...';
 
+    console.log('[App] Showing modal (setting display to flex)');
     modal.style.display = 'flex';
 
     try {

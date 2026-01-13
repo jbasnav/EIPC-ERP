@@ -1621,7 +1621,7 @@ app.get('/api/centros', async (req, res) => {
 // Endpoint para obtener equipos (CALIBRACIONES from Fw_Comunes database)
 app.get('/api/equipos', async (req, res) => {
     try {
-        const { equipo, empresa, area, subarea, entidad, page = 1, pageSize = 50, sortBy, sortOrder } = req.query;
+        const { equipo, empresa, area, subarea, entidad, intExt, page = 1, pageSize = 50, sortBy, sortOrder } = req.query;
         console.log('API EQUIPOS CALLED - v2 (Fixed Columns)'); // DEBUG LOG
         const offset = (parseInt(page) - 1) * parseInt(pageSize);
 
@@ -1679,6 +1679,10 @@ app.get('/api/equipos', async (req, res) => {
         if (req.query.subseccion) {
             request.input('subseccion', sql.NVarChar, req.query.subseccion);
             whereConditions.push('C.[Subseccion] = @subseccion');
+        }
+        if (intExt) {
+            request.input('intExt', sql.NVarChar, intExt);
+            whereConditions.push('C.[INTERNO/EXTERNO] = @intExt');
         }
 
         // Retirado filter
@@ -1754,6 +1758,7 @@ app.get('/api/equipos', async (req, res) => {
             SELECT
                 C.Seccion,
                 C.Subseccion,
+                C.EMPRESA,
                 C.[Nº REF],
                 MAX(CASE 
                     WHEN P.tipo IS NULL THEN NULL
