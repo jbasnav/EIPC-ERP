@@ -153,6 +153,10 @@
                             <i class="ri-tools-line"></i>
                             <span>Operaciones</span>
                         </a>
+                        <a href="#" class="nav-item" data-view="grupos-calculo">
+                            <i class="ri-calculator-line"></i>
+                            <span>Grupos Cálculo</span>
+                        </a>
                         <a href="#" class="nav-item" data-view="activos">
                             <i class="ri-device-line"></i>
                             <span>Activos</span>
@@ -1390,6 +1394,12 @@
                     <div class="filter-bar"
                         style="display: flex; gap: 1rem; margin-bottom: 1rem; padding: 1rem; background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm); flex-wrap: wrap; align-items: flex-end;">
                         <div class="filter-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <label for="articulosCodigoFilter"
+                                style="font-weight: 500; font-size: 0.875rem;">Artículo:</label>
+                            <input type="text" id="articulosCodigoFilter" placeholder="Buscar artículo..."
+                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 150px;">
+                        </div>
+                        <div class="filter-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
                             <label for="articulosTipoFilter"
                                 style="font-weight: 500; font-size: 0.875rem;">Tipo:</label>
                             <select id="articulosTipoFilter"
@@ -1954,33 +1964,37 @@
                             <table id="operacionesTable" style="table-layout: fixed; width: 100%;">
                                 <thead>
                                     <tr>
-                                        <th style="width: 80px; cursor: pointer;" data-sort="codigo"
+                                        <th style="width: 70px; cursor: pointer;" data-sort="codigo"
                                             class="sortable-op">Código
                                             <i class="ri-arrow-up-down-line"></i>
                                         </th>
                                         <th style="width: auto; cursor: pointer;" data-sort="descripcion"
                                             class="sortable-op">
                                             Descripción <i class="ri-arrow-up-down-line"></i></th>
-                                        <th style="width: 80px; cursor: pointer;" data-sort="seccion"
+                                        <th style="width: 110px; cursor: pointer;" data-sort="seccion"
                                             class="sortable-op">
                                             Sección <i class="ri-arrow-up-down-line"></i>
                                         </th>
-                                        <th style="width: 70px; cursor: pointer; text-align: center;" data-sort="rutas"
-                                            class="sortable-op">En Rutas
+                                        <th style="width: 60px; cursor: pointer; text-align: center;" data-sort="rutas"
+                                            class="sortable-op">Rutas
                                             <i class="ri-arrow-up-down-line"></i>
                                         </th>
-                                        <th style="width: 70px; cursor: pointer;" data-sort="activo"
+                                        <th style="width: 60px; cursor: pointer;" data-sort="activo"
                                             class="sortable-op">Activo
                                             <i class="ri-arrow-up-down-line"></i>
                                         </th>
-                                        <th style="width: 120px; cursor: pointer;" data-sort="grupo"
+                                        <th style="width: 70px; cursor: pointer;" data-sort="aCalculo"
+                                            class="sortable-op">A Cálculo
+                                            <i class="ri-arrow-up-down-line"></i>
+                                        </th>
+                                        <th style="width: 100px; cursor: pointer;" data-sort="grupo"
                                             class="sortable-op">Grupo
                                             <i class="ri-arrow-up-down-line"></i>
                                         </th>
-                                        <th style="width: 80px; cursor: pointer;" data-sort="plazo" class="sortable-op">
+                                        <th style="width: 60px; cursor: pointer;" data-sort="plazo" class="sortable-op">
                                             Plazo <i class="ri-arrow-up-down-line"></i>
                                         </th>
-                                        <th style="width: 90px; cursor: pointer;" data-sort="computo"
+                                        <th style="width: 80px; cursor: pointer;" data-sort="computo"
                                             class="sortable-op">
                                             Computo OEE <i class="ri-arrow-up-down-line"></i>
                                         </th>
@@ -1988,7 +2002,7 @@
                                 </thead>
                                 <tbody id="operacionesTableBody">
                                     <tr>
-                                        <td colspan="8"
+                                        <td colspan="9"
                                             style="text-align: center; padding: 2rem; color: var(--text-muted);">
                                             <i class="ri-tools-line"
                                                 style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
@@ -1997,6 +2011,23 @@
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grupos Cálculo View -->
+            <div id="gruposCalculoView" class="view-section">
+                <div class="grupos-calculo-content" style="padding: 2rem;">
+                    <h2 style="margin-bottom: 1.5rem; color: var(--text-main);">
+                        <i class="ri-calculator-line" style="margin-right: 0.5rem;"></i>Grupos de Cálculo
+                    </h2>
+
+                    <!-- Loading / Content Container -->
+                    <div id="gruposCalculoContainer">
+                        <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                            <div class="spinner" style="width: 40px; height: 40px; margin: 0 auto 1rem;"></div>
+                            Cargando grupos de cálculo...
                         </div>
                     </div>
                 </div>
@@ -5519,6 +5550,17 @@
                                 <!-- Populated dynamically -->
                             </select>
                         </div>
+                        <!-- A Calculo -->
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <label for="oeeACalculoFilter" style="font-weight: 600; color: var(--text-main);">A
+                                Cálculo:</label>
+                            <select id="oeeACalculoFilter"
+                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); cursor: pointer; min-width: 100px;">
+                                <option value="">Todos</option>
+                                <option value="1" selected>Sí</option>
+                                <option value="0">No</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- KPI Grid -->
@@ -6323,7 +6365,8 @@
             <div
                 style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1rem; background: var(--bg-body); border-radius: 12px;">
                 <div>
-                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Nº
+                    <label
+                        style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Nº
                         Identificación</label>
                     <strong id="em-ref" style="font-size: 1.1rem; color: var(--text-main);">-</strong>
                 </div>
@@ -6333,12 +6376,14 @@
                     <strong id="em-nombre" style="font-size: 1rem; color: var(--text-main);">-</strong>
                 </div>
                 <div>
-                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Marca
+                    <label
+                        style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Marca
                         / Modelo</label>
                     <strong id="em-marca" style="font-size: 1rem; color: var(--text-main);">-</strong>
                 </div>
                 <div>
-                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Nº
+                    <label
+                        style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Nº
                         Serie</label>
                     <strong id="em-serie" style="font-size: 1rem; color: var(--text-main);">-</strong>
                 </div>
@@ -6348,7 +6393,8 @@
                     <strong id="em-ubicacion" style="font-size: 1rem; color: var(--text-main);">-</strong>
                 </div>
                 <div>
-                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Estado
+                    <label
+                        style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Estado
                         Operativo</label>
                     <span id="em-estado" class="badge badge-success">-</span>
                 </div>
@@ -6358,7 +6404,8 @@
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
                 <div style="padding: 1rem; border: 1px solid var(--border); border-radius: 8px;">
                     <h4 style="margin: 0 0 0.5rem 0; color: var(--text-main);">Especificaciones</h4>
-                    <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; color: var(--text-secondary);">
+                    <ul
+                        style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; color: var(--text-secondary);">
                         <li><strong>Campo Medida:</strong> <span id="em-campo">-</span></li>
                         <li><strong>División Escala:</strong> <span id="em-division">-</span></li>
                         <li><strong>Incertidumbre:</strong> <span id="em-incertidumbre">-</span></li>
@@ -6366,7 +6413,8 @@
                 </div>
                 <div style="padding: 1rem; border: 1px solid var(--border); border-radius: 8px;">
                     <h4 style="margin: 0 0 0.5rem 0; color: var(--text-main);">Calibración</h4>
-                    <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; color: var(--text-secondary);">
+                    <ul
+                        style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; color: var(--text-secondary);">
                         <li><strong>Periodicidad:</strong> <span id="em-periodo">-</span></li>
                         <li><strong>Organismo:</strong> <span id="em-organismo">-</span></li>
                         <li><strong>Próxima:</strong> <span id="em-proxima" style="font-weight: bold;">-</span></li>

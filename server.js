@@ -516,7 +516,7 @@ app.get('/api/utillajes-filtros', async (req, res) => {
 // Endpoint para obtener el maestro de artículos (solo tipo 02)
 app.get('/api/articulos', async (req, res) => {
     try {
-        const { tipo, familia, subfamilia, material, cliente } = req.query;
+        const { tipo, familia, subfamilia, material, cliente, articulo } = req.query;
 
         const request = new sql.Request();
         let whereConditions = [];
@@ -525,6 +525,12 @@ app.get('/api/articulos', async (req, res) => {
         const tipoValue = tipo || '02';
         request.input('tipo', sql.NVarChar, tipoValue);
         whereConditions.push('A.[codigo tipo] = @tipo');
+
+        // Filter by articulo (LIKE search)
+        if (articulo) {
+            request.input('articulo', sql.NVarChar, `%${articulo}%`);
+            whereConditions.push('A.[codigo articulo] LIKE @articulo');
+        }
 
         if (familia) {
             request.input('familia', sql.NVarChar, familia);
@@ -1274,6 +1280,7 @@ app.get('/api/operaciones', async (req, res) => {
                 O.[seccion],
                 S.[denominacion] as seccionDescripcion,
                 O.[ComputoOEE],
+                O.[a calculo],
                 (SELECT COUNT(*) FROM [RUTAS] R WHERE R.[codigo operacion] = O.[codigo operacion]) as rutasCount
             FROM
                 [OPERACIONES] O
@@ -1329,6 +1336,64 @@ app.get('/api/operaciones', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Error al obtener las operaciones.',
+            details: err.message
+        });
+    }
+});
+
+// Endpoint para obtener Grupos de Cálculo con sus operaciones
+app.get('/api/grupos-calculo', async (req, res) => {
+    try {
+        // Get all grupos from MAESTRO GRUPOS CALCULO
+        const gruposResult = await sql.query`
+            SELECT 
+                [grupocalculo],
+                [denominacion]
+            FROM [MAESTRO GRUPOS CALCULO]
+            ORDER BY [grupocalculo]
+        `;
+
+        const grupos = gruposResult.recordset;
+
+        // For each grupo, get associated operations from OPERACIONES POR GRUPO CALCULO
+        const gruposConOperaciones = [];
+
+        for (const grupo of grupos) {
+            const request = new sql.Request();
+            request.input('grupo', sql.NVarChar, grupo.grupocalculo);
+
+            const operacionesResult = await request.query(`
+                SELECT 
+                    OGC.[operacion] as [codigo operacion],
+                    O.[descripcion 1] as descripcion,
+                    O.[seccion],
+                    S.[denominacion] as seccionDescripcion
+                FROM [OPERACIONES POR GRUPO CALCULO] OGC
+                LEFT JOIN [OPERACIONES] O ON OGC.[operacion] = O.[codigo operacion]
+                LEFT JOIN [MAESTRO SECCIONES] S ON O.[seccion] = S.[seccion]
+                WHERE OGC.[grupocalculo] = @grupo
+                ORDER BY OGC.[operacion]
+            `);
+
+            gruposConOperaciones.push({
+                grupocalculo: grupo.grupocalculo,
+                descripcion: grupo.denominacion || '',
+                operaciones: operacionesResult.recordset
+            });
+        }
+
+        res.json({
+            success: true,
+            data: gruposConOperaciones,
+            count: grupos.length,
+            timestamp: new Date()
+        });
+
+    } catch (err) {
+        console.error('Error SQL en /api/grupos-calculo:', err);
+        res.status(500).json({
+            success: false,
+            error: 'Error al obtener grupos de cálculo.',
             details: err.message
         });
     }
@@ -3560,7 +3625,7 @@ app.get('/api/otd-rechazos', async (req, res) => {
 
 app.get('/api/produccion/oee', async (req, res) => {
     try {
-        const { year, month, seccion, familia } = req.query;
+        const { year, month, seccion, familia, aCalculo } = req.query;
         const currentYear = new Date().getFullYear();
         const selectedYear = parseInt(year) || currentYear;
 
@@ -3607,6 +3672,13 @@ app.get('/api/produccion/oee', async (req, res) => {
         if (familia && familia !== '') {
             request.input('familia', sql.NVarChar, familia);
             whereConditions.push('MA.[codigo familia] = @familia');
+        }
+
+        // Filter by A Calculo (1 = "Sí", 0 = "No")
+        if (aCalculo !== undefined && aCalculo !== '') {
+            const aCalculoValue = parseInt(aCalculo);
+            request.input('aCalculo', sql.Bit, aCalculoValue);
+            whereConditions.push('OP.[a calculo] = @aCalculo');
         }
 
         const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
@@ -3676,6 +3748,7 @@ app.get('/api/produccion/oee', async (req, res) => {
         if (month && month !== '') request2.input('month', sql.Int, parseInt(month));
         if (seccion && seccion !== '') request2.input('seccion', sql.NVarChar, seccion);
         if (familia && familia !== '') request2.input('familia', sql.NVarChar, familia);
+        if (aCalculo !== undefined && aCalculo !== '') request2.input('aCalculo', sql.Bit, parseInt(aCalculo));
 
         const globalsQuery = `
             SELECT 
@@ -3708,11 +3781,13 @@ app.get('/api/produccion/oee', async (req, res) => {
         if (selectedYear) request3.input('year', sql.Int, selectedYear);
         if (seccion && seccion !== '') request3.input('seccion', sql.NVarChar, seccion);
         if (familia && familia !== '') request3.input('familia', sql.NVarChar, familia);
+        if (aCalculo !== undefined && aCalculo !== '') request3.input('aCalculo', sql.Bit, parseInt(aCalculo));
 
         let trendWhereConditions = ['OP.[ComputoOEE] = 1'];
         if (selectedYear) trendWhereConditions.push('YEAR(RT.[fecha inicio]) = @year');
         if (seccion && seccion !== '') trendWhereConditions.push('OP.[seccion] = @seccion');
         if (familia && familia !== '') trendWhereConditions.push('MA.[codigo familia] = @familia');
+        if (aCalculo !== undefined && aCalculo !== '') trendWhereConditions.push('OP.[a calculo] = @aCalculo');
         const trendWhereClause = trendWhereConditions.length > 0 ? 'WHERE ' + trendWhereConditions.join(' AND ') : '';
 
         const trendQuery = `

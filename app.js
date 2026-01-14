@@ -1526,6 +1526,7 @@ async function loadRutasFiltros() {
 
 // Fetch Articulos for Table View
 async function fetchArticulosForTable() {
+    const articuloInput = document.getElementById('articulosCodigoFilter');
     const tipoSelect = document.getElementById('articulosTipoFilter');
     const familiaSelect = document.getElementById('articulosFamiliaFilter');
     const subfamiliaSelect = document.getElementById('articulosSubfamiliaFilter');
@@ -1535,6 +1536,7 @@ async function fetchArticulosForTable() {
     const infoDiv = document.getElementById('articulosInfo');
     const countSpan = document.getElementById('articulosResultCount');
 
+    const articulo = articuloInput?.value || '';
     const tipo = tipoSelect?.value || '02';
     const familia = familiaSelect?.value || '';
     const subfamilia = subfamiliaSelect?.value || '';
@@ -1555,6 +1557,7 @@ async function fetchArticulosForTable() {
 
     try {
         const params = new URLSearchParams();
+        if (articulo) params.append('articulo', articulo);
         if (tipo) params.append('tipo', tipo);
         if (familia) params.append('familia', familia);
         if (subfamilia) params.append('subfamilia', subfamilia);
@@ -2244,17 +2247,27 @@ function renderOperacionesTable(operaciones) {
                  title="Ver artículos que usan esta operación">${rutasCount}</a>`
             : `<span style="display: inline-block; background: rgba(156, 163, 175, 0.1); color: var(--text-muted); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">0</span>`;
 
+        // A Calculo value (can be 1, -1 for true, 0 for false)
+        const aCalculoValue = op['a calculo'];
+        const aCalculoDisplay = aCalculoValue === 1 || aCalculoValue === -1 || aCalculoValue === true
+            ? '<span style="color: #10b981;"><i class="ri-checkbox-circle-fill"></i> Sí</span>'
+            : '<span style="color: #ef4444;"><i class="ri-close-circle-line"></i> No</span>';
+
         return `
         <tr>
             <td>${op['codigo operacion'] || '-'}</td>
             <td>${op['descripcion 1'] || '-'}</td>
-            <td title="${op['seccionDescripcion'] || ''}">${op['seccion'] || '-'}</td>
+            <td>
+                <span>${op['seccion'] || '-'}</span>
+                <br><span style="font-size: 0.7rem; color: var(--text-muted);">${op['seccionDescripcion'] || ''}</span>
+            </td>
             <td style="text-align: center;">${rutasLink}</td>
             <td>
                 ${op['activo']
                 ? '<span style="color: #10b981;"><i class="ri-checkbox-circle-fill"></i> SÍ</span>'
                 : '<span style="color: #ef4444;"><i class="ri-close-circle-line"></i> No</span>'}
             </td>
+            <td>${aCalculoDisplay}</td>
             <td>${op['grupo operaciones'] || '-'}</td>
             <td>${op['PlazoStandard'] || '-'}</td>
             <td style="cursor: pointer;" 
@@ -2266,6 +2279,106 @@ function renderOperacionesTable(operaciones) {
             </td>
         </tr>
     `;
+    }).join('');
+}
+
+// ============================================
+// GRUPOS CALCULO SECTION
+// ============================================
+
+async function fetchGruposCalculo() {
+    const container = document.getElementById('gruposCalculoContainer');
+    if (!container) return;
+
+    // Show loading
+    container.innerHTML = `
+        <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+            <div class="spinner" style="width: 40px; height: 40px; margin: 0 auto 1rem;"></div>
+            Cargando grupos de cálculo...
+        </div>
+    `;
+
+    try {
+        const response = await fetch('/api/grupos-calculo');
+        const data = await response.json();
+
+        if (data.success) {
+            renderGruposCalculo(data.data);
+        } else {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 3rem; color: #ef4444;">
+                    <i class="ri-error-warning-line" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                    Error: ${data.error || 'No se pudieron cargar los grupos de cálculo'}
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error fetching grupos calculo:', error);
+        container.innerHTML = `
+            <div style="text-align: center; padding: 3rem; color: #ef4444;">
+                <i class="ri-error-warning-line" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                Error de conexión: ${error.message}
+            </div>
+        `;
+    }
+}
+
+function renderGruposCalculo(grupos) {
+    const container = document.getElementById('gruposCalculoContainer');
+    if (!container) return;
+
+    if (!grupos || grupos.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                <i class="ri-folder-open-line" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                No se encontraron grupos de cálculo
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = grupos.map(grupo => {
+        const operacionesHtml = grupo.operaciones && grupo.operaciones.length > 0
+            ? `<table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                <thead>
+                    <tr style="background: rgba(99, 102, 241, 0.1);">
+                        <th style="padding: 0.5rem; text-align: left; width: 100px;">Código</th>
+                        <th style="padding: 0.5rem; text-align: left;">Descripción</th>
+                        <th style="padding: 0.5rem; text-align: left; width: 150px;">Sección</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${grupo.operaciones.map(op => `
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.5rem; font-weight: 500;">${op['codigo operacion'] || '-'}</td>
+                            <td style="padding: 0.5rem;">${op.descripcion || '-'}</td>
+                            <td style="padding: 0.5rem;">
+                                ${op.seccion || '-'}
+                                <br><span style="font-size: 0.7rem; color: var(--text-muted);">${op.seccionDescripcion || ''}</span>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>`
+            : '<p style="color: var(--text-muted); padding: 0.5rem;">Sin operaciones asignadas</p>';
+
+        return `
+            <div class="chart-card" style="margin-bottom: 1.5rem;">
+                <div class="card-header" style="background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%); color: white; border-radius: 8px 8px 0 0; padding: 1rem;">
+                    <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="ri-calculator-line"></i>
+                        <span>${grupo.grupocalculo}</span>
+                        <span style="font-weight: 400; font-size: 0.9rem; opacity: 0.9;">- ${grupo.descripcion || 'Sin descripción'}</span>
+                        <span style="margin-left: auto; background: rgba(255,255,255,0.2); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem;">
+                            ${grupo.operaciones?.length || 0} operaciones
+                        </span>
+                    </h3>
+                </div>
+                <div style="padding: 1rem; max-height: 300px; overflow-y: auto;">
+                    ${operacionesHtml}
+                </div>
+            </div>
+        `;
     }).join('');
 }
 
@@ -4140,6 +4253,7 @@ function switchView(viewName) {
         'capa-charge': 'capaChargeView',
         'materiales': 'materialesView',
         'utillajes': 'utillajesView',
+        'grupos-calculo': 'gruposCalculoView',
         'admin': 'adminView'
     };
 
@@ -4225,6 +4339,8 @@ function switchView(viewName) {
         fetchMateriales();
     } else if (viewName === 'utillajes') {
         fetchUtillajes();
+    } else if (viewName === 'grupos-calculo') {
+        fetchGruposCalculo();
     } else if (viewName === 'admin') {
         loadAdminUsers();
     }
@@ -9136,10 +9252,11 @@ async function fetchOEEDashboard() {
         const month = document.getElementById('oeeMonthFilter')?.value || '';
         const seccion = document.getElementById('oeeSeccionFilter')?.value || '';
         const familia = document.getElementById('oeeFamiliaFilter')?.value || '';
+        const aCalculo = document.getElementById('oeeACalculoFilter')?.value || '';
 
-        console.log('[OEE] Fetching dashboard...', { year, month, seccion, familia });
+        console.log('[OEE] Fetching dashboard...', { year, month, seccion, familia, aCalculo });
 
-        const response = await fetch(`/api/produccion/oee?year=${year}&month=${month}&seccion=${seccion}&familia=${familia}`);
+        const response = await fetch(`/api/produccion/oee?year=${year}&month=${month}&seccion=${seccion}&familia=${familia}&aCalculo=${aCalculo}`);
         const data = await response.json();
 
         console.log('[OEE] API Response:', data.success ? 'Success' : 'Error', 'Operations:', data.operations?.length || 0);
@@ -9399,7 +9516,7 @@ function renderOEEOperationsTable(operations) {
 
 // Event Listeners for OEE Filters
 document.addEventListener('DOMContentLoaded', () => {
-    ['oeeYearFilter', 'oeeMonthFilter', 'oeeSeccionFilter', 'oeeFamiliaFilter'].forEach(id => {
+    ['oeeYearFilter', 'oeeMonthFilter', 'oeeSeccionFilter', 'oeeFamiliaFilter', 'oeeACalculoFilter'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.addEventListener('change', () => fetchOEEDashboard());
