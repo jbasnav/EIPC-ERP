@@ -1281,7 +1281,11 @@ app.get('/api/operaciones', async (req, res) => {
                 S.[denominacion] as seccionDescripcion,
                 O.[ComputoOEE],
                 O.[a calculo],
-                (SELECT COUNT(*) FROM [RUTAS] R WHERE R.[codigo operacion] = O.[codigo operacion]) as rutasCount
+                (SELECT COUNT(*) FROM [RUTAS] R WHERE R.[codigo operacion] = O.[codigo operacion]) as rutasCount,
+                (SELECT TOP 1 [valor predeterminado] 
+                 FROM [OPERACIONES DETALLE] OD 
+                 WHERE OD.[codigo operacion] = O.[codigo operacion] 
+                   AND OD.[parametro] = 'DOCUMENTACION ASOCIADA') as documentacionAsociada
             FROM
                 [OPERACIONES] O
             LEFT JOIN

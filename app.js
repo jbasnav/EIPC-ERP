@@ -2229,7 +2229,7 @@ function renderOperacionesTable(operaciones) {
     if (!operaciones || operaciones.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                <td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-muted);">
                     <i class="ri-tools-line" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
                     No se encontraron operaciones
                 </td>
@@ -2241,6 +2241,14 @@ function renderOperacionesTable(operaciones) {
     tbody.innerHTML = operaciones.map(op => {
         const rutasCount = op.rutasCount || 0;
         const descripcion = (op['descripcion 1'] || '').replace(/'/g, "\\'");
+
+        // Documentacion Asociada display (valor predeterminado)
+        const docAsociada = op.documentacionAsociada
+            ? `<div style="font-size: 0.8rem; color: var(--primary); margin-top: 0.25rem;">
+                 <i class="ri-file-text-line" style="vertical-align: middle;"></i> ${op.documentacionAsociada}
+               </div>`
+            : '';
+
         const rutasLink = rutasCount > 0
             ? `<a href="#" onclick="showOperacionRutasModal('${op['codigo operacion']}', '${descripcion}'); return false;" 
                  style="display: inline-block; background: rgba(79, 70, 229, 0.1); color: var(--primary); padding: 0.25rem 0.5rem; border-radius: 4px; text-decoration: none; font-weight: 600; font-size: 0.85rem;" 
@@ -2256,11 +2264,16 @@ function renderOperacionesTable(operaciones) {
         return `
         <tr>
             <td>${op['codigo operacion'] || '-'}</td>
-            <td>${op['descripcion 1'] || '-'}</td>
+            <td>
+                <div>${op['descripcion 1'] || '-'}</div>
+                ${docAsociada}
+            </td>
             <td>
                 <span>${op['seccion'] || '-'}</span>
                 <br><span style="font-size: 0.7rem; color: var(--text-muted);">${op['seccionDescripcion'] || ''}</span>
             </td>
+            <td>${op['grupo operaciones'] || '-'}</td>
+            <td>${op['PlazoStandard'] || '-'}</td>
             <td style="text-align: center;">${rutasLink}</td>
             <td>
                 ${op['activo']
@@ -2268,8 +2281,6 @@ function renderOperacionesTable(operaciones) {
                 : '<span style="color: #ef4444;"><i class="ri-close-circle-line"></i> No</span>'}
             </td>
             <td>${aCalculoDisplay}</td>
-            <td>${op['grupo operaciones'] || '-'}</td>
-            <td>${op['PlazoStandard'] || '-'}</td>
             <td style="cursor: pointer;" 
                 onclick="toggleComputoOEE('${op['codigo operacion']}', ${op['ComputoOEE'] || 0})"
                 title="Click para cambiar">
