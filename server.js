@@ -6336,14 +6336,12 @@ app.get('/api/mantenimiento/ordenes-pendientes', async (req, res) => {
                 oc.[codigo estado orden],
                 me.[denominacion estado orden] as denominacion_estado,
                 oc.[prioridad asignada],
-                mp.[denominacion prioridad] as denominacion_prioridad,
                 oc.[horas mano obra],
                 oc.[fecha inicio trabajo],
                 oc.[fecha cierre]
             FROM [ORDENES CABECERA] oc
             LEFT JOIN [MAESTRO ACTIVOS] A ON oc.[codigo activo] = A.[codigo activo]
             LEFT JOIN [MAESTRO ESTADOS ORDENES] me ON oc.[codigo estado orden] = me.[codigo estado orden]
-            LEFT JOIN [MAESTRO PRIORIDAD ORDENES] mp ON oc.[prioridad asignada] = mp.[codigo prioridad]
             WHERE ${whereClause}
             ORDER BY oc.[codigo OT] DESC
             OFFSET ${offset} ROWS FETCH NEXT ${parseInt(pageSize)} ROWS ONLY

@@ -414,6 +414,8 @@ async function switchView(viewName) {
             fetchCapaCharge();
         } else if (viewName === 'mantenimiento') {
             fetchMantenimientoData();
+        } else if (viewName === 'admin') {
+            loadAiConfig();
         }
     }
 }
@@ -12973,6 +12975,7 @@ function renderTopActivosTable(activos) {
 }
 
 // Update AI Insight for Mantenimiento
+// Update AI Insight for Mantenimiento
 function updateMantenimientoInsight(kpis, year) {
     const insight = document.getElementById('mantenimientoAiInsight');
     if (!insight) return;
@@ -12980,11 +12983,18 @@ function updateMantenimientoInsight(kpis, year) {
     const pendingPct = kpis.totalIntervenciones > 0
         ? ((kpis.ordenesPendientes / kpis.totalIntervenciones) * 100).toFixed(1)
         : 0;
-    const avgHours = kpis.totalIntervenciones > 0
-        ? (kpis.horasTotales / kpis.totalIntervenciones).toFixed(1)
-        : 0;
 
-    insight.innerHTML = `<strong>Insight AI:</strong> En ${year} se registraron ${kpis.totalIntervenciones?.toLocaleString() || 0} intervenciones con ${pendingPct}% pendientes. Promedio de ${avgHours}h por OT.`;
+    // Make clickable structure
+    insight.style.cursor = 'pointer';
+    insight.title = 'Click para análisis detallado con IA';
+    insight.onclick = () => generateAiAnalysis(kpis, year, 'mantenimiento');
+
+    // Initial message prompting click
+    insight.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span><strong>Insight AI:</strong> En ${year} hay ${pendingPct}% pendientes. <span style="text-decoration: underline; color: var(--primary);">Click para analizar &rarr;</span></span>
+        </div>
+    `;
 }
 
 // Fetch chart data for Mantenimiento
@@ -13131,13 +13141,20 @@ function renderOrdenesPendientesTable(ordenes) {
     tbody.innerHTML = ordenes.map(orden => {
         const fechaInicio = orden['fecha inicio trabajo'] ? new Date(orden['fecha inicio trabajo']).toLocaleDateString('es-ES') : '-';
 
-        // Priority badge color
+        // Priority badge color and text
         let prioridadStyle = '';
+        let prioridadTexto = orden.denominacion_prioridad || '';
         const prioridadCod = (orden['prioridad asignada'] || '').toString();
+
         if (prioridadCod === '1' || prioridadCod.toUpperCase() === 'A') {
             prioridadStyle = 'color: #ef4444; font-weight: 600;';
+            if (!prioridadTexto) prioridadTexto = 'Alta';
         } else if (prioridadCod === '2' || prioridadCod.toUpperCase() === 'M') {
             prioridadStyle = 'color: #f59e0b; font-weight: 600;';
+            if (!prioridadTexto) prioridadTexto = 'Media';
+        } else if (prioridadCod === '3' || prioridadCod.toUpperCase() === 'B') {
+            prioridadStyle = 'color: #10b981; font-weight: 600;';
+            if (!prioridadTexto) prioridadTexto = 'Baja';
         }
 
         return `
@@ -13153,7 +13170,7 @@ function renderOrdenesPendientesTable(ordenes) {
                 </td>
                 <td style="padding: 0.5rem 0.25rem; text-align: center; ${prioridadStyle}">
                     <div>${orden['prioridad asignada'] || '-'}</div>
-                    <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 400;">${orden.denominacion_prioridad || ''}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 400;">${prioridadTexto}</div>
                 </td>
                 <td style="padding: 0.5rem 0.25rem; text-align: right;">${orden['horas mano obra'] || '-'}</td>
                 <td style="padding: 0.5rem 0.25rem; text-align: right;">${fechaInicio}</td>
@@ -13233,3 +13250,122 @@ function setupMantenimientoEventListeners() {
     }
 }
 window.closeEquipoModal = closeEquipoModal;
+
+// --- AI Integration Functions ---
+
+function saveAiConfig() {
+    const key = document.getElementById('geminiApiKey').value;
+    if (key) {
+        localStorage.setItem('geminiApiKey', key);
+        Swal.fire({
+            title: 'Guardado',
+            text: 'API Key guardada correctamente. Ahora puedes usar las funciones de IA.',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    } else {
+        Swal.fire('Error', 'Por favor introduce una API Key válida', 'error');
+    }
+}
+
+function loadAiConfig() {
+    const key = localStorage.getItem('geminiApiKey');
+    if (key) {
+        const input = document.getElementById('geminiApiKey');
+        if (input) input.value = key;
+    }
+}
+
+function toggleApiKeyVisibility() {
+    const input = document.getElementById('geminiApiKey');
+    const icon = document.getElementById('toggleApiKeyIcon');
+    if (input && icon) {
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'ri-eye-off-line';
+        } else {
+            input.type = 'password';
+            icon.className = 'ri-eye-line';
+        }
+    }
+}
+
+async function generateAiAnalysis(data, year, type) {
+    const key = localStorage.getItem('geminiApiKey');
+    if (!key) {
+        Swal.fire({
+            title: 'API Key Necesaria',
+            text: 'Para usar la IA, necesitas configurar tu Google Gemini API Key en el panel de Administración.',
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'Ir a Administración',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                switchView('admin');
+            }
+        });
+        return;
+    }
+
+    Swal.fire({
+        title: 'Analizando datos...',
+        html: 'Consultando a Gemini AI <br><i class="ri-loader-4-line ri-spin" style="font-size: 2rem; margin-top: 1rem;"></i>',
+        showConfirmButton: false,
+        allowOutsideClick: false
+    });
+
+    try {
+        let promptCtx = '';
+        if (type === 'mantenimiento') {
+            promptCtx = `Actúa como un experto en mantenimiento industrial. Analiza estos KPIs de ${year}:
+            Total Intervenciones: ${data.totalIntervenciones}
+            Ordenes Pendientes: ${data.ordenesPendientes}
+            Horas Totales: ${data.horasTotales}
+            
+            Dame 3 insights breves y accionables en formato HTML (usa <b> para resaltar keywords, usa <br> para saltos de linea).`;
+        }
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${key}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: promptCtx
+                    }]
+                }]
+            })
+        });
+
+        if (!response.ok) throw new Error('Error en la respuesta de Gemini API: ' + response.statusText);
+
+        const json = await response.json();
+        const text = json.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el análisis (Respuesta vacía).';
+
+        // Convert basic markdown to HTML if needed or just replace newlines
+        // Gemini often returns markdown *bold*.
+        let formattedText = text
+            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') // Bold
+            .replace(/\n/g, '<br>');
+
+        Swal.fire({
+            title: 'Análisis IA',
+            html: `<div style="text-align: left; line-height: 1.6; font-size: 0.95rem;">${formattedText}</div>`,
+            icon: 'info',
+            width: 700,
+            confirmButtonText: 'Cerrar'
+        });
+
+    } catch (error) {
+        console.error('AI Error:', error);
+        Swal.fire({
+            title: 'Error de IA',
+            text: 'No se pudo conectar con Gemini: ' + error.message,
+            icon: 'error'
+        });
+    }
+}
+window.saveAiConfig = saveAiConfig;
+window.toggleApiKeyVisibility = toggleApiKeyVisibility;
