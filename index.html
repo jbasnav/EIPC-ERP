@@ -283,9 +283,9 @@
                     </nav>
                 </div>
 
-                <!-- MANTENIMIENTO Section - Collapsible -->
+                <!-- MANTENIMIENTO Section - Direct Navigation -->
                 <div class="nav-section">
-                    <div class="nav-section-header" id="mantenimientoHeader">
+                    <div class="nav-section-header" id="mantenimientoHeader" data-view="mantenimiento">
                         <div class="nav-section-title">
                             <i class="ri-tools-fill"></i>
                             <span>MANTENIMIENTO</span>
@@ -293,7 +293,7 @@
                         <i class="ri-arrow-down-s-line nav-section-arrow"></i>
                     </div>
                     <nav class="nav-menu nav-submenu" id="mantenimientoMenu">
-                        <!-- Se añadirán subsecciones aquí -->
+                        <!-- Subsecciones futuras -->
                     </nav>
                 </div>
 
@@ -745,6 +745,224 @@
                             </div>
                         </div>
 
+                    </div>
+                </div>
+            </div>
+            <!-- MANTENIMIENTO View -->
+            <div id="mantenimientoView" class="view-section">
+                <div style="padding: 1.5rem;">
+                    <!-- Header con título y selector de año -->
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                        <!-- Year Filter (left) -->
+                        <div
+                            style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm);">
+                            <label for="mantenimientoYearFilter"
+                                style="font-weight: 600; color: var(--text-main);">Año:</label>
+                            <select id="mantenimientoYearFilter"
+                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 100px; cursor: pointer;">
+                                <option value="2026">2026</option>
+                                <option value="2025" selected>2025</option>
+                                <option value="2024">2024</option>
+                            </select>
+                        </div>
+
+                        <!-- AI Insight Placeholder (right) -->
+                        <div
+                            style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; background: rgba(88, 86, 214, 0.05); border: 1px solid rgba(88, 86, 214, 0.2); border-radius: 8px; flex: 1; max-width: 800px;">
+                            <div
+                                style="background: var(--bg-card); padding: 0.25rem; border-radius: 4px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;">
+                                <i class="ri-openai-fill" style="color: var(--primary); font-size: 1.2rem;"></i>
+                            </div>
+                            <span id="mantenimientoAiInsight"
+                                style="font-size: 0.85rem; color: var(--text-main); font-style: italic;">
+                                <strong>Insight AI:</strong> Cargando análisis de mantenimiento...
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- KPI Grid -->
+                    <div class="kpi-grid" style="margin-bottom: 1.5rem;">
+                        <!-- KPI Total Intervenciones -->
+                        <div class="kpi-card">
+                            <div class="kpi-icon"
+                                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                <i class="ri-tools-line" style="font-size: 2rem;"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>TOTAL INTERVENCIONES</h3>
+                                <p class="kpi-value" id="kpiTotalIntervenciones">0</p>
+                                <span class="kpi-trend">Órdenes de trabajo totales</span>
+                            </div>
+                        </div>
+
+                        <!-- KPI Ordenes Pendientes -->
+                        <div class="kpi-card">
+                            <div class="kpi-icon"
+                                style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                                <i class="ri-time-line" style="font-size: 2rem;"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>ÓRDENES PENDIENTES</h3>
+                                <p class="kpi-value" id="kpiOrdenesPendientes">0</p>
+                                <span class="kpi-trend">Sin fecha de cierre</span>
+                            </div>
+                        </div>
+
+                        <!-- KPI Completadas Año -->
+                        <div class="kpi-card">
+                            <div class="kpi-icon"
+                                style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                                <i class="ri-checkbox-circle-line" style="font-size: 2rem;"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>COMPLETADAS AÑO</h3>
+                                <p class="kpi-value" id="kpiCompletadasMes">0</p>
+                                <span class="kpi-trend">Órdenes cerradas</span>
+                            </div>
+                        </div>
+
+                        <!-- KPI Horas Totales -->
+                        <div class="kpi-card">
+                            <div class="kpi-icon"
+                                style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                                <i class="ri-timer-line" style="font-size: 2rem;"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>HORAS TOTALES</h3>
+                                <p class="kpi-value" id="kpiHorasTotales">0</p>
+                                <span class="kpi-trend">Mano de obra</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráficos Row -->
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <!-- Gráfico de Evolución Mensual -->
+                        <div class="chart-card">
+                            <div class="card-header">
+                                <h3>Evolución de Intervenciones Mensual</h3>
+                            </div>
+                            <div class="chart-container" style="height: 300px;">
+                                <canvas id="mantenimientoMensualChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Gráfico Comparativo Anual -->
+                        <div class="chart-card">
+                            <div class="card-header">
+                                <h3>Comparativa Anual</h3>
+                            </div>
+                            <div class="chart-container" style="height: 300px;">
+                                <canvas id="mantenimientoAnualChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Activos y Ordenes Pendientes -->
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;">
+                        <!-- Top 10 Activos -->
+                        <div class="chart-card">
+                            <div class="card-header">
+                                <h3><i class="ri-bar-chart-horizontal-line"
+                                        style="margin-right: 0.5rem; color: var(--primary);"></i>Top 10 Activos
+                                    Intervenidos</h3>
+                            </div>
+                            <div style="max-height: 350px; overflow-y: auto;">
+                                <table class="responsive-dashboard-table"
+                                    style="width: 100%; border-collapse: collapse; font-size: 0.8rem; table-layout: fixed;">
+                                    <thead style="position: sticky; top: 0; background: var(--bg-card);">
+                                        <tr style="border-bottom: 2px solid var(--border);">
+                                            <th
+                                                style="padding: 0.5rem 0.25rem; text-align: center; font-weight: 600; width: 30px;">
+                                                #</th>
+                                            <th
+                                                style="padding: 0.5rem 0.25rem; text-align: left; font-weight: 600; width: 350px;">
+                                                Activo</th>
+                                            <th
+                                                style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 600; width: 60px;">
+                                                OTs</th>
+                                            <th
+                                                style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 600; width: 60px;">
+                                                Horas</th>
+                                            <th></th> <!-- Spacer column for alignment -->
+                                        </tr>
+                                    </thead>
+                                    <tbody id="topActivosTableBody">
+                                        <tr>
+                                            <td colspan="4"
+                                                style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                                Cargando...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Ordenes Pendientes Table -->
+                        <div class="chart-card">
+                            <div class="card-header"
+                                style="display: flex; justify-content: space-between; align-items: center;">
+                                <h3><i class="ri-file-list-3-line"
+                                        style="margin-right: 0.5rem; color: var(--primary);"></i>Órdenes Pendientes</h3>
+                                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                    <input type="text" id="mantenimientoActivoFilter" placeholder="Buscar por activo..."
+                                        style="padding: 0.5rem 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-main); color: var(--text-main); font-size: 0.875rem; width: 200px;">
+                                    <button id="mantenimientoFilterBtn" class="btn btn-primary"
+                                        style="padding: 0.5rem 1rem;">
+                                        <i class="ri-search-line"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="ordenesPendientesTableContainer" style="max-height: 300px; overflow-y: auto;">
+                                <table class="responsive-dashboard-table"
+                                    style="width: 100%; border-collapse: collapse; font-size: 0.8rem; table-layout: fixed;">
+                                    <thead style="position: sticky; top: 0; background: var(--bg-card);">
+                                        <tr style="border-bottom: 2px solid var(--border);">
+                                            <th
+                                                style="padding: 0.5rem 0.25rem; text-align: left; font-weight: 600; width: 80px;">
+                                                Código OT</th>
+                                            <th
+                                                style="padding: 0.5rem 0.25rem; text-align: left; font-weight: 600; width: 120px;">
+                                                Activo</th>
+                                            <th
+                                                style="padding: 0.5rem 0.25rem; text-align: center; font-weight: 600; width: 80px;">
+                                                Estado</th>
+                                            <th
+                                                style="padding: 0.5rem 0.25rem; text-align: center; font-weight: 600; width: 80px;">
+                                                Prioridad</th>
+                                            <th
+                                                style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 600; width: 50px;">
+                                                Horas</th>
+                                            <th
+                                                style="padding: 0.5rem 1rem 0.5rem 0.25rem; text-align: right; font-weight: 600; width: 100px;">
+                                                Fecha</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ordenesPendientesTableBody">
+                                        <tr>
+                                            <td colspan="6"
+                                                style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                                Cargando...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="ordenesPendientesPagination"
+                                style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted); padding: 0.5rem;">
+                                <span id="ordenesPendientesInfo">Mostrando 0 de 0</span>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button id="ordenesPendientesPrevBtn" class="btn btn-secondary"
+                                        style="padding: 0.25rem 0.75rem;" disabled>
+                                        <i class="ri-arrow-left-s-line"></i>
+                                    </button>
+                                    <button id="ordenesPendientesNextBtn" class="btn btn-secondary"
+                                        style="padding: 0.25rem 0.75rem;" disabled>
+                                        <i class="ri-arrow-right-s-line"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -6474,7 +6692,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=202412231302"></script>
+    <script src="app.js?v=20260115"></script>
 </body>
 
 </html>

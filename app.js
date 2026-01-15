@@ -249,11 +249,13 @@ function populateYearFilters() {
 
 // Switch between views
 async function switchView(viewName) {
+    console.log('[SWITCHVIEW] Switching to:', viewName);
     // Hide all views
     document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
 
     // Show selected view
     const selectedView = document.getElementById(`${viewName}View`);
+    console.log('[SWITCHVIEW] selectedView found:', !!selectedView, `${viewName}View`);
     if (selectedView) {
         selectedView.classList.add('active');
 
@@ -410,6 +412,8 @@ async function switchView(viewName) {
             fetchOTD();
         } else if (viewName === 'capa-charge') {
             fetchCapaCharge();
+        } else if (viewName === 'mantenimiento') {
+            fetchMantenimientoData();
         }
     }
 }
@@ -941,6 +945,19 @@ function setupEventListeners() {
         document.getElementById(id)?.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') fetchUtillajes();
         });
+    });
+
+    // MANTENIMIENTO Section Header - Click to navigate directly
+    document.getElementById('mantenimientoHeader')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('[MANTENIMIENTO] Header clicked');
+        try {
+            console.log('[MANTENIMIENTO] Calling switchView...');
+            switchView('mantenimiento');
+            console.log('[MANTENIMIENTO] switchView completed');
+        } catch (err) {
+            console.error('[MANTENIMIENTO] Error in switchView:', err);
+        }
     });
 }
 
@@ -4265,7 +4282,8 @@ function switchView(viewName) {
         'materiales': 'materialesView',
         'utillajes': 'utillajesView',
         'grupos-calculo': 'gruposCalculoView',
-        'admin': 'adminView'
+        'admin': 'adminView',
+        'mantenimiento': 'mantenimientoView'
     };
 
     const targetView = viewMap[viewName] || 'inicioView';
@@ -4354,6 +4372,8 @@ function switchView(viewName) {
         fetchGruposCalculo();
     } else if (viewName === 'admin') {
         loadAdminUsers();
+    } else if (viewName === 'mantenimiento') {
+        fetchMantenimientoData();
     }
 
     // Update page title based on view
@@ -4395,7 +4415,8 @@ function switchView(viewName) {
         'capa-charge': 'Capa Charge',
         'materiales': 'Maestro de Materiales',
         'utillajes': 'Maestro de Utillajes',
-        'admin': 'Panel de Administración'
+        'admin': 'Panel de Administración',
+        'mantenimiento': 'Dashboard Mantenimiento'
     };
 
     // Icon map for each view
@@ -4437,7 +4458,8 @@ function switchView(viewName) {
         'capa-charge': 'ri-battery-charge-line',
         'materiales': 'ri-copper-coin-line',
         'utillajes': 'ri-tools-fill',
-        'admin': 'ri-settings-3-line'
+        'admin': 'ri-settings-3-line',
+        'mantenimiento': 'ri-tools-line'
     };
 
     // Subtitle map for each view
@@ -12864,4 +12886,350 @@ function closeEquipoModal() {
 
 // Expose modal functions to window for inline onclick handlers
 window.openEquipoModal = openEquipoModal;
+
+// ============================================
+// MANTENIMIENTO FUNCTIONS
+// ============================================
+
+let mantenimientoState = {
+    page: 1,
+    pageSize: 50,
+    total: 0,
+    totalPages: 0,
+    activoFilter: '',
+    charts: {
+        mensual: null,
+        anual: null
+    }
+};
+
+// Fetch all data for Mantenimiento dashboard
+async function fetchMantenimientoData() {
+    console.log('[MANTENIMIENTO] Fetching data...');
+    const year = document.getElementById('mantenimientoYearFilter')?.value || new Date().getFullYear();
+
+    try {
+        // Fetch KPIs
+        const kpisResponse = await fetch(`/api/mantenimiento/kpis?year=${year}`);
+        const kpisData = await kpisResponse.json();
+
+        if (kpisData.success) {
+            document.getElementById('kpiTotalIntervenciones').textContent =
+                kpisData.kpis.totalIntervenciones?.toLocaleString() || '0';
+            document.getElementById('kpiOrdenesPendientes').textContent =
+                kpisData.kpis.ordenesPendientes?.toLocaleString() || '0';
+            document.getElementById('kpiCompletadasMes').textContent =
+                kpisData.kpis.completadasAno?.toLocaleString() || '0';
+            document.getElementById('kpiHorasTotales').textContent =
+                (kpisData.kpis.horasTotales || 0).toFixed(0);
+
+            // Update AI insight
+            updateMantenimientoInsight(kpisData.kpis, year);
+        }
+
+        // Fetch Top Activos
+        const topActivosResponse = await fetch(`/api/mantenimiento/top-activos?year=${year}`);
+        const topActivosData = await topActivosResponse.json();
+
+        if (topActivosData.success) {
+            renderTopActivosTable(topActivosData.data);
+        }
+
+        // Fetch Ordenes Pendientes
+        await fetchOrdenesPendientes();
+
+        // Fetch chart data
+        await fetchMantenimientoCharts(year);
+
+        // Setup event listeners for Mantenimiento
+        setupMantenimientoEventListeners();
+
+    } catch (error) {
+        console.error('[MANTENIMIENTO] Error fetching data:', error);
+    }
+}
+
+function renderTopActivosTable(activos) {
+    const tbody = document.getElementById('topActivosTableBody');
+    if (!tbody) return;
+
+    if (!activos || activos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">Sin datos</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = activos.map((activo, idx) => `
+        <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 0.5rem 0.25rem; text-align: center; font-weight: 600; color: ${idx < 3 ? 'var(--primary)' : 'var(--text-muted)'};">${idx + 1}</td>
+            <td style="padding: 0.5rem 0.25rem;">
+                <div style="font-weight: 500;">${activo['codigo activo'] || '-'}</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${activo.denominacion_activo || ''}">${activo.denominacion_activo || ''}</div>
+            </td>
+            <td style="padding: 0.5rem 0.25rem; text-align: right;">${activo.intervenciones?.toLocaleString() || 0}</td>
+            <td style="padding: 0.5rem 0.25rem; text-align: right;">${activo.horas_totales?.toFixed(1) || '0.0'}</td>
+            <td></td>
+        </tr>
+    `).join('');
+}
+
+// Update AI Insight for Mantenimiento
+function updateMantenimientoInsight(kpis, year) {
+    const insight = document.getElementById('mantenimientoAiInsight');
+    if (!insight) return;
+
+    const pendingPct = kpis.totalIntervenciones > 0
+        ? ((kpis.ordenesPendientes / kpis.totalIntervenciones) * 100).toFixed(1)
+        : 0;
+    const avgHours = kpis.totalIntervenciones > 0
+        ? (kpis.horasTotales / kpis.totalIntervenciones).toFixed(1)
+        : 0;
+
+    insight.innerHTML = `<strong>Insight AI:</strong> En ${year} se registraron ${kpis.totalIntervenciones?.toLocaleString() || 0} intervenciones con ${pendingPct}% pendientes. Promedio de ${avgHours}h por OT.`;
+}
+
+// Fetch chart data for Mantenimiento
+async function fetchMantenimientoCharts(year) {
+    try {
+        // Fetch monthly evolution
+        const mensualResponse = await fetch(`/api/mantenimiento/evolucion-mensual?year=${year}`);
+        const mensualData = await mensualResponse.json();
+
+        if (mensualData.success) {
+            renderMantenimientoMensualChart(mensualData.data);
+        }
+
+        // Fetch annual comparison
+        const anualResponse = await fetch('/api/mantenimiento/comparativa-anual');
+        const anualData = await anualResponse.json();
+
+        if (anualData.success) {
+            renderMantenimientoAnualChart(anualData.data);
+        }
+    } catch (error) {
+        console.error('[MANTENIMIENTO] Error fetching charts:', error);
+    }
+}
+
+// Render monthly evolution chart
+function renderMantenimientoMensualChart(data) {
+    const ctx = document.getElementById('mantenimientoMensualChart');
+    if (!ctx) return;
+
+    // Destroy existing chart
+    if (mantenimientoState.charts.mensual) {
+        mantenimientoState.charts.mensual.destroy();
+    }
+
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const intervenciones = new Array(12).fill(0);
+
+    data.forEach(d => {
+        if (d.mes >= 1 && d.mes <= 12) {
+            intervenciones[d.mes - 1] = d.intervenciones;
+        }
+    });
+
+    mantenimientoState.charts.mensual = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: meses,
+            datasets: [{
+                label: 'Intervenciones',
+                data: intervenciones,
+                backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                borderColor: 'rgba(102, 126, 234, 1)',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+// Render annual comparison chart
+function renderMantenimientoAnualChart(data) {
+    const ctx = document.getElementById('mantenimientoAnualChart');
+    if (!ctx) return;
+
+    // Destroy existing chart
+    if (mantenimientoState.charts.anual) {
+        mantenimientoState.charts.anual.destroy();
+    }
+
+    const labels = data.map(d => d.ano?.toString() || 'N/A');
+    const intervenciones = data.map(d => d.intervenciones || 0);
+
+    mantenimientoState.charts.anual = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Intervenciones',
+                data: intervenciones,
+                backgroundColor: [
+                    'rgba(79, 172, 254, 0.8)',
+                    'rgba(102, 126, 234, 0.8)',
+                    'rgba(240, 147, 251, 0.8)',
+                    'rgba(67, 233, 123, 0.8)',
+                    'rgba(245, 87, 108, 0.8)'
+                ],
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                y: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+async function fetchOrdenesPendientes(page = 1) {
+    try {
+        const activo = mantenimientoState.activoFilter || '';
+        const url = `/api/mantenimiento/ordenes-pendientes?page=${page}&pageSize=${mantenimientoState.pageSize}&activo=${encodeURIComponent(activo)}`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.success) {
+            mantenimientoState.page = data.page;
+            mantenimientoState.total = data.total;
+            mantenimientoState.totalPages = data.totalPages;
+
+            renderOrdenesPendientesTable(data.data);
+            updateOrdenesPendientesPagination();
+        }
+
+    } catch (error) {
+        console.error('Error fetching ordenes pendientes:', error);
+    }
+}
+
+function renderOrdenesPendientesTable(ordenes) {
+    const tbody = document.getElementById('ordenesPendientesTableBody');
+    if (!tbody) return;
+
+    if (!ordenes || ordenes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">Sin órdenes pendientes</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = ordenes.map(orden => {
+        const fechaInicio = orden['fecha inicio trabajo'] ? new Date(orden['fecha inicio trabajo']).toLocaleDateString('es-ES') : '-';
+
+        // Priority badge color
+        let prioridadStyle = '';
+        const prioridadCod = (orden['prioridad asignada'] || '').toString();
+        if (prioridadCod === '1' || prioridadCod.toUpperCase() === 'A') {
+            prioridadStyle = 'color: #ef4444; font-weight: 600;';
+        } else if (prioridadCod === '2' || prioridadCod.toUpperCase() === 'M') {
+            prioridadStyle = 'color: #f59e0b; font-weight: 600;';
+        }
+
+        return `
+            <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 0.5rem 0.25rem; font-weight: 500;">${orden['codigo OT'] || '-'}</td>
+                <td style="padding: 0.5rem 0.25rem;">
+                    <div style="font-weight: 500;">${orden['codigo activo'] || '-'}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${orden.denominacion_activo || ''}">${orden.denominacion_activo || ''}</div>
+                </td>
+                <td style="padding: 0.5rem 0.25rem; text-align: center;">
+                    <div>${orden['codigo estado orden'] || '-'}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">${orden.denominacion_estado || ''}</div>
+                </td>
+                <td style="padding: 0.5rem 0.25rem; text-align: center; ${prioridadStyle}">
+                    <div>${orden['prioridad asignada'] || '-'}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 400;">${orden.denominacion_prioridad || ''}</div>
+                </td>
+                <td style="padding: 0.5rem 0.25rem; text-align: right;">${orden['horas mano obra'] || '-'}</td>
+                <td style="padding: 0.5rem 0.25rem; text-align: right;">${fechaInicio}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function updateOrdenesPendientesPagination() {
+    const infoEl = document.getElementById('ordenesPendientesInfo');
+    const prevBtn = document.getElementById('ordenesPendientesPrevBtn');
+    const nextBtn = document.getElementById('ordenesPendientesNextBtn');
+
+    if (infoEl) {
+        const start = (mantenimientoState.page - 1) * mantenimientoState.pageSize + 1;
+        const end = Math.min(mantenimientoState.page * mantenimientoState.pageSize, mantenimientoState.total);
+        infoEl.textContent = `Mostrando ${mantenimientoState.total > 0 ? start : 0} - ${end} de ${mantenimientoState.total}`;
+    }
+
+    if (prevBtn) prevBtn.disabled = mantenimientoState.page <= 1;
+    if (nextBtn) nextBtn.disabled = mantenimientoState.page >= mantenimientoState.totalPages;
+}
+
+function setupMantenimientoEventListeners() {
+    // Year filter
+    const yearFilter = document.getElementById('mantenimientoYearFilter');
+    if (yearFilter && !yearFilter.hasAttribute('data-listener')) {
+        yearFilter.setAttribute('data-listener', 'true');
+        yearFilter.addEventListener('change', () => {
+            fetchMantenimientoData();
+        });
+    }
+
+    // Filter button
+    const filterBtn = document.getElementById('mantenimientoFilterBtn');
+    if (filterBtn && !filterBtn.hasAttribute('data-listener')) {
+        filterBtn.setAttribute('data-listener', 'true');
+        filterBtn.addEventListener('click', () => {
+            mantenimientoState.activoFilter = document.getElementById('mantenimientoActivoFilter')?.value || '';
+            mantenimientoState.page = 1;
+            fetchOrdenesPendientes(1);
+        });
+    }
+
+    // Filter input - Enter key
+    const filterInput = document.getElementById('mantenimientoActivoFilter');
+    if (filterInput && !filterInput.hasAttribute('data-listener')) {
+        filterInput.setAttribute('data-listener', 'true');
+        filterInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                mantenimientoState.activoFilter = filterInput.value || '';
+                mantenimientoState.page = 1;
+                fetchOrdenesPendientes(1);
+            }
+        });
+    }
+
+    // Pagination buttons
+    const prevBtn = document.getElementById('ordenesPendientesPrevBtn');
+    if (prevBtn && !prevBtn.hasAttribute('data-listener')) {
+        prevBtn.setAttribute('data-listener', 'true');
+        prevBtn.addEventListener('click', () => {
+            if (mantenimientoState.page > 1) {
+                fetchOrdenesPendientes(mantenimientoState.page - 1);
+            }
+        });
+    }
+
+    const nextBtn = document.getElementById('ordenesPendientesNextBtn');
+    if (nextBtn && !nextBtn.hasAttribute('data-listener')) {
+        nextBtn.setAttribute('data-listener', 'true');
+        nextBtn.addEventListener('click', () => {
+            if (mantenimientoState.page < mantenimientoState.totalPages) {
+                fetchOrdenesPendientes(mantenimientoState.page + 1);
+            }
+        });
+    }
+}
 window.closeEquipoModal = closeEquipoModal;

@@ -6120,6 +6120,254 @@ app.get('/api/ensayos/:type', async (req, res) => {
     }
 });
 
+// ============================================
+// MANTENIMIENTO ENDPOINTS
+// ============================================
+
+// Get KPIs for Mantenimiento dashboard
+app.get('/api/mantenimiento/kpis', async (req, res) => {
+    try {
+        const { year } = req.query;
+
+        // Total interventions for year (using fecha inicio trabajo)
+        const totalRequest = new sql.Request();
+        let totalQuery = 'SELECT COUNT(*) as total FROM [ORDENES CABECERA]';
+        if (year) {
+            totalRequest.input('year', sql.Int, parseInt(year));
+            totalQuery += ' WHERE YEAR([fecha inicio trabajo]) = @year';
+        }
+        const totalResult = await totalRequest.query(totalQuery);
+        const totalIntervenciones = totalResult.recordset[0].total;
+
+        // Pending orders (fecha cierre is NULL) - no year filter
+        const pendingResult = await new sql.Request().query(`
+            SELECT COUNT(*) as pendientes FROM [ORDENES CABECERA] WHERE [fecha cierre] IS NULL
+        `);
+        const ordenesPendientes = pendingResult.recordset[0].pendientes;
+
+        // Completed orders for selected year
+        const completedRequest = new sql.Request();
+        let completedQuery = `
+            SELECT COUNT(*) as completadas 
+            FROM [ORDENES CABECERA] 
+            WHERE [fecha cierre] IS NOT NULL`;
+        if (year) {
+            completedRequest.input('year', sql.Int, parseInt(year));
+            completedQuery += ' AND YEAR([fecha cierre]) = @year';
+        }
+        const completedResult = await completedRequest.query(completedQuery);
+        const completadasAno = completedResult.recordset[0].completadas;
+
+        // Total hours for year
+        const hoursRequest = new sql.Request();
+        let hoursQuery = 'SELECT SUM(ISNULL([horas mano obra], 0)) as horas FROM [ORDENES CABECERA]';
+        if (year) {
+            hoursRequest.input('year', sql.Int, parseInt(year));
+            hoursQuery += ' WHERE YEAR([fecha inicio trabajo]) = @year';
+        }
+        const hoursResult = await hoursRequest.query(hoursQuery);
+        const horasTotales = hoursResult.recordset[0].horas || 0;
+
+        res.json({
+            success: true,
+            kpis: {
+                totalIntervenciones,
+                ordenesPendientes,
+                completadasAno,
+                horasTotales
+            }
+        });
+
+    } catch (err) {
+        console.error('Error en /api/mantenimiento/kpis:', err);
+        res.status(500).json({
+            success: false,
+            error: 'Error al obtener KPIs de mantenimiento.',
+            details: err.message
+        });
+    }
+});
+
+// Get top assets by number of interventions
+app.get('/api/mantenimiento/top-activos', async (req, res) => {
+    try {
+        const { year } = req.query;
+        const request = new sql.Request();
+
+        let whereClause = "OC.[codigo activo] IS NOT NULL AND OC.[codigo activo] <> ''";
+        if (year) {
+            request.input('year', sql.Int, parseInt(year));
+            whereClause += ' AND YEAR(OC.[fecha inicio trabajo]) = @year';
+        }
+
+        const result = await request.query(`
+            SELECT TOP 10 
+                OC.[codigo activo],
+                MAX(A.[denominacion activo]) as denominacion_activo,
+                COUNT(*) as intervenciones,
+                SUM(ISNULL(OC.[horas mano obra], 0)) as horas_totales,
+                SUM(ISNULL(OC.[importe total], 0)) as importe_total
+            FROM [ORDENES CABECERA] OC
+            LEFT JOIN [MAESTRO ACTIVOS] A ON OC.[codigo activo] = A.[codigo activo]
+            WHERE ${whereClause}
+            GROUP BY OC.[codigo activo]
+            ORDER BY COUNT(*) DESC
+        `);
+
+        res.json({
+            success: true,
+            data: result.recordset,
+            count: result.recordset.length
+        });
+
+    } catch (err) {
+        console.error('Error en /api/mantenimiento/top-activos:', err);
+        res.status(500).json({
+            success: false,
+            error: 'Error al obtener top activos.',
+            details: err.message
+        });
+    }
+});
+
+// Get monthly evolution for chart
+app.get('/api/mantenimiento/evolucion-mensual', async (req, res) => {
+    try {
+        const { year } = req.query;
+        const request = new sql.Request();
+
+        let whereClause = '';
+        if (year) {
+            request.input('year', sql.Int, parseInt(year));
+            whereClause = 'WHERE YEAR([fecha inicio trabajo]) = @year';
+        }
+
+        const result = await request.query(`
+            SELECT 
+                MONTH([fecha inicio trabajo]) as mes,
+                COUNT(*) as intervenciones,
+                SUM(ISNULL([horas mano obra], 0)) as horas
+            FROM [ORDENES CABECERA]
+            ${whereClause}
+            GROUP BY MONTH([fecha inicio trabajo])
+            ORDER BY mes
+        `);
+
+        res.json({
+            success: true,
+            data: result.recordset
+        });
+
+    } catch (err) {
+        console.error('Error en /api/mantenimiento/evolucion-mensual:', err);
+        res.status(500).json({
+            success: false,
+            error: 'Error al obtener evolución mensual.',
+            details: err.message
+        });
+    }
+});
+
+// Get annual comparison for chart
+app.get('/api/mantenimiento/comparativa-anual', async (req, res) => {
+    try {
+        const request = new sql.Request();
+
+        const result = await request.query(`
+            SELECT 
+                YEAR([fecha inicio trabajo]) as ano,
+                COUNT(*) as intervenciones,
+                SUM(ISNULL([horas mano obra], 0)) as horas
+            FROM [ORDENES CABECERA]
+            WHERE [fecha inicio trabajo] IS NOT NULL AND YEAR([fecha inicio trabajo]) >= YEAR(GETDATE()) - 4
+            GROUP BY YEAR([fecha inicio trabajo])
+            ORDER BY ano
+        `);
+
+        res.json({
+            success: true,
+            data: result.recordset
+        });
+
+    } catch (err) {
+        console.error('Error en /api/mantenimiento/comparativa-anual:', err);
+        res.status(500).json({
+            success: false,
+            error: 'Error al obtener comparativa anual.',
+            details: err.message
+        });
+    }
+});
+
+// Get pending orders with optional filter by activo
+app.get('/api/mantenimiento/ordenes-pendientes', async (req, res) => {
+    try {
+        const { activo, page = 1, pageSize = 50 } = req.query;
+        const request = new sql.Request();
+
+        let whereConditions = ["oc.[fecha cierre] IS NULL"];
+
+        if (activo) {
+            request.input('activo', sql.NVarChar, `%${activo}%`);
+            whereConditions.push("oc.[codigo activo] LIKE @activo");
+        }
+
+        const whereClause = whereConditions.join(' AND ');
+        const offset = (parseInt(page) - 1) * parseInt(pageSize);
+
+        // Count total
+        const countResult = await request.query(`
+            SELECT COUNT(*) as total FROM [ORDENES CABECERA] oc WHERE ${whereClause}
+        `);
+        const total = countResult.recordset[0].total;
+
+        // Get data with JOINs for denominaciones
+        const dataRequest = new sql.Request();
+        if (activo) {
+            dataRequest.input('activo', sql.NVarChar, `%${activo}%`);
+        }
+
+        const result = await dataRequest.query(`
+            SELECT 
+                oc.[codigo OT],
+                oc.[descripcion OT],
+                oc.[codigo activo],
+                A.[denominacion activo] as denominacion_activo,
+                oc.[codigo estado orden],
+                me.[denominacion estado orden] as denominacion_estado,
+                oc.[prioridad asignada],
+                mp.[denominacion prioridad] as denominacion_prioridad,
+                oc.[horas mano obra],
+                oc.[fecha inicio trabajo],
+                oc.[fecha cierre]
+            FROM [ORDENES CABECERA] oc
+            LEFT JOIN [MAESTRO ACTIVOS] A ON oc.[codigo activo] = A.[codigo activo]
+            LEFT JOIN [MAESTRO ESTADOS ORDENES] me ON oc.[codigo estado orden] = me.[codigo estado orden]
+            LEFT JOIN [MAESTRO PRIORIDAD ORDENES] mp ON oc.[prioridad asignada] = mp.[codigo prioridad]
+            WHERE ${whereClause}
+            ORDER BY oc.[codigo OT] DESC
+            OFFSET ${offset} ROWS FETCH NEXT ${parseInt(pageSize)} ROWS ONLY
+        `);
+
+        res.json({
+            success: true,
+            data: result.recordset,
+            total: total,
+            page: parseInt(page),
+            pageSize: parseInt(pageSize),
+            totalPages: Math.ceil(total / parseInt(pageSize))
+        });
+
+    } catch (err) {
+        console.error('Error en /api/mantenimiento/ordenes-pendientes:', err);
+        res.status(500).json({
+            success: false,
+            error: 'Error al obtener órdenes pendientes.',
+            details: err.message
+        });
+    }
+});
+
 // Serve index.html for any unmatched routes (SPA fallback)
 app.get('*', (req, res) => {
     res.sendFile(__dirname + '/index.html');
