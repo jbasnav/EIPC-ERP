@@ -12956,20 +12956,19 @@ function renderTopActivosTable(activos) {
     if (!tbody) return;
 
     if (!activos || activos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">Sin datos</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">Sin datos</td></tr>';
         return;
     }
 
     tbody.innerHTML = activos.map((activo, idx) => `
         <tr style="border-bottom: 1px solid var(--border);">
-            <td style="padding: 0.5rem 0.25rem; text-align: center; font-weight: 600; color: ${idx < 3 ? 'var(--primary)' : 'var(--text-muted)'};">${idx + 1}</td>
+            <td style="padding: 0.5rem 0.25rem; text-align: center; font-weight: 600; white-space: nowrap; color: ${idx < 3 ? 'var(--primary)' : 'var(--text-muted)'};">${idx + 1}</td>
             <td style="padding: 0.5rem 0.25rem;">
                 <div style="font-weight: 500;">${activo['codigo activo'] || '-'}</div>
-                <div style="font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${activo.denominacion_activo || ''}">${activo.denominacion_activo || ''}</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis;" title="${activo.denominacion_activo || ''}">${activo.denominacion_activo || ''}</div>
             </td>
-            <td style="padding: 0.5rem 0.25rem; text-align: right;">${activo.intervenciones?.toLocaleString() || 0}</td>
-            <td style="padding: 0.5rem 0.25rem; text-align: right;">${activo.horas_totales?.toFixed(1) || '0.0'}</td>
-            <td></td>
+            <td style="padding: 0.5rem 0.25rem; text-align: right; white-space: nowrap;">${activo.intervenciones?.toLocaleString() || 0}</td>
+            <td style="padding: 0.5rem 0.25rem; text-align: right; white-space: nowrap;">${activo.horas_totales?.toFixed(1) || '0.0'}</td>
         </tr>
     `).join('');
 }
@@ -13107,10 +13106,50 @@ function renderMantenimientoAnualChart(data) {
     });
 }
 
+// Sort handler
+window.handleOrdenesPendientesSort = function (column) {
+    if (mantenimientoState.orderBy === column) {
+        mantenimientoState.orderDir = mantenimientoState.orderDir === 'ASC' ? 'DESC' : 'ASC';
+    } else {
+        mantenimientoState.orderBy = column;
+        mantenimientoState.orderDir = 'ASC';
+    }
+
+    // Update icons
+    document.querySelectorAll('.sort-icon').forEach(icon => {
+        icon.className = 'ri-arrow-up-down-line sort-icon';
+        icon.style.opacity = '0.5';
+    });
+
+    const currentIconId = `sort-op-${column.replace('oc.[', '').replace(']', '').replace('codig', '').replace(' ', '')}`; // specialized ID mapping logic or simplified IDs in HTML would be better, but sticking to existing naming pattern intent
+    // Actually, let's just map based on what we put in HTML:
+    // Code OT -> sort-op-codigoOT
+    // Activo -> sort-op-activo
+    // etc.
+    let iconId = '';
+    if (column.includes('codigo OT')) iconId = 'sort-op-codigoOT';
+    else if (column.includes('codigo activo')) iconId = 'sort-op-activo';
+    else if (column.includes('codigo estado')) iconId = 'sort-op-estado';
+    else if (column.includes('prioridad')) iconId = 'sort-op-prioridad';
+    else if (column.includes('horas')) iconId = 'sort-op-horas';
+    else if (column.includes('fecha')) iconId = 'sort-op-fecha';
+
+    const currentIcon = document.getElementById(iconId);
+    if (currentIcon) {
+        currentIcon.className = mantenimientoState.orderDir === 'ASC' ? 'ri-arrow-up-line sort-icon' : 'ri-arrow-down-line sort-icon';
+        currentIcon.style.opacity = '1';
+    }
+
+    fetchOrdenesPendientes(1);
+};
+
 async function fetchOrdenesPendientes(page = 1) {
     try {
         const activo = mantenimientoState.activoFilter || '';
-        const url = `/api/mantenimiento/ordenes-pendientes?page=${page}&pageSize=${mantenimientoState.pageSize}&activo=${encodeURIComponent(activo)}`;
+        const orderBy = mantenimientoState.orderBy || 'oc.[codigo OT]';
+        const orderDir = mantenimientoState.orderDir || 'DESC';
+
+        const url = `/api/mantenimiento/ordenes-pendientes?page=${page}&pageSize=${mantenimientoState.pageSize}&activo=${encodeURIComponent(activo)}&orderBy=${encodeURIComponent(orderBy)}&orderDir=${orderDir}`;
 
         const response = await fetch(url);
         const data = await response.json();
@@ -13141,10 +13180,11 @@ function renderOrdenesPendientesTable(ordenes) {
     tbody.innerHTML = ordenes.map(orden => {
         const fechaInicio = orden['fecha inicio trabajo'] ? new Date(orden['fecha inicio trabajo']).toLocaleDateString('es-ES') : '-';
 
-        // Priority badge color and text
+        // Priority badge color
         let prioridadStyle = '';
-        let prioridadTexto = orden.denominacion_prioridad || '';
         const prioridadCod = (orden['prioridad asignada'] || '').toString();
+        // Use denomination from DB, fallback to manual map if empty (safety)
+        let prioridadTexto = orden.denominacion_prioridad || '';
 
         if (prioridadCod === '1' || prioridadCod.toUpperCase() === 'A') {
             prioridadStyle = 'color: #ef4444; font-weight: 600;';
@@ -13159,21 +13199,21 @@ function renderOrdenesPendientesTable(ordenes) {
 
         return `
             <tr style="border-bottom: 1px solid var(--border);">
-                <td style="padding: 0.5rem 0.25rem; font-weight: 500;">${orden['codigo OT'] || '-'}</td>
+                <td style="padding: 0.5rem 0.25rem; font-weight: 500; white-space: nowrap;">${orden['codigo OT'] || '-'}</td>
                 <td style="padding: 0.5rem 0.25rem;">
                     <div style="font-weight: 500;">${orden['codigo activo'] || '-'}</div>
-                    <div style="font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${orden.denominacion_activo || ''}">${orden.denominacion_activo || ''}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis;" title="${orden.denominacion_activo || ''}">${orden.denominacion_activo || ''}</div>
                 </td>
-                <td style="padding: 0.5rem 0.25rem; text-align: center;">
+                <td style="padding: 0.5rem 0.25rem; text-align: center; white-space: nowrap;">
                     <div>${orden['codigo estado orden'] || '-'}</div>
                     <div style="font-size: 0.7rem; color: var(--text-muted);">${orden.denominacion_estado || ''}</div>
                 </td>
-                <td style="padding: 0.5rem 0.25rem; text-align: center; ${prioridadStyle}">
+                <td style="padding: 0.5rem 0.25rem; text-align: center; white-space: nowrap; ${prioridadStyle}">
                     <div>${orden['prioridad asignada'] || '-'}</div>
                     <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 400;">${prioridadTexto}</div>
                 </td>
-                <td style="padding: 0.5rem 0.25rem; text-align: right;">${orden['horas mano obra'] || '-'}</td>
-                <td style="padding: 0.5rem 0.25rem; text-align: right;">${fechaInicio}</td>
+                <td style="padding: 0.5rem 0.25rem; text-align: right; white-space: nowrap;">${orden['horas mano obra'] || '-'}</td>
+                <td style="padding: 0.5rem 0.25rem; text-align: right; white-space: nowrap;">${fechaInicio}</td>
             </tr>
         `;
     }).join('');
@@ -13253,17 +13293,35 @@ window.closeEquipoModal = closeEquipoModal;
 
 // --- AI Integration Functions ---
 
-function saveAiConfig() {
+async function saveAiConfig() {
     const key = document.getElementById('geminiApiKey').value;
     if (key) {
-        localStorage.setItem('geminiApiKey', key);
-        Swal.fire({
-            title: 'Guardado',
-            text: 'API Key guardada correctamente. Ahora puedes usar las funciones de IA.',
-            icon: 'success',
-            timer: 2000,
-            showConfirmButton: false
-        });
+        try {
+            // Save to backend .env file
+            const response = await fetch('/api/admin/save-api-key', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ apiKey: key })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                // Also save to localStorage as backup
+                localStorage.setItem('geminiApiKey', key);
+                Swal.fire({
+                    title: 'Guardado',
+                    text: 'API Key guardada en el servidor (.env). Ya puedes usar las funciones de IA.',
+                    icon: 'success',
+                    timer: 2500,
+                    showConfirmButton: false
+                });
+            } else {
+                throw new Error(result.error || 'Error desconocido');
+            }
+        } catch (error) {
+            console.error('Error saving API key:', error);
+            Swal.fire('Error', 'No se pudo guardar la API Key: ' + error.message, 'error');
+        }
     } else {
         Swal.fire('Error', 'Por favor introduce una API Key válida', 'error');
     }
@@ -13327,22 +13385,25 @@ async function generateAiAnalysis(data, year, type) {
             Dame 3 insights breves y accionables en formato HTML (usa <b> para resaltar keywords, usa <br> para saltos de linea).`;
         }
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${key}`, {
+        const response = await fetch('/api/ai/generate-insight', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: promptCtx
-                    }]
-                }]
+                context: promptCtx,
+                apiKey: key
             })
         });
 
-        if (!response.ok) throw new Error('Error en la respuesta de Gemini API: ' + response.statusText);
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`Error ${response.status}: ${errorBody}`);
+        }
 
         const json = await response.json();
-        const text = json.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el análisis (Respuesta vacía).';
+        if (!json.success) {
+            throw new Error(json.error || 'Error desconocido');
+        }
+        const text = json.text || 'No se pudo generar el análisis (Respuesta vacía).';
 
         // Convert basic markdown to HTML if needed or just replace newlines
         // Gemini often returns markdown *bold*.

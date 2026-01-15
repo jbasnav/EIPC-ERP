@@ -6336,14 +6336,16 @@ app.get('/api/mantenimiento/ordenes-pendientes', async (req, res) => {
                 oc.[codigo estado orden],
                 me.[denominacion estado orden] as denominacion_estado,
                 oc.[prioridad asignada],
+                mp.[denominacion prioridad] as denominacion_prioridad,
                 oc.[horas mano obra],
                 oc.[fecha inicio trabajo],
                 oc.[fecha cierre]
             FROM [ORDENES CABECERA] oc
             LEFT JOIN [MAESTRO ACTIVOS] A ON oc.[codigo activo] = A.[codigo activo]
             LEFT JOIN [MAESTRO ESTADOS ORDENES] me ON oc.[codigo estado orden] = me.[codigo estado orden]
+            LEFT JOIN [MAESTRO PRIORIDAD ORDENES] mp ON oc.[prioridad asignada] = mp.[prioridad orden]
             WHERE ${whereClause}
-            ORDER BY oc.[codigo OT] DESC
+            ORDER BY ${req.query.orderBy || 'oc.[codigo OT]'} ${req.query.orderDir || 'DESC'}
             OFFSET ${offset} ROWS FETCH NEXT ${parseInt(pageSize)} ROWS ONLY
         `);
 
@@ -6369,6 +6371,115 @@ app.get('/api/mantenimiento/ordenes-pendientes', async (req, res) => {
 // Serve index.html for any unmatched routes (SPA fallback)
 app.get('*', (req, res) => {
     res.sendFile(__dirname + '/index.html');
+});
+
+// ============================================
+// AI ENDPOINTS
+// ============================================
+
+require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
+
+// Endpoint to save API key to .env file
+app.post('/api/admin/save-api-key', async (req, res) => {
+    try {
+        const { apiKey } = req.body;
+
+        if (!apiKey) {
+            return res.status(400).json({ success: false, error: 'API Key es requerida' });
+        }
+
+        const envPath = path.join(__dirname, '.env');
+        let envContent = '';
+
+        // Read existing .env if it exists
+        if (fs.existsSync(envPath)) {
+            envContent = fs.readFileSync(envPath, 'utf8');
+        }
+
+        // Update or add GEMINI_API_KEY
+        if (envContent.includes('GEMINI_API_KEY=')) {
+            envContent = envContent.replace(/GEMINI_API_KEY=.*/g, `GEMINI_API_KEY=${apiKey}`);
+        } else {
+            envContent += `\nGEMINI_API_KEY=${apiKey}\n`;
+        }
+
+        fs.writeFileSync(envPath, envContent);
+
+        // Update process.env so it takes effect immediately
+        process.env.GEMINI_API_KEY = apiKey;
+
+        res.json({ success: true, message: 'API Key guardada en .env correctamente' });
+    } catch (error) {
+        console.error('Error saving API key:', error);
+        res.status(500).json({ success: false, error: 'Error al guardar la API Key' });
+    }
+});
+
+app.post('/api/ai/generate-insight', async (req, res) => {
+    try {
+        const { context, apiKey: clientKey } = req.body;
+
+        // Prioritize backend environment key, fallback to client-provided key
+        const apiKey = process.env.GEMINI_API_KEY || clientKey;
+
+        if (!apiKey) {
+            return res.status(400).json({
+                success: false,
+                error: 'API Key no configurada. Añádela en el panel de Admin o en el archivo .env del servidor.'
+            });
+        }
+
+        // Use gemini-2.0-flash model (available in v1beta)
+        const model = 'gemini-2.0-flash';
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+        const prompt = `
+            ${context}
+            
+            Responde en formato HTML simple (sin markdown code blocks). Usa <b> para resaltar lo importante.
+            Sé conciso. Máximo 3 insights.
+        `;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: prompt }]
+                }]
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Gemini API Error ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!text) {
+            throw new Error('La respuesta de la IA estaba vacía.');
+        }
+
+        // Clean up markdown if present
+        const cleanText = text
+            .replace(/```html/g, '')
+            .replace(/```/g, '')
+            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+            .replace(/\n/g, '<br>');
+
+        res.json({ success: true, text: cleanText });
+
+    } catch (error) {
+        console.error('AI Processing Error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error generando insight: ' + (error.message || 'Error interno')
+        });
+    }
 });
 
 // Inicia el servidor

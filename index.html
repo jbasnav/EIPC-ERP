@@ -868,24 +868,22 @@
                                         style="margin-right: 0.5rem; color: var(--primary);"></i>Top 10 Activos
                                     Intervenidos</h3>
                             </div>
-                            <div style="max-height: 350px; overflow-y: auto;">
+                            <div style="max-height: 350px; overflow-y: auto; overflow-x: hidden;">
                                 <table class="responsive-dashboard-table"
-                                    style="width: 100%; border-collapse: collapse; font-size: 0.8rem; table-layout: fixed;">
+                                    style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
                                     <thead style="position: sticky; top: 0; background: var(--bg-card);">
                                         <tr style="border-bottom: 2px solid var(--border);">
                                             <th
-                                                style="padding: 0.5rem 0.25rem; text-align: center; font-weight: 600; width: 30px;">
+                                                style="padding: 0.5rem 0.25rem; text-align: center; font-weight: 600; white-space: nowrap;">
                                                 #</th>
-                                            <th
-                                                style="padding: 0.5rem 0.25rem; text-align: left; font-weight: 600; width: 250px;">
+                                            <th style="padding: 0.5rem 0.25rem; text-align: left; font-weight: 600;">
                                                 Activo</th>
                                             <th
-                                                style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 600; width: 60px;">
+                                                style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 600; white-space: nowrap;">
                                                 OTs</th>
                                             <th
-                                                style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 600; width: 60px;">
+                                                style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 600; white-space: nowrap;">
                                                 Horas</th>
-                                            <th></th> <!-- Spacer column for alignment -->
                                         </tr>
                                     </thead>
                                     <tbody id="topActivosTableBody">
@@ -914,29 +912,37 @@
                                     </button>
                                 </div>
                             </div>
-                            <div id="ordenesPendientesTableContainer" style="max-height: 300px; overflow-y: auto;">
+                            <div id="ordenesPendientesTableContainer"
+                                style="max-height: 300px; overflow-y: auto; overflow-x: hidden;">
                                 <table class="responsive-dashboard-table"
-                                    style="width: 100%; border-collapse: collapse; font-size: 0.8rem; table-layout: fixed;">
+                                    style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
                                     <thead style="position: sticky; top: 0; background: var(--bg-card);">
                                         <tr style="border-bottom: 2px solid var(--border);">
-                                            <th
-                                                style="padding: 0.5rem 0.25rem; text-align: left; font-weight: 600; width: 80px;">
-                                                Código OT</th>
-                                            <th
-                                                style="padding: 0.5rem 0.25rem; text-align: left; font-weight: 600; width: 120px;">
-                                                Activo</th>
-                                            <th
-                                                style="padding: 0.5rem 0.25rem; text-align: center; font-weight: 600; width: 80px;">
-                                                Estado</th>
-                                            <th
-                                                style="padding: 0.5rem 0.25rem; text-align: center; font-weight: 600; width: 80px;">
-                                                Prioridad</th>
-                                            <th
-                                                style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 600; width: 50px;">
-                                                Horas</th>
-                                            <th
-                                                style="padding: 0.5rem 1rem 0.5rem 0.25rem; text-align: right; font-weight: 600; width: 100px;">
-                                                Fecha</th>
+                                            <th onclick="handleOrdenesPendientesSort('oc.[codigo OT]')"
+                                                style="padding: 0.5rem 0.25rem; text-align: left; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                                                Código <i id="sort-op-codigoOT" class="ri-arrow-down-line sort-icon"
+                                                    style="opacity: 0.7;"></i></th>
+                                            <th onclick="handleOrdenesPendientesSort('oc.[codigo activo]')"
+                                                style="padding: 0.5rem 0.25rem; text-align: left; font-weight: 600; cursor: pointer;">
+                                                Activo <i id="sort-op-activo" class="ri-arrow-up-down-line sort-icon"
+                                                    style="opacity: 0.5;"></i></th>
+                                            <th onclick="handleOrdenesPendientesSort('oc.[codigo estado orden]')"
+                                                style="padding: 0.5rem 0.25rem; text-align: center; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                                                Estado <i id="sort-op-estado" class="ri-arrow-up-down-line sort-icon"
+                                                    style="opacity: 0.5;"></i></th>
+                                            <th onclick="handleOrdenesPendientesSort('oc.[prioridad asignada]')"
+                                                style="padding: 0.5rem 0.25rem; text-align: center; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                                                Prioridad <i id="sort-op-prioridad"
+                                                    class="ri-arrow-up-down-line sort-icon" style="opacity: 0.5;"></i>
+                                            </th>
+                                            <th onclick="handleOrdenesPendientesSort('oc.[horas mano obra]')"
+                                                style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                                                Horas <i id="sort-op-horas" class="ri-arrow-up-down-line sort-icon"
+                                                    style="opacity: 0.5;"></i></th>
+                                            <th onclick="handleOrdenesPendientesSort('oc.[fecha inicio trabajo]')"
+                                                style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                                                Fecha <i id="sort-op-fecha" class="ri-arrow-up-down-line sort-icon"
+                                                    style="opacity: 0.5;"></i></th>
                                         </tr>
                                     </thead>
                                     <tbody id="ordenesPendientesTableBody">
