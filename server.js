@@ -6368,6 +6368,176 @@ app.get('/api/mantenimiento/ordenes-pendientes', async (req, res) => {
     }
 });
 
+// ============================================
+// ENSAYOS ENDPOINTS (VT, PT, RT)
+// ============================================
+
+app.get('/api/ensayos/:type', async (req, res) => {
+    try {
+        const { type } = req.params;
+
+        // Map type to correct table names
+        const tableMap = {
+            'vt': '[RX_X_INFORME VIS LOTE]',  // Visual
+            'pt': '[RX_X_INFORME LP LOTE]',   // Líquidos Penetrantes
+            'rt': '[RX_X_INFORME RX LOTE]'    // Radiografía
+        };
+
+        if (!tableMap[type.toLowerCase()]) {
+            return res.status(400).json({ success: false, error: 'Tipo de ensayo no válido (vt, pt, rt)' });
+        }
+
+        const tableName = tableMap[type.toLowerCase()];
+        const { page = 1, pageSize = 50, sortBy = 'Fecha', sortOrder = 'DESC', articulo, tratamiento } = req.query;
+
+        const request = new sql.Request();
+        let whereConditions = [];
+
+        if (articulo) {
+            request.input('articulo', sql.NVarChar, `%${articulo}%`);
+            whereConditions.push("([Referencia] LIKE @articulo OR [Colada] LIKE @articulo OR [Informe] LIKE @articulo)");
+        }
+
+        if (tratamiento) {
+            request.input('tratamiento', sql.NVarChar, tratamiento);
+            whereConditions.push("[Tratamiento] = @tratamiento");
+        }
+
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+        const offset = (parseInt(page) - 1) * parseInt(pageSize);
+
+        // Count total
+        const countQuery = `SELECT COUNT(*) as total FROM ${tableName} ${whereClause}`;
+        const countResult = await request.query(countQuery);
+        const total = countResult.recordset[0].total;
+
+        // Data query
+        const dataRequest = new sql.Request();
+        if (articulo) {
+            dataRequest.input('articulo', sql.NVarChar, `%${articulo}%`);
+        }
+        if (tratamiento) {
+            dataRequest.input('tratamiento', sql.NVarChar, tratamiento);
+        }
+
+        const query = `
+            SELECT * FROM ${tableName}
+            ${whereClause}
+            ORDER BY [${sortBy}] ${sortOrder}
+            OFFSET ${offset} ROWS FETCH NEXT ${parseInt(pageSize)} ROWS ONLY
+        `;
+
+        const result = await dataRequest.query(query);
+
+        // Get unique tratamientos for filter
+        const tratamientosQuery = `SELECT DISTINCT [Tratamiento] FROM ${tableName} WHERE [Tratamiento] IS NOT NULL ORDER BY [Tratamiento]`;
+        const tratamientosResult = await new sql.Request().query(tratamientosQuery);
+        const tratamientos = tratamientosResult.recordset.map(r => r.Tratamiento);
+
+        res.json({
+            success: true,
+            data: result.recordset,
+            total: total,
+            page: parseInt(page),
+            pageSize: parseInt(pageSize),
+            totalPages: Math.ceil(total / parseInt(pageSize)),
+            tratamientos: tratamientos
+        });
+
+    } catch (err) {
+        console.error(`Error en /api/ensayos/${req.params.type}:`, err);
+        res.status(500).json({
+            success: false,
+            error: 'Error al obtener datos de ensayos',
+            details: err.message
+        });
+    }
+});
+
+// PERSONAL DASHBOARD API
+app.get('/api/personal/dashboard', async (req, res) => {
+    try {
+        const pool = await poolPromise;
+        const { year, month } = req.query;
+
+        // Base query for the view
+        let query = `
+            SELECT * FROM [qry_DiarioHorasTrabajo+HorasAusencia]
+            WHERE Año = @year
+        `;
+
+        if (month) {
+            query += ` AND Mes = @month`;
+        }
+
+        const request = pool.request();
+        request.input('year', sql.Int, parseInt(year || new Date().getFullYear()));
+        if (month) request.input('month', sql.Int, parseInt(month));
+
+        const result = await request.query(query);
+        const data = result.recordset;
+
+        // Process data for KPIs
+        const totalRegistros = data.length;
+        const empleadosUnicos = [...new Set(data.map(d => d.Operario))].length;
+
+        // Sums (handling potential nulls)
+        const totalHorasTrabajo = data.reduce((sum, row) => sum + (row.HorasTrabajo || 0), 0);
+        const totalHorasAusencia = data.reduce((sum, row) => sum + (row.HorasAusencia || 0), 0);
+        const totalHoras = totalHorasTrabajo + totalHorasAusencia;
+
+        // Outliers: < 7.75 or > 8.25 total hours (example rule)
+        const outliers = data.filter(d => {
+            const h = (d.HorasTrabajo || 0) + (d.HorasAusencia || 0);
+            return h > 0 && (h < 7.75 || h > 8.25);
+        }).length;
+
+        // Group by Seccion
+        const seccionesMap = {};
+        data.forEach(row => {
+            const seccion = row.NombreSeccion || 'Sin Sección'; // Ad-hoc column name guess
+            if (!seccionesMap[seccion]) {
+                seccionesMap[seccion] = {
+                    nombre: seccion,
+                    empleados: new Set(),
+                    horasTrabajo: 0,
+                    horasAusencia: 0,
+                    totalHoras: 0
+                };
+            }
+            seccionesMap[seccion].empleados.add(row.Operario);
+            seccionesMap[seccion].horasTrabajo += (row.HorasTrabajo || 0);
+            seccionesMap[seccion].horasAusencia += (row.HorasAusencia || 0);
+            seccionesMap[seccion].totalHoras += ((row.HorasTrabajo || 0) + (row.HorasAusencia || 0));
+        });
+
+        const secciones = Object.values(seccionesMap).map(s => ({
+            ...s,
+            empleados: s.empleados.size,
+            porcentajeAusencia: s.totalHoras > 0 ? ((s.horasAusencia / s.totalHoras) * 100).toFixed(1) : 0
+        }));
+
+        res.json({
+            success: true,
+            kpis: {
+                totalEmpleados: empleadosUnicos,
+                totalHoras: totalHoras.toFixed(2),
+                horasTrabajo: totalHorasTrabajo.toFixed(2),
+                horasAusencia: totalHorasAusencia.toFixed(2),
+                outliers: outliers,
+                mediaHoras: totalRegistros > 0 ? (totalHoras / totalRegistros).toFixed(2) : 0
+            },
+            secciones: secciones,
+            // Return raw data for charts/tables if needed, or summary
+            // data: data // Might be too large to send all
+        });
+
+    } catch (err) {
+        console.error('Error fetching Personal Dashboard:', err);
+        res.status(500).json({ error: 'Error al obtener datos de personal', details: err.message });
+    }
+});
+
 // Serve index.html for any unmatched routes (SPA fallback)
 app.get('*', (req, res) => {
     res.sendFile(__dirname + '/index.html');
@@ -6482,9 +6652,259 @@ app.post('/api/ai/generate-insight', async (req, res) => {
     }
 });
 
+// ============================================
+// ENSAYOS VT/PT/RT ENDPOINTS
+// ============================================
+
+// GET Ensayos VT (Visual) - RX_X_INFORME VIS LOTE
+app.get('/api/ensayos/vt', async (req, res) => {
+    try {
+        const { articulo, tratamiento, page = 1, limit = 50, sortBy = 'Fecha', sortDir = 'DESC' } = req.query;
+        const request = new sql.Request();
+
+        let whereConditions = [];
+
+        if (articulo) {
+            request.input('articulo', sql.NVarChar, `%${articulo}%`);
+            whereConditions.push("Referencia LIKE @articulo");
+        }
+        if (tratamiento) {
+            request.input('tratamiento', sql.NVarChar, tratamiento);
+            whereConditions.push("Tratamiento = @tratamiento");
+        }
+
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+        const validSortCols = ['Fecha', 'Referencia', 'Informe', 'Colada', 'Lingote', 'Tratamiento', 'Inspeccionado Por'];
+        const sortCol = validSortCols.includes(sortBy) ? `[${sortBy}]` : '[Fecha]';
+        const sortDirection = sortDir?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+        const countRequest = new sql.Request();
+        if (articulo) countRequest.input('articulo', sql.NVarChar, `%${articulo}%`);
+        if (tratamiento) countRequest.input('tratamiento', sql.NVarChar, tratamiento);
+
+        const countResult = await countRequest.query(`SELECT COUNT(*) as total FROM [RX_X_INFORME VIS LOTE] ${whereClause}`);
+        const totalCount = countResult.recordset[0].total;
+
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+        request.input('offset', sql.Int, offset);
+        request.input('limit', sql.Int, parseInt(limit));
+
+        const query = `
+            SELECT [Fecha], [Referencia], [Informe], [Colada], [Lingote], 
+                   [Tratamiento], [Inspeccionado Por] as Inspector, [Estado]
+            FROM [RX_X_INFORME VIS LOTE]
+            ${whereClause}
+            ORDER BY ${sortCol} ${sortDirection}
+            OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
+        `;
+
+        const result = await request.query(query);
+
+        res.json({
+            success: true,
+            data: result.recordset,
+            count: result.recordset.length,
+            totalCount: totalCount,
+            page: parseInt(page),
+            totalPages: Math.ceil(totalCount / parseInt(limit))
+        });
+
+    } catch (err) {
+        console.error('Error en /api/ensayos/vt:', err);
+        res.status(500).json({ success: false, error: 'Error al obtener ensayos VT', details: err.message });
+    }
+});
+
+// GET Ensayos PT - RX_X_INFORME LP LOTE
+app.get('/api/ensayos/pt', async (req, res) => {
+    try {
+        const { articulo, tratamiento, page = 1, limit = 50, sortBy = 'Fecha', sortDir = 'DESC' } = req.query;
+        const request = new sql.Request();
+
+        let whereConditions = [];
+        if (articulo) {
+            request.input('articulo', sql.NVarChar, `%${articulo}%`);
+            whereConditions.push("Referencia LIKE @articulo");
+        }
+        if (tratamiento) {
+            request.input('tratamiento', sql.NVarChar, tratamiento);
+            whereConditions.push("Tratamiento = @tratamiento");
+        }
+
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+        const validSortCols = ['Fecha', 'Referencia', 'Informe', 'Colada', 'Lingote', 'Tratamiento', 'Inspeccionado Por'];
+        const sortCol = validSortCols.includes(sortBy) ? `[${sortBy}]` : '[Fecha]';
+        const sortDirection = sortDir?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+        const countRequest = new sql.Request();
+        if (articulo) countRequest.input('articulo', sql.NVarChar, `%${articulo}%`);
+        if (tratamiento) countRequest.input('tratamiento', sql.NVarChar, tratamiento);
+        const countResult = await countRequest.query(`SELECT COUNT(*) as total FROM [RX_X_INFORME LP LOTE] ${whereClause}`);
+        const totalCount = countResult.recordset[0].total;
+
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+        request.input('offset', sql.Int, offset);
+        request.input('limit', sql.Int, parseInt(limit));
+
+        const query = `
+            SELECT [Fecha], [Referencia], [Informe], [Colada], [Lingote], 
+                   [Tratamiento], [Inspeccionado Por] as Inspector, [Estado]
+            FROM [RX_X_INFORME LP LOTE]
+            ${whereClause}
+            ORDER BY ${sortCol} ${sortDirection}
+            OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
+        `;
+        const result = await request.query(query);
+
+        res.json({
+            success: true, data: result.recordset, count: result.recordset.length,
+            totalCount: totalCount, page: parseInt(page), totalPages: Math.ceil(totalCount / parseInt(limit))
+        });
+    } catch (err) {
+        console.error('Error en /api/ensayos/pt:', err);
+        res.status(500).json({ success: false, error: 'Error al obtener ensayos PT', details: err.message });
+    }
+});
+
+// GET Ensayos RT - RX_X_INFORME RX LOTE
+app.get('/api/ensayos/rt', async (req, res) => {
+    try {
+        const { articulo, tratamiento, page = 1, limit = 50, sortBy = 'Fecha', sortDir = 'DESC' } = req.query;
+        const request = new sql.Request();
+
+        let whereConditions = [];
+        if (articulo) {
+            request.input('articulo', sql.NVarChar, `%${articulo}%`);
+            whereConditions.push("Referencia LIKE @articulo");
+        }
+        if (tratamiento) {
+            request.input('tratamiento', sql.NVarChar, tratamiento);
+            whereConditions.push("Tratamiento = @tratamiento");
+        }
+
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+        const validSortCols = ['Fecha', 'Referencia', 'Informe', 'Colada', 'Lingote', 'Tratamiento', 'Inspeccionado Por'];
+        const sortCol = validSortCols.includes(sortBy) ? `[${sortBy}]` : '[Fecha]';
+        const sortDirection = sortDir?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+        const countRequest = new sql.Request();
+        if (articulo) countRequest.input('articulo', sql.NVarChar, `%${articulo}%`);
+        if (tratamiento) countRequest.input('tratamiento', sql.NVarChar, tratamiento);
+        const countResult = await countRequest.query(`SELECT COUNT(*) as total FROM [RX_X_INFORME RX LOTE] ${whereClause}`);
+        const totalCount = countResult.recordset[0].total;
+
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+        request.input('offset', sql.Int, offset);
+        request.input('limit', sql.Int, parseInt(limit));
+
+        const query = `
+            SELECT [Fecha], [Referencia], [Informe], [Colada], [Lingote], 
+                   [Tratamiento], [Inspeccionado Por] as Inspector, [Estado]
+            FROM [RX_X_INFORME RX LOTE]
+            ${whereClause}
+            ORDER BY ${sortCol} ${sortDirection}
+            OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
+        `;
+        const result = await request.query(query);
+
+        res.json({
+            success: true, data: result.recordset, count: result.recordset.length,
+            totalCount: totalCount, page: parseInt(page), totalPages: Math.ceil(totalCount / parseInt(limit))
+        });
+    } catch (err) {
+        console.error('Error en /api/ensayos/rt:', err);
+        res.status(500).json({ success: false, error: 'Error al obtener ensayos RT', details: err.message });
+    }
+});
+
+// PERSONAL DASHBOARD API
+app.get('/api/personal/dashboard', async (req, res) => {
+    try {
+        const pool = await poolPromise;
+        const { year, month } = req.query;
+
+        // Base query for the view
+        let query = `
+            SELECT * FROM [qry_DiarioHorasTrabajo+HorasAusencia]
+            WHERE Año = @year
+        `;
+
+        if (month) {
+            query += ` AND Mes = @month`;
+        }
+
+        const request = pool.request();
+        request.input('year', sql.Int, parseInt(year || new Date().getFullYear()));
+        if (month) request.input('month', sql.Int, parseInt(month));
+
+        const result = await request.query(query);
+        const data = result.recordset;
+
+        // Process data for KPIs
+        const totalRegistros = data.length;
+        const empleadosUnicos = [...new Set(data.map(d => d.Operario))].length;
+
+        // Sums (handling potential nulls)
+        const totalHorasTrabajo = data.reduce((sum, row) => sum + (row.HorasTrabajo || 0), 0);
+        const totalHorasAusencia = data.reduce((sum, row) => sum + (row.HorasAusencia || 0), 0);
+        const totalHoras = totalHorasTrabajo + totalHorasAusencia;
+
+        // Outliers: < 7.75 or > 8.25 total hours (example rule)
+        const outliers = data.filter(d => {
+            const h = (d.HorasTrabajo || 0) + (d.HorasAusencia || 0);
+            return h > 0 && (h < 7.75 || h > 8.25);
+        }).length;
+
+        // Group by Seccion
+        const seccionesMap = {};
+        data.forEach(row => {
+            const seccion = row.NombreSeccion || 'Sin Sección'; // Ad-hoc column name guess
+            if (!seccionesMap[seccion]) {
+                seccionesMap[seccion] = {
+                    nombre: seccion,
+                    empleados: new Set(),
+                    horasTrabajo: 0,
+                    horasAusencia: 0,
+                    totalHoras: 0
+                };
+            }
+            seccionesMap[seccion].empleados.add(row.Operario);
+            seccionesMap[seccion].horasTrabajo += (row.HorasTrabajo || 0);
+            seccionesMap[seccion].horasAusencia += (row.HorasAusencia || 0);
+            seccionesMap[seccion].totalHoras += ((row.HorasTrabajo || 0) + (row.HorasAusencia || 0));
+        });
+
+        const secciones = Object.values(seccionesMap).map(s => ({
+            ...s,
+            empleados: s.empleados.size,
+            porcentajeAusencia: s.totalHoras > 0 ? ((s.horasAusencia / s.totalHoras) * 100).toFixed(1) : 0
+        }));
+
+        res.json({
+            success: true,
+            kpis: {
+                totalEmpleados: empleadosUnicos,
+                totalHoras: totalHoras.toFixed(2),
+                horasTrabajo: totalHorasTrabajo.toFixed(2),
+                horasAusencia: totalHorasAusencia.toFixed(2),
+                outliers: outliers,
+                mediaHoras: totalRegistros > 0 ? (totalHoras / totalRegistros).toFixed(2) : 0
+            },
+            secciones: secciones,
+            // Return raw data for charts/tables if needed, or summary
+            // data: data // Might be too large to send all
+        });
+
+    } catch (err) {
+        console.error('Error fetching Personal Dashboard:', err);
+        res.status(500).json({ error: 'Error al obtener datos de personal', details: err.message });
+    }
+});
+
 // Inicia el servidor
 app.listen(PORT, () => {
-    console.log(`?? Server running on http://localhost:${PORT}`);
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
 
 

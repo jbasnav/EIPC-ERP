@@ -258,6 +258,7 @@ async function switchView(viewName) {
     console.log('[SWITCHVIEW] selectedView found:', !!selectedView, `${viewName}View`);
     if (selectedView) {
         selectedView.classList.add('active');
+        console.log('[SWITCHVIEW] Added active class. View now has active:', selectedView.classList.contains('active'));
 
         // Update active nav item
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -4314,6 +4315,8 @@ function switchView(viewName) {
         }
     } else if (viewName === 'ensayos-dashboard') {
         fetchEnsayosDashboard();
+    } else if (viewName === 'personal-dashboard') {
+        fetchPersonalDashboard();
     } else if (viewName === 'ensayos-vt') {
         fetchEnsayosVt();
     } else if (viewName === 'ensayos-pt') {
@@ -13430,3 +13433,398 @@ async function generateAiAnalysis(data, year, type) {
 }
 window.saveAiConfig = saveAiConfig;
 window.toggleApiKeyVisibility = toggleApiKeyVisibility;
+
+// ============================================
+// ENSAYOS VT/PT/RT FUNCTIONS
+// ============================================
+
+const ensayosState = {
+    vt: { page: 1, pageSize: 50, totalCount: 0, totalPages: 0, sortBy: 'Fecha', sortDir: 'DESC', data: [] },
+    pt: { page: 1, pageSize: 50, totalCount: 0, totalPages: 0, sortBy: 'Fecha', sortDir: 'DESC', data: [] },
+    rt: { page: 1, pageSize: 50, totalCount: 0, totalPages: 0, sortBy: 'Fecha', sortDir: 'DESC', data: [] }
+};
+
+// Fetch Ensayos VT
+async function fetchEnsayosVt(page = 1) {
+    const state = ensayosState.vt;
+    state.page = page;
+
+    const articulo = document.getElementById('ensayosVtArticuloFilter')?.value || '';
+    const tratamiento = document.getElementById('ensayosVtTratamientoFilter')?.value || '';
+
+    console.log('[ENSAYOS VT] Fetching data...', { page, articulo, tratamiento });
+
+    try {
+        const params = new URLSearchParams({
+            page: state.page,
+            limit: state.pageSize,
+            sortBy: state.sortBy,
+            sortDir: state.sortDir
+        });
+        if (articulo) params.append('articulo', articulo);
+        if (tratamiento) params.append('tratamiento', tratamiento);
+
+        const response = await fetch(`/api/ensayos/vt?${params}`);
+        console.log('[ENSAYOS VT] Response status:', response.status);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('[ENSAYOS VT] Server error:', errorText);
+            return;
+        }
+
+        const data = await response.json();
+        console.log('[ENSAYOS VT] Data received:', data);
+
+        // Handle both response formats (success:true or direct data)
+        if (data.success === false) {
+            console.error('[ENSAYOS VT] API error:', data.error, data.details);
+            return;
+        }
+
+        // Extract data - handle both formats
+        const records = data.data || [];
+        state.data = records;
+        state.totalCount = data.totalCount || data.total || 0;
+        state.totalPages = data.totalPages || Math.ceil(state.totalCount / state.pageSize);
+
+        // Populate tratamiento filter if available
+        if (data.tratamientos && data.tratamientos.length > 0) {
+            const select = document.getElementById('ensayosVtTratamientoFilter');
+            if (select && select.options.length <= 1) {
+                data.tratamientos.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.textContent = t;
+                    select.appendChild(opt);
+                });
+            }
+        }
+
+        renderEnsayosVtTable();
+
+    } catch (err) {
+        console.error('[ENSAYOS VT] Fetch error:', err);
+    }
+}
+
+function renderEnsayosVtTable() {
+    const state = ensayosState.vt;
+    const tbody = document.getElementById('ensayosVtTableBody');
+    const countEl = document.getElementById('ensayosVtResultCount');
+    const pageInfo = document.getElementById('ensayosVtPageInfo');
+    const prevBtn = document.getElementById('ensayosVtPrevBtn');
+    const nextBtn = document.getElementById('ensayosVtNextBtn');
+
+    console.log('[RENDER VT] Elements found:', {
+        tbody: !!tbody,
+        countEl: !!countEl,
+        pageInfo: !!pageInfo,
+        dataLength: state.data?.length
+    });
+
+    if (countEl) countEl.textContent = `${state.totalCount} registros encontrados`;
+    if (pageInfo) pageInfo.textContent = `Pagina ${state.page} de ${state.totalPages}`;
+
+    if (prevBtn) {
+        prevBtn.disabled = state.page <= 1;
+        prevBtn.style.opacity = state.page <= 1 ? '0.5' : '1';
+    }
+    if (nextBtn) {
+        nextBtn.disabled = state.page >= state.totalPages;
+        nextBtn.style.opacity = state.page >= state.totalPages ? '0.5' : '1';
+    }
+
+    if (!tbody) return;
+
+    if (!state.data || state.data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">No se encontraron registros</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = state.data.map(row => `
+        <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 0.75rem 1rem;">${row.Fecha ? new Date(row.Fecha).toLocaleDateString('es-ES') : '-'}</td>
+            <td style="padding: 0.75rem 1rem;">${row.Referencia || '-'}</td>
+            <td style="padding: 0.75rem 1rem;">${row.Informe || '-'}</td>
+            <td style="padding: 0.75rem 1rem;">${row.Colada || '-'}</td>
+            <td style="padding: 0.75rem 1rem;">${row.Lingote || '-'}</td>
+            <td style="padding: 0.75rem 1rem;">${row.Tratamiento || '-'}</td>
+            <td style="padding: 0.75rem 1rem;">${row.Inspector || '-'}</td>
+        </tr>
+    `).join('');
+    // Hide all ensayos views and show only VT
+    ['ensayos-vtView', 'ensayos-ptView', 'ensayos-rtView'].forEach(id => {
+        const v = document.getElementById(id);
+        if (v) { v.classList.remove('active'); v.style.display = 'none'; }
+    });
+    const view = document.getElementById('ensayos-vtView');
+    if (view) {
+        view.classList.add('active');
+        view.style.display = 'block';
+    }
+}
+
+// Fetch Ensayos PT
+async function fetchEnsayosPt(page = 1) {
+    const state = ensayosState.pt;
+    state.page = page;
+
+    const articulo = document.getElementById('ensayosPtArticuloFilter')?.value || '';
+    const tratamiento = document.getElementById('ensayosPtTratamientoFilter')?.value || '';
+
+    try {
+        const params = new URLSearchParams({
+            page: state.page, limit: state.pageSize,
+            sortBy: state.sortBy, sortDir: state.sortDir
+        });
+        if (articulo) params.append('articulo', articulo);
+        if (tratamiento) params.append('tratamiento', tratamiento);
+
+        const response = await fetch(`/api/ensayos/pt?${params}`);
+        const data = await response.json();
+
+        if (data.success === false) return;
+
+        state.data = data.data || [];
+        state.totalCount = data.totalCount || data.total || 0;
+        state.totalPages = data.totalPages || Math.ceil(state.totalCount / state.pageSize);
+
+        if (data.tratamientos && data.tratamientos.length > 0) {
+            const select = document.getElementById('ensayosPtTratamientoFilter');
+            if (select && select.options.length <= 1) {
+                data.tratamientos.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.textContent = t;
+                    select.appendChild(opt);
+                });
+            }
+        }
+
+        renderEnsayosPtTable();
+    } catch (err) {
+        console.error('Error fetching ensayos PT:', err);
+    }
+}
+
+function renderEnsayosPtTable() {
+    const state = ensayosState.pt;
+    const tbody = document.getElementById('ensayosPtTableBody');
+    const countEl = document.getElementById('ensayosPtResultCount');
+    const pageInfo = document.getElementById('ensayosPtPageInfo');
+    const prevBtn = document.getElementById('ensayosPtPrevBtn');
+    const nextBtn = document.getElementById('ensayosPtNextBtn');
+
+    if (countEl) countEl.textContent = `${state.totalCount} registros encontrados`;
+    if (pageInfo) pageInfo.textContent = `Pagina ${state.page} de ${state.totalPages}`;
+    if (prevBtn) { prevBtn.disabled = state.page <= 1; prevBtn.style.opacity = state.page <= 1 ? '0.5' : '1'; }
+    if (nextBtn) { nextBtn.disabled = state.page >= state.totalPages; nextBtn.style.opacity = state.page >= state.totalPages ? '0.5' : '1'; }
+
+    if (!tbody) return;
+
+    if (!state.data || state.data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">No se encontraron registros</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = state.data.map(row => `
+        <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 0.75rem 1rem;">${row.Fecha ? new Date(row.Fecha).toLocaleDateString('es-ES') : '-'}</td>
+            <td style="padding: 0.75rem 1rem;">${row.Referencia || '-'}</td>
+            <td style="padding: 0.75rem 1rem;">${row.Informe || '-'}</td>
+            <td style="padding: 0.75rem 1rem;">${row.Colada || '-'}</td>
+            <td style="padding: 0.75rem 1rem;">${row.Lingote || '-'}</td>
+            <td style="padding: 0.75rem 1rem;">${row.Tratamiento || '-'}</td>
+        <td style="padding: 0.75rem 1rem;">${row.Inspector || '-'}</td>
+        </tr>
+    `).join('');
+    // Hide all ensayos views and show only PT
+    ['ensayos-vtView', 'ensayos-ptView', 'ensayos-rtView'].forEach(id => {
+        const v = document.getElementById(id);
+        if (v) { v.classList.remove('active'); v.style.display = 'none'; }
+    });
+    const view = document.getElementById('ensayos-ptView');
+    if (view) {
+        view.classList.add('active');
+        view.style.display = 'block';
+    }
+}
+
+// Fetch Ensayos RT
+async function fetchEnsayosRt(page = 1) {
+    const state = ensayosState.rt;
+    state.page = page;
+
+    const articulo = document.getElementById('ensayosRtArticuloFilter')?.value || '';
+    const tratamiento = document.getElementById('ensayosRtTratamientoFilter')?.value || '';
+
+    try {
+        const params = new URLSearchParams({
+            page: state.page, limit: state.pageSize,
+            sortBy: state.sortBy, sortDir: state.sortDir
+        });
+        if (articulo) params.append('articulo', articulo);
+        if (tratamiento) params.append('tratamiento', tratamiento);
+
+        const response = await fetch(`/api/ensayos/rt?${params}`);
+        const data = await response.json();
+
+        if (data.success === false) return;
+
+        state.data = data.data || [];
+        state.totalCount = data.totalCount || data.total || 0;
+        state.totalPages = data.totalPages || Math.ceil(state.totalCount / state.pageSize);
+
+        if (data.tratamientos && data.tratamientos.length > 0) {
+            const select = document.getElementById('ensayosRtTratamientoFilter');
+            if (select && select.options.length <= 1) {
+                data.tratamientos.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.textContent = t;
+                    select.appendChild(opt);
+                });
+            }
+        }
+
+        renderEnsayosRtTable();
+    } catch (err) {
+        console.error('Error fetching ensayos RT:', err);
+    }
+}
+
+function renderEnsayosRtTable() {
+    const state = ensayosState.rt;
+    const tbody = document.getElementById('ensayosRtTableBody');
+    const countEl = document.getElementById('ensayosRtResultCount');
+    const pageInfo = document.getElementById('ensayosRtPageInfo');
+    const prevBtn = document.getElementById('ensayosRtPrevBtn');
+    const nextBtn = document.getElementById('ensayosRtNextBtn');
+
+    if (countEl) countEl.textContent = `${state.totalCount} registros encontrados`;
+    if (pageInfo) pageInfo.textContent = `Pagina ${state.page} de ${state.totalPages}`;
+    if (prevBtn) { prevBtn.disabled = state.page <= 1; prevBtn.style.opacity = state.page <= 1 ? '0.5' : '1'; }
+    if (nextBtn) { nextBtn.disabled = state.page >= state.totalPages; nextBtn.style.opacity = state.page >= state.totalPages ? '0.5' : '1'; }
+
+    if (!tbody) return;
+
+    if (!state.data || state.data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">No se encontraron registros</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = state.data.map(row => `
+        <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 0.75rem 1rem;">${row.Fecha ? new Date(row.Fecha).toLocaleDateString('es-ES') : '-'}</td>
+            <td style="padding: 0.75rem 1rem;">${row.Referencia || '-'}</td>
+            <td style="padding: 0.75rem 1rem;">${row.Informe || '-'}</td>
+            <td style="padding: 0.75rem 1rem;">${row.Colada || '-'}</td>
+            <td style="padding: 0.75rem 1rem;">${row.Lingote || '-'}</td>
+            <td style="padding: 0.75rem 1rem;">${row.Tratamiento || '-'}</td>
+            <td style="padding: 0.75rem 1rem;">${row.Inspector || '-'}</td>
+        </tr>
+    `).join('');
+    // Hide all ensayos views and show only RT
+    ['ensayos-vtView', 'ensayos-ptView', 'ensayos-rtView'].forEach(id => {
+        const v = document.getElementById(id);
+        if (v) { v.classList.remove('active'); v.style.display = 'none'; }
+    });
+    const view = document.getElementById('ensayos-rtView');
+    if (view) {
+        view.classList.add('active');
+        view.style.display = 'block';
+    }
+}
+
+// Sort handler for ensayos (exposed globally for inline onclick)
+window.handleEnsayosSort = function (type, column) {
+    const state = ensayosState[type];
+    if (!state) return;
+
+    if (state.sortBy === column) {
+        state.sortDir = state.sortDir === 'ASC' ? 'DESC' : 'ASC';
+    } else {
+        state.sortBy = column;
+        state.sortDir = 'DESC';
+    }
+
+    if (type === 'vt') fetchEnsayosVt(1);
+    else if (type === 'pt') fetchEnsayosPt(1);
+    else if (type === 'rt') fetchEnsayosRt(1);
+};
+
+// Initialize ensayos event listeners
+function initEnsayosEventListeners() {
+    // VT
+    document.getElementById('buscarEnsayosVtBtn')?.addEventListener('click', () => fetchEnsayosVt(1));
+    document.getElementById('ensayosVtPrevBtn')?.addEventListener('click', () => {
+        if (ensayosState.vt.page > 1) fetchEnsayosVt(ensayosState.vt.page - 1);
+    });
+    document.getElementById('ensayosVtNextBtn')?.addEventListener('click', () => {
+        if (ensayosState.vt.page < ensayosState.vt.totalPages) fetchEnsayosVt(ensayosState.vt.page + 1);
+    });
+
+    // RT
+    document.getElementById('buscarEnsayosRtBtn')?.addEventListener('click', () => fetchEnsayosRt(1));
+    document.getElementById('ensayosRtPrevBtn')?.addEventListener('click', () => {
+        if (ensayosState.rt.page > 1) fetchEnsayosRt(ensayosState.rt.page - 1);
+    });
+    document.getElementById('ensayosRtNextBtn')?.addEventListener('click', () => {
+        if (ensayosState.rt.page < ensayosState.rt.totalPages) fetchEnsayosRt(ensayosState.rt.page + 1);
+    });
+}
+
+// PERSONAL DASHBOARD FUNCTIONS
+async function fetchPersonalDashboard() {
+    const year = new Date().getFullYear(); // Default to current year, implement filters later
+    try {
+        const response = await fetch(`/api/personal/dashboard?year=${year}`);
+        const data = await response.json();
+
+        if (data.success) {
+            renderPersonalDashboard(data);
+        } else {
+            console.error('Error fetching Personal Dashboard:', data.error);
+        }
+    } catch (err) {
+        console.error('Network error fetching Personal Dashboard:', err);
+    }
+}
+
+function renderPersonalDashboard(data) {
+    // Render KPIs
+    const kpis = data.kpis;
+    if (kpis) {
+        if (document.getElementById('personalKpiEmpleados')) document.getElementById('personalKpiEmpleados').textContent = kpis.totalEmpleados;
+        if (document.getElementById('personalKpiHorasMes')) document.getElementById('personalKpiHorasMes').textContent = kpis.totalHoras;
+        if (document.getElementById('personalKpiHorasTrabajo')) document.getElementById('personalKpiHorasTrabajo').textContent = kpis.horasTrabajo;
+        if (document.getElementById('personalKpiHorasAusencia')) document.getElementById('personalKpiHorasAusencia').textContent = kpis.horasAusencia;
+        if (document.getElementById('personalKpiOutliers')) document.getElementById('personalKpiOutliers').textContent = kpis.outliers;
+        if (document.getElementById('personalKpiMedia')) document.getElementById('personalKpiMedia').textContent = kpis.mediaHoras;
+    }
+
+    // Render Sections Table
+    const tbody = document.getElementById('personalSeccionesBody');
+    if (tbody && data.secciones) {
+        if (data.secciones.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">No hay datos disponibles</td></tr>';
+        } else {
+            tbody.innerHTML = data.secciones.map(s => `
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 0.75rem;">${s.nombre}</td>
+                    <td style="padding: 0.75rem; text-align: center;">${new Date().getFullYear()}</td>
+                    <td style="padding: 0.75rem; text-align: center;">${s.empleados}</td>
+                    <td style="padding: 0.75rem; text-align: center;">${parseFloat(s.horasTrabajo).toFixed(1)}</td>
+                    <td style="padding: 0.75rem; text-align: center;">${parseFloat(s.horasAusencia).toFixed(1)}</td>
+                    <td style="padding: 0.75rem; text-align: center;">${s.porcentajeAusencia}%</td>
+                    <td style="padding: 0.75rem; text-align: center;">${parseFloat(s.totalHoras).toFixed(1)}</td>
+                </tr>
+            `).join('');
+        }
+    }
+}
+
+// Initialize on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', initEnsayosEventListeners);
+

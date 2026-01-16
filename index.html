@@ -870,19 +870,19 @@
                             </div>
                             <div style="max-height: 350px; overflow-y: auto; overflow-x: hidden;">
                                 <table class="responsive-dashboard-table"
-                                    style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
-                                    <thead style="position: sticky; top: 0; background: var(--bg-card);">
+                                    style="width: 100%; border-collapse: collapse; font-size: 0.8rem; table-layout: fixed; margin: 0;">
+                                    <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
                                         <tr style="border-bottom: 2px solid var(--border);">
                                             <th
-                                                style="padding: 0.5rem 0.25rem; text-align: center; font-weight: 600; white-space: nowrap;">
+                                                style="padding: 0.5rem; text-align: center; font-weight: 600; width: 30px;">
                                                 #</th>
-                                            <th style="padding: 0.5rem 0.25rem; text-align: left; font-weight: 600;">
+                                            <th style="padding: 0.5rem; text-align: left; font-weight: 600;">
                                                 Activo</th>
                                             <th
-                                                style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 600; white-space: nowrap;">
+                                                style="padding: 0.5rem; text-align: right; font-weight: 600; width: 50px; min-width: 50px;">
                                                 OTs</th>
                                             <th
-                                                style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 600; white-space: nowrap;">
+                                                style="padding: 0.5rem; text-align: right; font-weight: 600; width: 60px; min-width: 60px;">
                                                 Horas</th>
                                         </tr>
                                     </thead>
@@ -913,34 +913,34 @@
                                 </div>
                             </div>
                             <div id="ordenesPendientesTableContainer"
-                                style="max-height: 300px; overflow-y: auto; overflow-x: hidden;">
+                                style="max-height: 300px; overflow-y: auto; overflow-x: auto;">
                                 <table class="responsive-dashboard-table"
-                                    style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                                    style="width: 100%; border-collapse: collapse; font-size: 0.8rem; table-layout: auto;">
                                     <thead style="position: sticky; top: 0; background: var(--bg-card);">
                                         <tr style="border-bottom: 2px solid var(--border);">
                                             <th onclick="handleOrdenesPendientesSort('oc.[codigo OT]')"
-                                                style="padding: 0.5rem 0.25rem; text-align: left; font-weight: 600; cursor: pointer; white-space: nowrap;">
-                                                Código <i id="sort-op-codigoOT" class="ri-arrow-down-line sort-icon"
-                                                    style="opacity: 0.7;"></i></th>
+                                                style="padding: 0.5rem; text-align: left; width: 100px; min-width: 100px;">
+                                                Código <i id="sort-op-codigoOT" class="ri-arrow-down-line"></i>
+                                            </th>
                                             <th onclick="handleOrdenesPendientesSort('oc.[codigo activo]')"
-                                                style="padding: 0.5rem 0.25rem; text-align: left; font-weight: 600; cursor: pointer;">
-                                                Activo <i id="sort-op-activo" class="ri-arrow-up-down-line sort-icon"
-                                                    style="opacity: 0.5;"></i></th>
+                                                style="padding: 0.5rem; text-align: left; min-width: 150px;">
+                                                Activo <i id="sort-op-activo" class="ri-arrow-up-down-line"></i>
+                                            </th>
                                             <th onclick="handleOrdenesPendientesSort('oc.[codigo estado orden]')"
-                                                style="padding: 0.5rem 0.25rem; text-align: center; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                                                style="padding: 0.5rem; text-align: center; font-weight: 600; cursor: pointer; width: 80px; min-width: 80px;">
                                                 Estado <i id="sort-op-estado" class="ri-arrow-up-down-line sort-icon"
                                                     style="opacity: 0.5;"></i></th>
                                             <th onclick="handleOrdenesPendientesSort('oc.[prioridad asignada]')"
-                                                style="padding: 0.5rem 0.25rem; text-align: center; font-weight: 600; cursor: pointer; white-space: nowrap;">
-                                                Prioridad <i id="sort-op-prioridad"
-                                                    class="ri-arrow-up-down-line sort-icon" style="opacity: 0.5;"></i>
+                                                style="padding: 0.5rem; text-align: center; font-weight: 600; cursor: pointer; width: 80px; min-width: 80px;">
+                                                Prior. <i id="sort-op-prioridad" class="ri-arrow-up-down-line sort-icon"
+                                                    style="opacity: 0.5;"></i>
                                             </th>
                                             <th onclick="handleOrdenesPendientesSort('oc.[horas mano obra]')"
-                                                style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                                                style="padding: 0.5rem; text-align: right; font-weight: 600; cursor: pointer; width: 60px; min-width: 60px;">
                                                 Horas <i id="sort-op-horas" class="ri-arrow-up-down-line sort-icon"
                                                     style="opacity: 0.5;"></i></th>
                                             <th onclick="handleOrdenesPendientesSort('oc.[fecha inicio trabajo]')"
-                                                style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                                                style="padding: 0.5rem; text-align: right; font-weight: 600; cursor: pointer; width: 90px; min-width: 90px;">
                                                 Fecha <i id="sort-op-fecha" class="ri-arrow-up-down-line sort-icon"
                                                     style="opacity: 0.5;"></i></th>
                                         </tr>
@@ -3366,8 +3366,9 @@
                     <div class="filter-bar"
                         style="display: flex; gap: 1rem; margin-bottom: 1rem; padding: 1rem; background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm); flex-wrap: wrap; align-items: flex-end;">
                         <div class="filter-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
-                            <label for="equiposRefFilter" style="font-weight: 500; font-size: 0.875rem;">Nº REF:</label>
-                            <input type="text" id="equiposRefFilter" placeholder="Número de referencia..."
+                            <label for="equiposMaestrosRefFilter" style="font-weight: 500; font-size: 0.875rem;">Nº
+                                REF:</label>
+                            <input type="text" id="equiposMaestrosRefFilter" placeholder="Número de referencia..."
                                 style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 200px;">
                         </div>
                         <div class="filter-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
@@ -3631,251 +3632,6 @@
                                     <tbody></tbody>
                                 </table>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Ensayos VT View -->
-            <div id="ensayosVtView" class="view-section">
-                <div class="ensayos-vt-content" style="padding: 2rem;">
-                    <div class="ensayos-vt-header" style="margin-bottom: 2rem;">
-                        <h2 style="margin: 0 0 0.5rem 0; color: var(--text-main);">Informes VT (Visual)</h2>
-                        <p style="color: var(--text-muted); margin: 0;">Consulta los informes de inspección visual</p>
-                    </div>
-                    <div class="filter-bar"
-                        style="display: flex; gap: 1rem; margin-bottom: 1rem; padding: 1rem; background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm); flex-wrap: wrap; align-items: flex-end;">
-                        <div class="filter-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
-                            <label style="font-weight: 500; font-size: 0.875rem;">Artículo:</label>
-                            <input type="text" id="ensayosVtArticuloFilter" placeholder="Código..."
-                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); width: 200px;">
-                        </div>
-                        <div class="filter-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
-                            <label style="font-weight: 500; font-size: 0.875rem;">Tratamiento:</label>
-                            <select id="ensayosVtTratamientoFilter"
-                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 200px;">
-                                <option value="">Todos</option>
-                            </select>
-                        </div>
-                        <button id="buscarEnsayosVtBtn" class="btn-primary"
-                            style="padding: 0.5rem 1.5rem; border-radius: 6px; border: none; background: var(--primary); color: white; cursor: pointer; font-weight: 500;">
-                            <i class="ri-search-line"></i> Buscar
-                        </button>
-                    </div>
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <span id="ensayosVtResultCount" style="color: var(--text-muted); font-size: 0.9rem;"></span>
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <button id="ensayosVtPrevBtn" class="btn-pagination"
-                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); cursor: pointer;">
-                                <i class="ri-arrow-left-s-line"></i> Anterior
-                            </button>
-                            <span id="ensayosVtPageInfo" style="font-size: 0.875rem;"></span>
-                            <button id="ensayosVtNextBtn" class="btn-pagination"
-                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); cursor: pointer;">
-                                Siguiente <i class="ri-arrow-right-s-line"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="table-card">
-                        <div class="table-wrapper">
-                            <table id="ensayosVtTable" style="table-layout: fixed; width: 100%;">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 100px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('vt', 'Fecha')">
-                                            Fecha <i class="ri-arrow-up-down-line sort-icon" id="sort-vt-Fecha"></i>
-                                        </th>
-                                        <th style="width: 150px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('vt', 'Artículo')">Artículo <i
-                                                class="ri-arrow-up-down-line sort-icon" id="sort-vt-Artículo"></i></th>
-                                        <th style="width: 100px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('vt', 'Informe')">
-                                            Informe <i class="ri-arrow-up-down-line sort-icon" id="sort-vt-Informe"></i>
-                                        </th>
-                                        <th style="width: 100px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('vt', 'Colada')">
-                                            Colada <i class="ri-arrow-up-down-line sort-icon" id="sort-vt-Colada"></i>
-                                        </th>
-                                        <th style="width: 80px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('vt', 'Lingote')">
-                                            Lingote <i class="ri-arrow-up-down-line sort-icon" id="sort-vt-Lingote"></i>
-                                        </th>
-                                        <th style="width: 120px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('vt', 'Tratamiento')">Tratamiento <i
-                                                class="ri-arrow-up-down-line sort-icon" id="sort-vt-Tratamiento"></i>
-                                        </th>
-                                        <th style="width: 150px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('vt', 'Inspector')">Inspector <i
-                                                class="ri-arrow-up-down-line sort-icon" id="sort-vt-Inspector"></i></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ensayosVtTableBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Ensayos PT View -->
-            <div id="ensayosPtView" class="view-section">
-                <div class="ensayos-pt-content" style="padding: 2rem;">
-                    <div class="ensayos-pt-header" style="margin-bottom: 2rem;">
-                        <h2 style="margin: 0 0 0.5rem 0; color: var(--text-main);">Informes PT (Líquidos Penetrantes)
-                        </h2>
-                        <p style="color: var(--text-muted); margin: 0;">Consulta los informes de líquidos penetrantes
-                        </p>
-                    </div>
-                    <div class="filter-bar"
-                        style="display: flex; gap: 1rem; margin-bottom: 1rem; padding: 1rem; background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm); flex-wrap: wrap; align-items: flex-end;">
-                        <div class="filter-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
-                            <label style="font-weight: 500; font-size: 0.875rem;">Artículo:</label>
-                            <input type="text" id="ensayosPtArticuloFilter" placeholder="Código..."
-                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); width: 200px;">
-                        </div>
-                        <div class="filter-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
-                            <label style="font-weight: 500; font-size: 0.875rem;">Tratamiento:</label>
-                            <select id="ensayosPtTratamientoFilter"
-                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 200px;">
-                                <option value="">Todos</option>
-                            </select>
-                        </div>
-                        <button id="buscarEnsayosPtBtn" class="btn-primary"
-                            style="padding: 0.5rem 1.5rem; border-radius: 6px; border: none; background: var(--primary); color: white; cursor: pointer; font-weight: 500;">
-                            <i class="ri-refresh-line"></i> Cargar Datos
-                        </button>
-                    </div>
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <span id="ensayosPtResultCount" style="color: var(--text-muted); font-size: 0.9rem;"></span>
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <button id="ensayosPtPrevBtn" class="btn-pagination"
-                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); cursor: pointer;">
-                                <i class="ri-arrow-left-s-line"></i> Anterior
-                            </button>
-                            <span id="ensayosPtPageInfo" style="font-size: 0.875rem;"></span>
-                            <button id="ensayosPtNextBtn" class="btn-pagination"
-                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); cursor: pointer;">
-                                Siguiente <i class="ri-arrow-right-s-line"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="table-card">
-                        <div class="table-wrapper">
-                            <table id="ensayosPtTable" style="table-layout: fixed; width: 100%;">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 100px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('pt', 'Fecha')">
-                                            Fecha <i class="ri-arrow-up-down-line sort-icon" id="sort-pt-Fecha"></i>
-                                        </th>
-                                        <th style="width: 150px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('pt', 'Artículo')">Artículo <i
-                                                class="ri-arrow-up-down-line sort-icon" id="sort-pt-Artículo"></i></th>
-                                        <th style="width: 100px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('pt', 'Informe')">
-                                            Informe <i class="ri-arrow-up-down-line sort-icon" id="sort-pt-Informe"></i>
-                                        </th>
-                                        <th style="width: 100px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('pt', 'Colada')">
-                                            Colada <i class="ri-arrow-up-down-line sort-icon" id="sort-pt-Colada"></i>
-                                        </th>
-                                        <th style="width: 80px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('pt', 'Lingote')">
-                                            Lingote <i class="ri-arrow-up-down-line sort-icon" id="sort-pt-Lingote"></i>
-                                        </th>
-                                        <th style="width: 120px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('pt', 'Tratamiento')">Tratamiento <i
-                                                class="ri-arrow-up-down-line sort-icon" id="sort-pt-Tratamiento"></i>
-                                        </th>
-                                        <th style="width: 150px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('pt', 'Inspector')">Inspector <i
-                                                class="ri-arrow-up-down-line sort-icon" id="sort-pt-Inspector"></i></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ensayosPtTableBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Ensayos RT View -->
-            <div id="ensayosRtView" class="view-section">
-                <div class="ensayos-rt-content" style="padding: 2rem;">
-                    <div class="ensayos-rt-header" style="margin-bottom: 2rem;">
-                        <h2 style="margin: 0 0 0.5rem 0; color: var(--text-main);">Informes RT (Radiografía)</h2>
-                        <p style="color: var(--text-muted); margin: 0;">Consulta los informes de radiografía</p>
-                    </div>
-                    <div class="filter-bar"
-                        style="display: flex; gap: 1rem; margin-bottom: 1rem; padding: 1rem; background: var(--bg-card); border-radius: 8px; box-shadow: var(--shadow-sm); flex-wrap: wrap; align-items: flex-end;">
-                        <div class="filter-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
-                            <label style="font-weight: 500; font-size: 0.875rem;">Artículo:</label>
-                            <input type="text" id="ensayosRtArticuloFilter" placeholder="Código..."
-                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); width: 200px;">
-                        </div>
-                        <div class="filter-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
-                            <label style="font-weight: 500; font-size: 0.875rem;">Tratamiento:</label>
-                            <select id="ensayosRtTratamientoFilter"
-                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); min-width: 200px;">
-                                <option value="">Todos</option>
-                            </select>
-                        </div>
-                        <button id="buscarEnsayosRtBtn" class="btn-primary"
-                            style="padding: 0.5rem 1.5rem; border-radius: 6px; border: none; background: var(--primary); color: white; cursor: pointer; font-weight: 500;">
-                            <i class="ri-refresh-line"></i> Buscar
-                        </button>
-                    </div>
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <span id="ensayosRtResultCount" style="color: var(--text-muted); font-size: 0.9rem;"></span>
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <button id="ensayosRtPrevBtn" class="btn-pagination"
-                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); cursor: pointer;">
-                                <i class="ri-arrow-left-s-line"></i> Anterior
-                            </button>
-                            <span id="ensayosRtPageInfo" style="font-size: 0.875rem;"></span>
-                            <button id="ensayosRtNextBtn" class="btn-pagination"
-                                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); cursor: pointer;">
-                                Siguiente <i class="ri-arrow-right-s-line"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="table-card">
-                        <div class="table-wrapper">
-                            <table id="ensayosRtTable" style="table-layout: fixed; width: 100%;">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 100px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('rt', 'Fecha')">
-                                            Fecha <i class="ri-arrow-up-down-line sort-icon" id="sort-rt-Fecha"></i>
-                                        </th>
-                                        <th style="width: 150px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('rt', 'Artículo')">Artículo <i
-                                                class="ri-arrow-up-down-line sort-icon" id="sort-rt-Artículo"></i></th>
-                                        <th style="width: 100px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('rt', 'Informe')">
-                                            Informe <i class="ri-arrow-up-down-line sort-icon" id="sort-rt-Informe"></i>
-                                        </th>
-                                        <th style="width: 100px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('rt', 'Colada')">
-                                            Colada <i class="ri-arrow-up-down-line sort-icon" id="sort-rt-Colada"></i>
-                                        </th>
-                                        <th style="width: 80px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('rt', 'Lingote')">
-                                            Lingote <i class="ri-arrow-up-down-line sort-icon" id="sort-rt-Lingote"></i>
-                                        </th>
-                                        <th style="width: 120px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('rt', 'Tratamiento')">Tratamiento <i
-                                                class="ri-arrow-up-down-line sort-icon" id="sort-rt-Tratamiento"></i>
-                                        </th>
-                                        <th style="width: 150px; cursor: pointer;"
-                                            onclick="handleEnsayosSort('rt', 'Inspector')">Inspector <i
-                                                class="ri-arrow-up-down-line sort-icon" id="sort-rt-Inspector"></i></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ensayosRtTableBody"></tbody>
-                            </table>
                         </div>
                     </div>
                 </div>
@@ -6735,7 +6491,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260115"></script>
+    <script src="app.js?v=20260116-5"></script>
 </body>
 
 </html>

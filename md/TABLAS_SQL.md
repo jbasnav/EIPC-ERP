@@ -1,6 +1,8 @@
 # Tablas SQL Server Utilizadas
 
-Este documento lista todas las tablas, vistas y procedimientos almacenados de SQL Server utilizados en la aplicación EIPC v1, organizados por categoría y función.
+Este documento lista todas las tablas, vistas y procedimientos almacenados de SQL Server utilizados en la aplicación EIPC v1, organizados por sección y subsección de la web.
+
+---
 
 ## Base de Datos: `Fw_EIPC` (Principal)
 
@@ -66,4 +68,112 @@ Este documento lista todas las tablas, vistas y procedimientos almacenados de SQ
 
 | Tabla | Descripción | Uso Principal |
 |-------|-------------|---------------|
-| `CALIBRACIONES` | Registro de calibraciones de equipos | Gestión de Equipos |
+| `CALIBRACIONES` | Registro de calibraciones de equipos | Gestión de Equipos / Calibraciones |
+
+---
+
+## Mapeo de Tablas por Sección/Subsección de la Web
+
+### 🏠 DASHBOARD INICIO
+- Sin tablas específicas (resumen general)
+
+---
+
+### 📊 PRODUCCIÓN
+#### Dashboard OEE
+- `REGISTRO TRABAJOS` - Tiempos y piezas producidas
+- `OPERACIONES` - Catálogo de operaciones
+- `MAESTRO SECCIONES` - Filtros por sección
+- `INCIDENCIAS` - Tipos de incidencias
+
+---
+
+### 💼 COMERCIAL
+#### Dashboard Ventas
+- `FACTURAS VENTA CABECERAS` - Cabeceras de facturas
+- `FACTURAS VENTA LINEAS` - Detalle de líneas
+- `MAESTRO CLIENTES` - Información de clientes
+
+#### Dashboard OTD
+- `Qry_Estadistica_Cumplimiento_Entregas` - Vista de cumplimiento
+
+---
+
+### 🛒 COMPRAS
+#### Dashboard Compras
+- `FACTURAS CABECERA` - Cabeceras de facturas de compra
+- `FACTURAS LINEAS` - Detalle de líneas
+- `PROVEEDORES MAESTRO` - Información de proveedores
+
+---
+
+### 👥 PERSONAL
+#### Dashboard Bonos
+- `qry_DiarioHorasTrabajo+HorasAusencia` - Horas trabajo y ausencia
+- `OPERARIOS` - Listado de operarios
+- `MAESTRO SECCIONES` - Filtros por sección
+
+---
+
+### 🔬 ENSAYOS (NDT)
+#### Dashboard Ensayos
+- `RX_LIST-CERTIFICADOS END` - Certificados END
+
+#### Informes VT (Visual)
+- `RX_X_INFORME VIS LOTE` - Informes de inspección visual
+
+#### Informes PT (Líquidos Penetrantes)
+- `RX_X_INFORME LP LOTE` - Informes de líquidos penetrantes
+
+#### Informes RT (Radiografía)
+- `RX_X_INFORME RX LOTE` - Informes de radiografía
+
+#### Informes Dureza
+- `ENSAYOS_DUREZA` - Resultados de dureza
+
+#### Informes Tracción
+- `ENSAYOS_TRACCION` - Resultados de tracción
+
+#### Informes Metalografía
+- `ENSAYOS_METALOGRAFIA` - Resultados metalográficos
+
+---
+
+### 🔧 CALIBRACIONES
+#### Listado Equipos
+- `CALIBRACIONES` (Fw_Comunes) - Registro de calibraciones
+
+---
+
+### 🔧 MANTENIMIENTO
+#### Dashboard Mantenimiento
+- `MAESTRO ACTIVOS` - Catálogo de activos
+- `MAESTRO ZONAS ACTIVOS` - Zonas de activos
+- *(Tablas de órdenes de trabajo - por determinar)*
+
+---
+
+### 📁 MAESTROS
+#### Artículos
+- `MAESTRO ARTICULOS` - Catálogo de artículos
+- `MAESTRO ARTICULOS PLANOS` - Planos asociados
+- `MAESTRO TIPO ARTICULOS` - Tipos de artículos
+- `MAESTRO FAMILIAS` - Familias
+- `MAESTRO SUBFAMILIAS` - Subfamilias
+
+#### Operaciones
+- `OPERACIONES` - Catálogo de operaciones
+- `MAESTRO SECCIONES` - Secciones
+
+#### Equipos (Maestros)
+- `CALIBRACIONES` (Fw_Comunes) - Vista maestros de equipos
+
+---
+
+### ⚙️ ADMIN
+#### Gestión de Usuarios
+- `USUARIOS_APP` - Tabla de usuarios de la aplicación
+
+---
+
+*Última actualización: Enero 2026*
