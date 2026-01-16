@@ -6483,7 +6483,7 @@ app.get('/api/personal/dashboard', async (req, res) => {
 
         // Process data for KPIs
         const totalRegistros = data.length;
-        const empleadosUnicos = [...new Set(data.map(d => d.Operario))].length;
+        const empleadosUnicos = [...new Set(data.map(d => d.operario))].length; // Fixed: operario (lowercase)
 
         // Sums (handling potential nulls)
         const totalHorasTrabajo = data.reduce((sum, row) => sum + (row.HorasTrabajo || 0), 0);
@@ -6499,38 +6499,65 @@ app.get('/api/personal/dashboard', async (req, res) => {
         // Group by Seccion and for Evolution
         const seccionesMap = {};
         const evolucionMap = {};
+        const operadoresMap = {}; // Map to store unique operators
 
         data.forEach(row => {
             // Secciones grouping
-            const seccion = row.NombreSeccion || 'Sin Sección';
-            if (!seccionesMap[seccion]) {
-                seccionesMap[seccion] = {
-                    nombre: seccion,
+            const seccionNombre = row.NombreSeccion || 'Sin Sección';
+            const seccionCodigo = row.seccion || '00'; // Correct code from view
+
+            if (!seccionesMap[seccionNombre]) {
+                seccionesMap[seccionNombre] = {
+                    nombre: seccionNombre,
+                    codigo: seccionCodigo,
                     empleados: new Set(),
                     horasTrabajo: 0,
                     horasAusencia: 0,
                     totalHoras: 0
                 };
             }
-            seccionesMap[seccion].empleados.add(row.Operario);
-            seccionesMap[seccion].horasTrabajo += (row.HorasTrabajo || 0);
-            seccionesMap[seccion].horasAusencia += (row.HorasAusencia || 0);
-            seccionesMap[seccion].totalHoras += ((row.HorasTrabajo || 0) + (row.HorasAusencia || 0));
+            seccionesMap[seccionNombre].empleados.add(row.operario);
+            seccionesMap[seccionNombre].horasTrabajo += (row.HorasTrabajo || 0);
+            seccionesMap[seccionNombre].horasAusencia += (row.HorasAusencia || 0);
+            seccionesMap[seccionNombre].totalHoras += ((row.HorasTrabajo || 0) + (row.HorasAusencia || 0));
 
-            // Evolution grouping (by Month) - Row.fecha check robust
-            const rawDate = row.fecha || row.Fecha || row.FECHA || row.Date || row.date;
-            if (rawDate) {
-                const fecha = new Date(rawDate);
-                const mes = fecha.getMonth(); // 0-11
-                if (!evolucionMap[mes]) {
-                    evolucionMap[mes] = {
-                        mes: mes,
-                        horasTrabajo: 0,
-                        horasAusencia: 0
-                    };
+            // Operators List Logic
+            const opCode = row.operario;
+            if (opCode && !operadoresMap[opCode]) {
+                operadoresMap[opCode] = {
+                    codigo: opCode,
+                    nombre: row.nombre || 'Desconocido',
+                    seccion: seccionNombre, // Display name
+                    seccionCodigo: seccionCodigo // For sorting if needed
+                };
+            }
+
+            // Evolution grouping (by Month) - Use 'Mes' column from log (1-12)
+            if (row.Mes) {
+                const mesIndex = row.Mes - 1; // Convert 1-12 to 0-11
+                if (mesIndex >= 0 && mesIndex < 12) {
+                    if (!evolucionMap[mesIndex]) {
+                        evolucionMap[mesIndex] = {
+                            mes: mesIndex,
+                            horasTrabajo: 0,
+                            horasAusencia: 0
+                        };
+                    }
+                    evolucionMap[mesIndex].horasTrabajo += (row.HorasTrabajo || 0);
+                    evolucionMap[mesIndex].horasAusencia += (row.HorasAusencia || 0);
                 }
-                evolucionMap[mes].horasTrabajo += (row.HorasTrabajo || 0);
-                evolucionMap[mes].horasAusencia += (row.HorasAusencia || 0);
+            } else {
+                // Fallback if Mes is missing
+                const rawDate = row.fecha || row.Fecha || row.FECHA || row.Date || row.date;
+                if (rawDate) {
+                    const d = new Date(rawDate);
+                    const m = d.getMonth();
+                    if (!evolucionMap[m]) {
+                        evolucionMap[m] = { mes: m, horasTrabajo: 0, horasAusencia: 0 };
+                    }
+                    evolucionMap[m].horasTrabajo += (row.HorasTrabajo || 0);
+                    evolucionMap[m].horasAusencia += (row.HorasAusencia || 0);
+                }
             }
         });
 
@@ -6542,11 +6569,18 @@ app.get('/api/personal/dashboard', async (req, res) => {
             horasAusencia: evolucionMap[i] ? parseFloat(evolucionMap[i].horasAusencia.toFixed(2)) : 0
         }));
 
+        console.log('[API] Evolution Data Sample (Mes 0-2):', evolucion.slice(0, 3));
+        const totalHorasEvolucion = evolucion.reduce((acc, curr) => acc + curr.horasTrabajo + curr.horasAusencia, 0);
+        console.log(`[API] Total Horas Evolution calculated: ${totalHorasEvolucion}`);
+
         const secciones = Object.values(seccionesMap).map(s => ({
             ...s,
             empleados: s.empleados.size,
             porcentajeAusencia: s.totalHoras > 0 ? ((s.horasAusencia / s.totalHoras) * 100).toFixed(1) : 0
         }));
+
+        // Operators List
+        const operadores = Object.values(operadoresMap).sort((a, b) => a.seccionCodigo.localeCompare(b.seccionCodigo) || a.nombre.localeCompare(b.nombre));
 
         res.json({
             success: true,
@@ -6558,7 +6592,9 @@ app.get('/api/personal/dashboard', async (req, res) => {
                 outliers: outliers,
                 mediaHoras: totalRegistros > 0 ? (totalHoras / totalRegistros).toFixed(2) : 0
             },
+            evolucion: evolucion,
             secciones: secciones,
+            operadores: operadores
             // Return raw data for charts/tables if needed, or summary
             // data: data // Might be too large to send all
         });

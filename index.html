@@ -3883,6 +3883,7 @@
                             <table id="personalSeccionesTable" style="min-width: 100%;">
                                 <thead>
                                     <tr>
+                                        <th style="width: 80px; text-align: center;">Código</th>
                                         <th>Sección</th>
                                         <th style="text-align: center;">Período</th>
                                         <th style="text-align: center;">Empleados</th>
@@ -3894,7 +3895,31 @@
                                 </thead>
                                 <tbody id="personalSeccionesBody">
                                     <tr>
-                                        <td colspan="7" style="text-align: center; color: var(--text-muted);">
+                                        <td colspan="8" style="text-align: center; color: var(--text-muted);">
+                                            Cargando...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Operator List Table -->
+                    <div class="chart-card full-width" style="margin-top: 1.5rem;">
+                        <div class="card-header">
+                            <h3>Listado de Operarios (Mes/Año Seleccionado)</h3>
+                        </div>
+                        <div class="table-wrapper" style="max-height: 400px; overflow-y: auto;">
+                            <table id="personalOperadoresTable" style="min-width: 100%;">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 100px;">Código</th>
+                                        <th>Nombre</th>
+                                        <th>Sección</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="personalOperadoresBody">
+                                    <tr>
+                                        <td colspan="3" style="text-align: center; color: var(--text-muted);">
                                             Cargando...</td>
                                     </tr>
                                 </tbody>
@@ -6491,7 +6516,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260116-7"></script>
+    <script src="app.js?v=20260116-13"></script>
 </body>
 
 </html>

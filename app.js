@@ -13819,14 +13819,20 @@ function renderPersonalDashboard(data) {
 
     // Render Sections Table
     const tbody = document.getElementById('personalSeccionesBody');
+    const selectedYear = document.getElementById('personalDashboardYear') ? document.getElementById('personalDashboardYear').value : new Date().getFullYear();
+
     if (tbody && data.secciones) {
         if (data.secciones.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">No hay datos disponibles</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem;">No hay datos disponibles</td></tr>';
         } else {
+            // Sort by code (safe check)
+            data.secciones.sort((a, b) => (a.codigo || '00').localeCompare(b.codigo || '00'));
+
             tbody.innerHTML = data.secciones.map(s => `
                 <tr style="border-bottom: 1px solid var(--border);">
-                    <td style="padding: 0.75rem;">${s.nombre}</td>
-                    <td style="padding: 0.75rem; text-align: center;">${new Date().getFullYear()}</td>
+                    <td style="padding: 0.75rem; text-align: center; font-family: monospace;">${s.codigo || '00'}</td>
+                    <td style="padding: 0.75rem;">${s.nombre.replace(/^\d+\s*-\s*/, '')}</td>
+                    <td style="padding: 0.75rem; text-align: center;">${selectedYear}</td>
                     <td style="padding: 0.75rem; text-align: center;">${s.empleados}</td>
                     <td style="padding: 0.75rem; text-align: center;">${parseFloat(s.horasTrabajo).toFixed(1)}</td>
                     <td style="padding: 0.75rem; text-align: center;">${parseFloat(s.horasAusencia).toFixed(1)}</td>
@@ -13834,6 +13840,22 @@ function renderPersonalDashboard(data) {
                     <td style="padding: 0.75rem; text-align: center;">${parseFloat(s.totalHoras).toFixed(1)}</td>
                 </tr>
             `).join('');
+        }
+    }
+
+    // Render Operators Table
+    const tbodyOps = document.getElementById('personalOperadoresBody');
+    if (tbodyOps && data.operadores) {
+        if (data.operadores.length === 0) {
+            tbodyOps.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 2rem;">No hay operarios en el periodo seleccionado</td></tr>';
+        } else {
+            tbodyOps.innerHTML = data.operadores.map(op => `
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 0.75rem; font-family: monospace;">${op.codigo}</td>
+                    <td style="padding: 0.75rem;">${op.nombre}</td>
+                    <td style="padding: 0.75rem;">${op.seccion}</td>
+                </tr>
+             `).join('');
         }
     }
 
@@ -13846,14 +13868,20 @@ function renderPersonalDashboard(data) {
         // 1. Evolution Chart (Line)
         const ctxEvolution = document.getElementById('personalHorasEvolucionChart');
         if (ctxEvolution && data.evolucion) {
+            const labels = data.evolucion.map(d => d.nombreMes);
+            const dataTrabajo = data.evolucion.map(d => d.horasTrabajo);
+            const dataAusencia = data.evolucion.map(d => d.horasAusencia);
+
+            // console.log('[APP] Rendering Evolution Chart:', { labels, dataTrabajo });
+
             window.personalEvolutionChart = new Chart(ctxEvolution, {
                 type: 'line',
                 data: {
-                    labels: data.evolucion.map(d => d.nombreMes),
+                    labels: labels,
                     datasets: [
                         {
                             label: 'Horas Trabajo',
-                            data: data.evolucion.map(d => d.horasTrabajo),
+                            data: dataTrabajo,
                             borderColor: '#3b82f6',
                             backgroundColor: 'rgba(59, 130, 246, 0.1)',
                             fill: true,
@@ -13861,7 +13889,7 @@ function renderPersonalDashboard(data) {
                         },
                         {
                             label: 'Horas Ausencia',
-                            data: data.evolucion.map(d => d.horasAusencia),
+                            data: dataAusencia,
                             borderColor: '#ef4444',
                             backgroundColor: 'rgba(239, 68, 68, 0.1)',
                             fill: true,
@@ -13879,6 +13907,9 @@ function renderPersonalDashboard(data) {
                     interaction: { mode: 'nearest', axis: 'x', intersect: false }
                 }
             });
+        } else {
+            if (!ctxEvolution) console.error('Canvas evolution not found');
+            if (!data.evolucion) console.error('Data evolution missing');
         }
 
         // 2. Section Chart (Bar)
