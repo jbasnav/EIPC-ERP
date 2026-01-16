@@ -13821,6 +13821,11 @@ function renderPersonalDashboard(data) {
     const tbody = document.getElementById('personalSeccionesBody');
     const selectedYear = document.getElementById('personalDashboardYear') ? document.getElementById('personalDashboardYear').value : new Date().getFullYear();
 
+    // Helper for formatting numbers
+    const formatNumber = (num, decimals = 2) => {
+        return num ? parseFloat(num).toLocaleString('es-ES', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : '0,00';
+    };
+
     if (tbody && data.secciones) {
         if (data.secciones.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem;">No hay datos disponibles</td></tr>';
@@ -13830,14 +13835,14 @@ function renderPersonalDashboard(data) {
 
             tbody.innerHTML = data.secciones.map(s => `
                 <tr style="border-bottom: 1px solid var(--border);">
-                    <td style="padding: 0.75rem; text-align: center; font-family: monospace;">${s.codigo || '00'}</td>
+                    <td style="padding: 0.75rem; text-align: center;">${s.codigo || '00'}</td>
                     <td style="padding: 0.75rem;">${s.nombre.replace(/^\d+\s*-\s*/, '')}</td>
                     <td style="padding: 0.75rem; text-align: center;">${selectedYear}</td>
                     <td style="padding: 0.75rem; text-align: center;">${s.empleados}</td>
-                    <td style="padding: 0.75rem; text-align: center;">${parseFloat(s.horasTrabajo).toFixed(1)}</td>
-                    <td style="padding: 0.75rem; text-align: center;">${parseFloat(s.horasAusencia).toFixed(1)}</td>
-                    <td style="padding: 0.75rem; text-align: center;">${s.porcentajeAusencia}%</td>
-                    <td style="padding: 0.75rem; text-align: center;">${parseFloat(s.totalHoras).toFixed(1)}</td>
+                    <td style="padding: 0.75rem; text-align: center;">${formatNumber(s.horasTrabajo, 1)}</td>
+                    <td style="padding: 0.75rem; text-align: center;">${formatNumber(s.horasAusencia, 1)}</td>
+                    <td style="padding: 0.75rem; text-align: center;">${s.porcentajeAusencia.replace('.', ',')}%</td>
+                    <td style="padding: 0.75rem; text-align: center;">${formatNumber(s.totalHoras, 1)}</td>
                 </tr>
             `).join('');
         }
@@ -13847,13 +13852,16 @@ function renderPersonalDashboard(data) {
     const tbodyOps = document.getElementById('personalOperadoresBody');
     if (tbodyOps && data.operadores) {
         if (data.operadores.length === 0) {
-            tbodyOps.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 2rem;">No hay operarios en el periodo seleccionado</td></tr>';
+            tbodyOps.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem;">No hay operarios en el periodo seleccionado</td></tr>';
         } else {
-            tbodyOps.innerHTML = data.operadores.map(op => `
+            tbodyOps.innerHTML = data.operadores.map((op, index) => `
                 <tr style="border-bottom: 1px solid var(--border);">
-                    <td style="padding: 0.75rem; font-family: monospace;">${op.codigo}</td>
+                    <td style="padding: 0.75rem; text-align: center; color: var(--text-muted);">${index + 1}</td>
+                    <td style="padding: 0.75rem;">${op.codigo}</td>
                     <td style="padding: 0.75rem;">${op.nombre}</td>
                     <td style="padding: 0.75rem;">${op.seccion}</td>
+                    <td style="padding: 0.75rem; text-align: center;">${formatNumber(op.horasTrabajo, 1)}</td>
+                    <td style="padding: 0.75rem; text-align: center;">${formatNumber(op.horasAusencia, 1)}</td>
                 </tr>
              `).join('');
         }

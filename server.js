@@ -6523,13 +6523,19 @@ app.get('/api/personal/dashboard', async (req, res) => {
 
             // Operators List Logic
             const opCode = row.operario;
-            if (opCode && !operadoresMap[opCode]) {
-                operadoresMap[opCode] = {
-                    codigo: opCode,
-                    nombre: row.nombre || 'Desconocido',
-                    seccion: seccionNombre, // Display name
-                    seccionCodigo: seccionCodigo // For sorting if needed
-                };
+            if (opCode) {
+                if (!operadoresMap[opCode]) {
+                    operadoresMap[opCode] = {
+                        codigo: opCode,
+                        nombre: row.nombre || 'Desconocido',
+                        seccion: seccionNombre,
+                        seccionCodigo: seccionCodigo,
+                        horasTrabajo: 0,
+                        horasAusencia: 0
+                    };
+                }
+                operadoresMap[opCode].horasTrabajo += (row.HorasTrabajo || 0);
+                operadoresMap[opCode].horasAusencia += (row.HorasAusencia || 0);
             }
 
             // Evolution grouping (by Month) - Use 'Mes' column from log (1-12)
