@@ -13777,9 +13777,22 @@ function initEnsayosEventListeners() {
 
 // PERSONAL DASHBOARD FUNCTIONS
 async function fetchPersonalDashboard() {
-    const year = new Date().getFullYear(); // Default to current year, implement filters later
+    const yearSelect = document.getElementById('personalDashboardYear');
+    const monthSelect = document.getElementById('personalDashboardMonth');
+
+    // Default to current year if select not found or empty
+    let year = new Date().getFullYear();
+    if (yearSelect && yearSelect.value) {
+        year = yearSelect.value;
+    }
+
+    let monthQuery = '';
+    if (monthSelect && monthSelect.value) {
+        monthQuery = `&month=${monthSelect.value}`;
+    }
+
     try {
-        const response = await fetch(`/api/personal/dashboard?year=${year}`);
+        const response = await fetch(`/api/personal/dashboard?year=${year}${monthQuery}`);
         const data = await response.json();
 
         if (data.success) {
@@ -13821,6 +13834,85 @@ function renderPersonalDashboard(data) {
                     <td style="padding: 0.75rem; text-align: center;">${parseFloat(s.totalHoras).toFixed(1)}</td>
                 </tr>
             `).join('');
+        }
+    }
+
+    // Render Charts
+    if (typeof Chart !== 'undefined') {
+        // Destroy existing charts to avoid canvas reuse error
+        if (window.personalEvolutionChart instanceof Chart) window.personalEvolutionChart.destroy();
+        if (window.personalSeccionChart instanceof Chart) window.personalSeccionChart.destroy();
+
+        // 1. Evolution Chart (Line)
+        const ctxEvolution = document.getElementById('personalHorasEvolucionChart');
+        if (ctxEvolution && data.evolucion) {
+            window.personalEvolutionChart = new Chart(ctxEvolution, {
+                type: 'line',
+                data: {
+                    labels: data.evolucion.map(d => d.nombreMes),
+                    datasets: [
+                        {
+                            label: 'Horas Trabajo',
+                            data: data.evolucion.map(d => d.horasTrabajo),
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Horas Ausencia',
+                            data: data.evolucion.map(d => d.horasAusencia),
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    interaction: { mode: 'nearest', axis: 'x', intersect: false }
+                }
+            });
+        }
+
+        // 2. Section Chart (Bar)
+        const ctxSeccion = document.getElementById('personalHorasSeccionChart');
+        if (ctxSeccion && data.secciones) {
+            // Sort by total hours desc top 10
+            const sortedSecciones = [...data.secciones].sort((a, b) => b.totalHoras - a.totalHoras).slice(0, 10);
+
+            window.personalSeccionChart = new Chart(ctxSeccion, {
+                type: 'bar',
+                data: {
+                    labels: sortedSecciones.map(s => s.nombre),
+                    datasets: [
+                        {
+                            label: 'Trabajo',
+                            data: sortedSecciones.map(s => s.horasTrabajo),
+                            backgroundColor: '#3b82f6'
+                        },
+                        {
+                            label: 'Ausencia',
+                            data: sortedSecciones.map(s => s.horasAusencia),
+                            backgroundColor: '#ef4444'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true }
+                    }
+                }
+            });
         }
     }
 }

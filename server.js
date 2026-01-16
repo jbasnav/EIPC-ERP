@@ -6457,25 +6457,29 @@ app.get('/api/ensayos/:type', async (req, res) => {
 // PERSONAL DASHBOARD API
 app.get('/api/personal/dashboard', async (req, res) => {
     try {
-        const pool = await poolPromise;
         const { year, month } = req.query;
 
         // Base query for the view
         let query = `
             SELECT * FROM [qry_DiarioHorasTrabajo+HorasAusencia]
-            WHERE Año = @year
+            WHERE YEAR([fecha]) = @year
         `;
 
         if (month) {
-            query += ` AND Mes = @month`;
+            query += ` AND MONTH([fecha]) = @month`;
         }
 
-        const request = pool.request();
+        const request = new sql.Request();
         request.input('year', sql.Int, parseInt(year || new Date().getFullYear()));
         if (month) request.input('month', sql.Int, parseInt(month));
 
         const result = await request.query(query);
         const data = result.recordset;
+
+        console.log(`[API] Personal Dashboard. Records: ${data.length}`);
+        if (data.length > 0) {
+            console.log('[API] Sample keys:', Object.keys(data[0]));
+        }
 
         // Process data for KPIs
         const totalRegistros = data.length;
@@ -6492,10 +6496,13 @@ app.get('/api/personal/dashboard', async (req, res) => {
             return h > 0 && (h < 7.75 || h > 8.25);
         }).length;
 
-        // Group by Seccion
+        // Group by Seccion and for Evolution
         const seccionesMap = {};
+        const evolucionMap = {};
+
         data.forEach(row => {
-            const seccion = row.NombreSeccion || 'Sin Sección'; // Ad-hoc column name guess
+            // Secciones grouping
+            const seccion = row.NombreSeccion || 'Sin Sección';
             if (!seccionesMap[seccion]) {
                 seccionesMap[seccion] = {
                     nombre: seccion,
@@ -6509,7 +6516,31 @@ app.get('/api/personal/dashboard', async (req, res) => {
             seccionesMap[seccion].horasTrabajo += (row.HorasTrabajo || 0);
             seccionesMap[seccion].horasAusencia += (row.HorasAusencia || 0);
             seccionesMap[seccion].totalHoras += ((row.HorasTrabajo || 0) + (row.HorasAusencia || 0));
+
+            // Evolution grouping (by Month) - Row.fecha check robust
+            const rawDate = row.fecha || row.Fecha || row.FECHA || row.Date || row.date;
+            if (rawDate) {
+                const fecha = new Date(rawDate);
+                const mes = fecha.getMonth(); // 0-11
+                if (!evolucionMap[mes]) {
+                    evolucionMap[mes] = {
+                        mes: mes,
+                        horasTrabajo: 0,
+                        horasAusencia: 0
+                    };
+                }
+                evolucionMap[mes].horasTrabajo += (row.HorasTrabajo || 0);
+                evolucionMap[mes].horasAusencia += (row.HorasAusencia || 0);
+            }
         });
+
+        // Format Evolution for Chart (Array 0-11)
+        const evolucion = Array.from({ length: 12 }, (_, i) => ({
+            mes: i,
+            nombreMes: new Date(0, i).toLocaleString('es-ES', { month: 'long' }),
+            horasTrabajo: evolucionMap[i] ? parseFloat(evolucionMap[i].horasTrabajo.toFixed(2)) : 0,
+            horasAusencia: evolucionMap[i] ? parseFloat(evolucionMap[i].horasAusencia.toFixed(2)) : 0
+        }));
 
         const secciones = Object.values(seccionesMap).map(s => ({
             ...s,
