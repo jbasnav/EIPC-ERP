@@ -1,0 +1,278 @@
+[
+    {
+        "id": "maestros",
+        "label": "MAESTROS",
+        "icon": "ri-database-2-line",
+        "view": "maestros",
+        "submenu": [
+            {
+                "label": "Articulos",
+                "view": "articulos",
+                "icon": "ri-file-list-2-line"
+            },
+            {
+                "label": "Centros",
+                "view": "centros",
+                "icon": "ri-building-line"
+            },
+            {
+                "label": "Especificaciones",
+                "view": "especificaciones",
+                "icon": "ri-file-text-line"
+            },
+            {
+                "label": "Proveedores",
+                "view": "proveedores",
+                "icon": "ri-truck-line"
+            },
+            {
+                "label": "Clientes",
+                "view": "clientes",
+                "icon": "ri-user-star-line"
+            },
+            {
+                "label": "Códigos rechazo",
+                "view": "codigos-rechazo",
+                "icon": "ri-alert-line"
+            },
+            {
+                "label": "Incidencias",
+                "view": "incidencias",
+                "icon": "ri-error-warning-line"
+            },
+            {
+                "label": "Utillajes",
+                "view": "utillajes",
+                "icon": "ri-tools-line"
+            },
+            {
+                "label": "Ausencias",
+                "view": "ausencias",
+                "icon": "ri-calendar-close-line"
+            },
+            {
+                "label": "Materiales",
+                "view": "materiales",
+                "icon": "ri-box-3-line"
+            },
+            {
+                "label": "Normas",
+                "view": "normas",
+                "icon": "ri-book-2-line"
+            },
+            {
+                "label": "Rutas",
+                "view": "rutas",
+                "icon": "ri-route-line"
+            },
+            {
+                "label": "Operarios",
+                "view": "operarios",
+                "icon": "ri-team-line"
+            },
+            {
+                "label": "Operaciones",
+                "view": "operaciones",
+                "icon": "ri-tools-line"
+            },
+            {
+                "label": "Grupos Cálculo",
+                "view": "grupos-calculo",
+                "icon": "ri-calculator-line"
+            },
+            {
+                "label": "Activos",
+                "view": "activos",
+                "icon": "ri-device-line"
+            },
+            {
+                "label": "Equipos",
+                "view": "equipos",
+                "icon": "ri-cpu-line"
+            },
+            {
+                "label": "Secciones",
+                "view": "secciones",
+                "icon": "ri-layout-2-line"
+            },
+            {
+                "label": "Estructuras",
+                "view": "estructuras",
+                "icon": "ri-organization-chart"
+            }
+        ]
+    },
+    {
+        "id": "heattreat",
+        "label": "TRAT. TERMICOS",
+        "icon": "ri-fire-fill",
+        "view": "dashboard",
+        "submenu": [
+            {
+                "label": "Coladas-TT",
+                "view": "orders",
+                "icon": "ri-file-list-3-line"
+            }
+        ]
+    },
+    {
+        "id": "calidad",
+        "label": "CALIDAD",
+        "icon": "ri-shield-check-line",
+        "submenu": [
+            {
+                "label": "Rechazos",
+                "view": "calidad-rechazos",
+                "icon": "ri-close-circle-line"
+            }
+        ]
+    },
+    {
+        "id": "personal",
+        "label": "PERSONAL",
+        "icon": "ri-user-settings-line",
+        "view": "personal-dashboard",
+        "submenu": [
+            {
+                "label": "Bonos",
+                "view": "bonos",
+                "icon": "ri-medal-line"
+            },
+            {
+                "label": "Formación",
+                "view": "formacion",
+                "icon": "ri-book-open-line"
+            },
+            {
+                "label": "Matriz de Polivalencias",
+                "view": "matriz-polivalencias",
+                "icon": "ri-grid-fill"
+            },
+            {
+                "label": "Capacitaciones",
+                "view": "capacitaciones",
+                "icon": "ri-school-line"
+            },
+            {
+                "label": "Certificaciones",
+                "view": "certificaciones",
+                "icon": "ri-award-line"
+            }
+        ]
+    },
+    {
+        "id": "ensayos",
+        "label": "ENSAYOS",
+        "icon": "ri-test-tube-line",
+        "view": "ensayos-dashboard",
+        "submenu": [
+            {
+                "label": "Informes VT",
+                "view": "ensayos-vt",
+                "icon": "ri-eye-line"
+            },
+            {
+                "label": "Informes PT",
+                "view": "ensayos-pt",
+                "icon": "ri-drop-line"
+            },
+            {
+                "label": "Informes RT",
+                "view": "ensayos-rt",
+                "icon": "ri-file-list-3-line"
+            },
+            {
+                "label": "Informes Dureza",
+                "view": "ensayos-dureza",
+                "icon": "ri-hammer-line"
+            },
+            {
+                "label": "Informes Tracción",
+                "view": "ensayos-traccion",
+                "icon": "ri-drag-move-2-line"
+            },
+            {
+                "label": "Informes Metalografía",
+                "view": "ensayos-metalografia",
+                "icon": "ri-microscope-line"
+            }
+        ]
+    },
+    {
+        "id": "mantenimiento",
+        "label": "MANTENIMIENTO",
+        "icon": "ri-tools-fill",
+        "view": "mantenimiento",
+        "submenu": []
+    },
+    {
+        "id": "calibraciones",
+        "label": "CALIBRACIONES",
+        "icon": "ri-ruler-line",
+        "view": "equipos",
+        "submenu": []
+    },
+    {
+        "id": "produccion",
+        "label": "PRODUCCION",
+        "icon": "ri-git-pull-request-fill",
+        "submenu": [
+            {
+                "label": "OEE",
+                "view": "oee",
+                "icon": "ri-speed-up-line"
+            },
+            {
+                "label": "Ordenes",
+                "view": "ordenes",
+                "icon": "ri-file-list-3-line"
+            }
+        ]
+    },
+    {
+        "id": "compras",
+        "label": "COMPRAS",
+        "icon": "ri-shopping-cart-line",
+        "view": "compras-dashboard",
+        "submenu": [
+            {
+                "label": "Solicitante Compras",
+                "view": "solicitante-compras",
+                "icon": "ri-file-list-line"
+            },
+            {
+                "label": "Pedidos",
+                "view": "pedidos",
+                "icon": "ri-shopping-bag-line"
+            },
+            {
+                "label": "Albaranes",
+                "view": "albaranes",
+                "icon": "ri-file-text-line"
+            },
+            {
+                "label": "Facturas",
+                "view": "facturas",
+                "icon": "ri-file-copy-line"
+            }
+        ]
+    },
+    {
+        "id": "comercial",
+        "label": "COMERCIAL",
+        "icon": "ri-briefcase-line",
+        "view": "comercial-dashboard",
+        "submenu": [
+            {
+                "label": "OTD",
+                "view": "otd",
+                "icon": "ri-truck-line"
+            },
+            {
+                "label": "Capa Charge",
+                "view": "capa-charge",
+                "icon": "ri-bar-chart-grouped-line"
+            }
+        ]
+    }
+]

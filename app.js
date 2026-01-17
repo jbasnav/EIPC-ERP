@@ -167,7 +167,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Initialize app after successful login
-function initializeApp() {
+async function initializeApp() {
+    await loadMenu(); // Load dynamic menu first
     populateYearFilters(); // Initialize dynamic year filters
     fetchAllData();
     loadOperariosSecciones();
@@ -13959,3 +13960,87 @@ function renderPersonalDashboard(data) {
 // Initialize on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', initEnsayosEventListeners);
 
+
+// ============================================
+// DYNAMIC MENU LOADING
+// ============================================
+async function loadMenu() {
+    try {
+        const container = document.getElementById('dynamic-menu-container');
+        if (!container) return;
+
+        const response = await fetch('menu.json');
+        if (!response.ok) throw new Error('Failed to load menu config');
+
+        const sections = await response.json();
+
+        // Clear container just in case
+        container.innerHTML = '';
+
+        sections.forEach(section => {
+            // Create Section structure
+            const sectionDiv = document.createElement('div');
+            sectionDiv.className = 'nav-section';
+
+            // Header
+            const header = document.createElement('div');
+            header.className = 'nav-section-header';
+            header.id = `${section.id}Header`;
+            if (section.view) header.dataset.view = section.view;
+
+            header.innerHTML = `
+                <div class="nav-section-title">
+                    <i class="${section.icon}"></i>
+                    <span>${section.label}</span>
+                </div>
+                <i class="ri-arrow-down-s-line nav-section-arrow"></i>
+            `;
+
+            // Submenu
+            const submenu = document.createElement('nav');
+            submenu.className = 'nav-menu nav-submenu';
+            submenu.id = `${section.id}Menu`;
+
+            // Items
+            if (section.submenu) {
+                section.submenu.forEach(item => {
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    link.className = 'nav-item';
+                    link.dataset.view = item.view;
+                    link.innerHTML = `
+                        <i class="${item.icon}"></i>
+                        <span>${item.label}</span>
+                    `;
+                    // Add click listener for View Switching
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        // Update active state in UI
+                        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+                        link.classList.add('active');
+                        switchView(item.view);
+                    });
+                    submenu.appendChild(link);
+                });
+            }
+
+            // Header Click Logic
+            header.addEventListener('click', () => {
+                // Toggle Collapse
+                sectionDiv.classList.toggle('active');
+
+                // Switch View if defined
+                if (section.view) {
+                    switchView(section.view);
+                }
+            });
+
+            sectionDiv.appendChild(header);
+            sectionDiv.appendChild(submenu);
+            container.appendChild(sectionDiv);
+        });
+
+    } catch (error) {
+        console.error('Error loading dynamic menu:', error);
+    }
+}
