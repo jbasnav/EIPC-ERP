@@ -10,7 +10,7 @@ Este documento referencia las tablas, vistas y consultadas utilizadas en la apli
 ## 1. Listado de Tablas Utilizadas (Resumen)
 
 ### `Fw_EIPC` (Principal)
-#### Maestros
+#### Maestros (maestros y no maestros)
 - `USUARIOS_APP`
 - `MAESTRO ARTICULOS`
 - `MAESTRO FAMILIAS`
