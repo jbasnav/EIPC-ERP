@@ -1,179 +1,188 @@
-# Tablas SQL Server Utilizadas
+# Documentación de Datos SQL Server
 
-Este documento lista todas las tablas, vistas y procedimientos almacenados de SQL Server utilizados en la aplicación EIPC v1, organizados por sección y subsección de la web.
+Este documento referencia las tablas, vistas y consultas utilizadas en la aplicación, organizadas según la estructura de navegación de la web.
 
----
-
-## Base de Datos: `Fw_EIPC` (Principal)
-
-### Tablas Maestras (Datos Estáticos/Configuración)
-| Tabla | Descripción | Uso Principal |
-|-------|-------------|---------------|
-| `USUARIOS_APP` | Usuarios de la aplicación, contraseñas y roles | Autenticación y control de acceso |
-| `MAESTRO ARTICULOS` | Catálogo maestro de artículos | Información general de artículos |
-| `MAESTRO ARTICULOS PLANOS` | Rutas de planos e imágenes asociadas a artículos | Visualización de planos/imágenes |
-| `MAESTRO TIPO ARTICULOS` | Tipos de artículos (ej. '02') | Clasificación y filtros |
-| `MAESTRO FAMILIAS` | Familias de artículos | Clasificación y filtros |
-| `MAESTRO SUBFAMILIAS` | Subfamilias de artículos | Clasificación y filtros |
-| `MAESTRO CLIENTES` | Información de clientes | Filtros por cliente, dashboards comerciales |
-| `MAESTRO REFERENCIAS CLIENTE` | Relación entre artículos internos y referencias de cliente | Búsquedas por referencia cliente |
-| `PROVEEDORES MAESTRO` | Información de proveedores | Filtros y dashboards de compras |
-| `MAESTRO SECCIONES` | Secciones de la planta | Filtros por sección (Producción, OEE) |
-| `MAESTRO ZONAS ACTIVOS` | Zonas de ubicación de activos | Gestión de activos |
-| `MAESTRO ACTIVOS` | Catálogo de activos fijos | Gestión de activos |
-| `MAESTRO AMBITOS ESPECIFICACIONES COMPRA` | Ámbitos para especificaciones | Filtros en módulo de Especificaciones |
-| `MAESTRO TIPO ESPECIFICACIONES COMPRA` | Tipos de especificaciones | Filtros en módulo de Especificaciones |
-| `OPERARIOS` | Listado de operarios | Control de personal, bonos |
-| `OPERACIONES` | Operaciones de fabricación | Rutas, OEE, Producción |
-| `MAQUINAS` | Centros de trabajo / Máquinas | Gestión de planta |
-| `RUTAS` | Definición de procesos productivos | Rutas de fabricación |
-| `CAUSAS RECHAZO` | Catálogo de motivos de rechazo | Dashboard de Calidad/Rechazos |
-| `INCIDENCIAS` | Tipos de incidencias de producción | Dashboard OEE |
-| `NORMASN` | Normas y especificaciones técnicas | Consulta de normas |
-
-### Tablas Transaccionales (Datos Dinámicos)
-| Tabla | Descripción | Uso Principal |
-|-------|-------------|---------------|
-| `REGISTRO TRABAJOS` | Registro de actividad en planta (tiempos, piezas) | Cálculo de OEE, Producción |
-| `FACTURAS VENTA CABECERAS` | Cabeceras de facturas de venta | Dashboard Comercial |
-| `FACTURAS VENTA LINEAS` | Líneas de detalle de facturas de venta | Dashboard Comercial |
-| `FACTURAS CABECERA` | Cabeceras de facturas de compra | Dashboard Compras |
-| `FACTURAS LINEAS` | Líneas de detalle de facturas de compra | Dashboard Compras |
-| `LISTADO ESPECIFICACIONES` | Registro de especificaciones técnicas | Módulo de Especificaciones |
-| `ENSAYOS_DUREZA` | Resultados de ensayos de dureza | Módulo de Ensayos (Laboratorio) |
-| `ENSAYOS_TRACCION` | Resultados de ensayos de tracción | Módulo de Ensayos (Laboratorio) |
-| `ENSAYOS_METALOGRAFIA` | Resultados de ensayos metalográficos | Módulo de Ensayos (Laboratorio) |
-| `RX_X_INFORME RX LOTE` | Informes de ensayos RX (Radiografía) | Dashboard Ensayos (RT) |
-| `RX_LIST-CERTIFICADOS END` | Certificados de ensayos no destructivos | Dashboard Ensayos |
-| `RX_X_INFORME VIS LOTE` | Informes de ensayos Visuales | Dashboard Ensayos (VT) |
-| `RX_X_INFORME LP LOTE` | Informes de ensayos Líquidos Penetrantes | Dashboard Ensayos (PT) |
-
-### Vistas (Views)
-| Vista | Descripción | Uso Principal |
-|-------|-------------|---------------|
-| `Qry_Lotes_ColadaTT_Pivotado` | Datos pivotados de tratamientos térmicos | Listado principal de tratamientos |
-| `qry_DiarioHorasTrabajo+HorasAusencia` | Vista consolidada horas trabajo vs ausencia | Dashboard Personal (Bonos) |
-| `Qry_RankingRechazos` | Estadísticas detalladas de rechazos | Dashboard Calidad |
-| `Qry_Estadistica_Cumplimiento_Entregas` | Análisis de entregas vs fechas prometidas | Dashboard OTD (Comercial) |
-| `Qry_Estadisticas_Albaranes_Lineas` | Detalle de líneas de albarán | Análisis de rechazos vs entregas |
-
-### Procedimientos Almacenados
-| Procedimiento | Descripción | Uso Principal |
-|---------------|-------------|---------------|
-| `sp_VistaTratamientosDinamica` | Obtención dinámica de tratamientos | Dashboard Tratamientos |
+> [!NOTE]
+> **Sincronización Web-Documentación**: Actualmente este archivo es descriptivo. Para que la estructura de la web dependa de un archivo de configuración, se requeriría refactorizar el menú lateral (`app.js` / HTML) para leer de un JSON de configuración.
 
 ---
 
-## Base de Datos: `Fw_Comunes` (Externa)
+## 1. Listado de Tablas Utilizadas (Resumen)
 
-| Tabla | Descripción | Uso Principal |
-|-------|-------------|---------------|
-| `CALIBRACIONES` | Registro de calibraciones de equipos | Gestión de Equipos / Calibraciones |
+### `Fw_EIPC` (Principal)
+`USUARIOS_APP`, `MAESTRO ARTICULOS`, `MAESTRO FAMILIAS`, `MAESTRO SUBFAMILIAS`, `MAESTRO CLIENTES`, `PROVEEDORES MAESTRO`, `MAESTRO SECCIONES`, `MAESTRO ZONAS ACTIVOS`, `MAESTRO ACTIVOS`, `OPERARIOS`, `OPERACIONES`, `MAQUINAS`, `RUTAS`, `CAUSAS RECHAZO`, `INCIDENCIAS`, `NORMASN`, `REGISTRO TRABAJOS`, `ORDENES DE FABRICACION`, `FACTURAS VENTA CABECERAS/LINEAS`, `FACTURAS CABECERA/LINEAS`, `LISTADO ESPECIFICACIONES`, `ENSAYOS_...`, `RX_X_INFORME...`.
 
----
-
-## Mapeo de Tablas por Sección/Subsección de la Web
-
-### 🏠 DASHBOARD INICIO
-- Sin tablas específicas (resumen general)
+### `Fw_Comunes` (Externa)
+`CALIBRACIONES`, `CALIBRACIONES DETALLE`, `PERIODOS`.
 
 ---
 
-### 📊 PRODUCCIÓN
-#### Dashboard OEE
-- `REGISTRO TRABAJOS` - Tiempos y piezas producidas
-- `OPERACIONES` - Catálogo de operaciones
-- `MAESTRO SECCIONES` - Filtros por sección
-- `INCIDENCIAS` - Tipos de incidencias
+## 2. Detalle por Sección de la Web
+
+### 🛠️ MAESTRO
+#### Artículos
+- **Tablas**: `MAESTRO ARTICULOS`.
+- **Relaciones**: `MAESTRO FAMILIAS`, `MAESTRO SUBFAMILIAS`, `MAESTRO TIPO ARTICULOS`.
+
+#### Centros
+- **Tablas**: `MAQUINAS` (Centros de trabajo).
+
+#### Especificaciones
+- **Tablas**: `LISTADO ESPECIFICACIONES`.
+- **Maestros**: `MAESTRO AMBITOS...`, `MAESTRO TIPO...`.
+
+#### Proveedores
+- **Tablas**: `PROVEEDORES MAESTRO`.
+
+#### Clientes
+- **Tablas**: `MAESTRO CLIENTES`.
+
+#### Códigos rechazo
+- **Tablas**: `CAUSAS RECHAZO`.
+
+#### Incidencias
+- **Tablas**: `INCIDENCIAS`.
+
+#### Utillajes
+- **Tablas**: `MAESTRO UTILLAJES`.
+- **Relaciones**: `MAESTRO FAMILIAS`, `MAESTRO SITUACION UTILLAJES`.
+
+#### Ausencias
+- **Tablas**: *(Pendiente de verificar origen exacto, posiblemente `REGISTRO TRABAJOS` o tabla específica de RH)*.
+
+#### Materiales
+- **Tablas**: `MAESTRO ARTICULOS` (Campo `material`).
+
+#### Normas
+- **Tablas**: `NORMASN`.
+
+#### Rutas
+- **Tablas**: `RUTAS`.
+- **Relaciones**: `MAESTRO ARTICULOS`, `MAQUINAS`, `OPERACIONES`.
+
+#### Operarios
+- **Tablas**: `OPERARIOS`.
+- **Relaciones**: `MAESTRO SECCIONES`.
+
+#### Operaciones
+- **Tablas**: `OPERACIONES`.
+- **Detalle**: `OPERACIONES DETALLE`.
+
+#### Grupos Cálculo
+- **Tablas**: `MAESTRO GRUPOS CALCULO`.
+- **Relaciones**: `OPERACIONES POR GRUPO CALCULO`.
 
 ---
 
-### 💼 COMERCIAL
-#### Dashboard Ventas
-- `FACTURAS VENTA CABECERAS` - Cabeceras de facturas
-- `FACTURAS VENTA LINEAS` - Detalle de líneas
-- `MAESTRO CLIENTES` - Información de clientes
-
-#### Dashboard OTD
-- `Qry_Estadistica_Cumplimiento_Entregas` - Vista de cumplimiento
+### 🔥 HEATTREAT
+#### Coladas-TT
+- **Vista**: `Qry_Lotes_ColadaTT_Pivotado`.
+- **Uso**: Visualización de tratamientos térmicos por colada.
 
 ---
 
-### 🛒 COMPRAS
-#### Dashboard Compras
-- `FACTURAS CABECERA` - Cabeceras de facturas de compra
-- `FACTURAS LINEAS` - Detalle de líneas
-- `PROVEEDORES MAESTRO` - Información de proveedores
+### 🛡️ CALIDAD
+#### Rechazos
+- **Vista Key**: `Qry_RankingRechazos`.
+- **Tablas**: `CAUSAS RECHAZO`, `ORDENES DE FABRICACION` (para totales).
 
 ---
 
 ### 👥 PERSONAL
-#### Dashboard Bonos
-- `qry_DiarioHorasTrabajo+HorasAusencia` - Horas trabajo y ausencia
-- `OPERARIOS` - Listado de operarios
-- `MAESTRO SECCIONES` - Filtros por sección
+#### Bonos
+- **Vista**: `qry_DiarioHorasTrabajo+HorasAusencia`.
+
+#### Formación
+- *(Sección informativa, datos pendientes de análisis)*.
+
+#### Matriz de Polivalencias
+- *(Sección informativa, datos pendientes de análisis)*.
+
+#### Capacitaciones
+- *(Sección informativa, datos pendientes de análisis)*.
+
+#### Certificaciones
+- *(Sección informativa, datos pendientes de análisis)*.
 
 ---
 
-### 🔬 ENSAYOS (NDT)
-#### Dashboard Ensayos
-- `RX_LIST-CERTIFICADOS END` - Certificados END
+### 🔬 ENSAYOS
+#### Informes VT (Visual Testing)
+- **Tablas**: `RX_X_INFORME VIS LOTE`.
 
-#### Informes VT (Visual)
-- `RX_X_INFORME VIS LOTE` - Informes de inspección visual
+#### Informes PT (Penetrant Testing)
+- **Tablas**: `RX_X_INFORME LP LOTE`.
 
-#### Informes PT (Líquidos Penetrantes)
-- `RX_X_INFORME LP LOTE` - Informes de líquidos penetrantes
-
-#### Informes RT (Radiografía)
-- `RX_X_INFORME RX LOTE` - Informes de radiografía
+#### Informes RT (Radiographic Testing)
+- **Tablas**: `RX_X_INFORME RX LOTE`.
 
 #### Informes Dureza
-- `ENSAYOS_DUREZA` - Resultados de dureza
+- **Tablas**: `ENSAYOS_DUREZA`.
 
 #### Informes Tracción
-- `ENSAYOS_TRACCION` - Resultados de tracción
+- **Tablas**: `ENSAYOS_TRACCION`.
 
 #### Informes Metalografía
-- `ENSAYOS_METALOGRAFIA` - Resultados metalográficos
+- **Tablas**: `ENSAYOS_METALOGRAFIA`.
 
----
-
-### 🔧 CALIBRACIONES
-#### Listado Equipos
-- `CALIBRACIONES` (Fw_Comunes) - Registro de calibraciones
+#### Informes Fugas
+- *(No existe todavía)*.
 
 ---
 
 ### 🔧 MANTENIMIENTO
-#### Dashboard Mantenimiento
-- `MAESTRO ACTIVOS` - Catálogo de activos
-- `MAESTRO ZONAS ACTIVOS` - Zonas de activos
-- *(Tablas de órdenes de trabajo - por determinar)*
+*Gestión de activos y órdenes de trabajo.*
+- **Tablas**: `MAESTRO ACTIVOS`, `MAESTRO ZONAS ACTIVOS`.
+- **Ordenes**: Probablemente `MANTENIMIENTO_ORDENES` (A verificar nombre exacto en backend si existe).
 
 ---
 
-### 📁 MAESTROS
-#### Artículos
-- `MAESTRO ARTICULOS` - Catálogo de artículos
-- `MAESTRO ARTICULOS PLANOS` - Planos asociados
-- `MAESTRO TIPO ARTICULOS` - Tipos de artículos
-- `MAESTRO FAMILIAS` - Familias
-- `MAESTRO SUBFAMILIAS` - Subfamilias
-
-#### Operaciones
-- `OPERACIONES` - Catálogo de operaciones
-- `MAESTRO SECCIONES` - Secciones
-
-#### Equipos (Maestros)
-- `CALIBRACIONES` (Fw_Comunes) - Vista maestros de equipos
+### 📏 CALIBRACIONES
+*Gestión de equipos (Fw_Comunes).*
+- **Tablas**: `CALIBRACIONES`, `CALIBRACIONES DETALLE`, `PERIODOS`.
 
 ---
 
-### ⚙️ ADMIN
-#### Gestión de Usuarios
-- `USUARIOS_APP` - Tabla de usuarios de la aplicación
+### 🏭 PRODUCCION
+#### OEE
+- **Tablas**: `REGISTRO TRABAJOS`, `OPERACIONES` (Campo `ComputoOEE`).
+- **Cálculo**: Rendimiento x Disponibilidad x Calidad.
+
+#### Ordenes
+- **Tablas**: `ORDENES DE FABRICACION`.
+- **Relaciones**: `MAESTRO ARTICULOS`, `MAESTRO CLIENTES`.
 
 ---
 
-*Última actualización: Enero 2026*
+### 🛒 COMPRAS
+#### Solicitante Compras
+- *(Pendiente de asignar tabla específica)*.
+
+#### Pedidos
+- *(Pendiente de asignar tabla específica, posiblemente `PEDIDOS COMPRA CABECERA`)*.
+
+#### Albaranes
+- *(Posiblemente `ALBARANES COMPRA CABECERA`)*.
+
+#### Facturas
+- **Tablas**: `FACTURAS CABECERA`, `FACTURAS LINEAS`.
+
+---
+
+### 💼 COMERCIAL
+#### OTD (On Time Delivery)
+- **Vista**: `Qry_Estadistica_Cumplimiento_Entregas`.
+- **Detalle**: `Qry_Estadisticas_Albaranes_Lineas`.
+
+#### Capa Charge
+- **Vista**: `Qry_Estadistica_Cumplimiento_Entregas` (Utiliza misma fuente para analizar carga).
+
+---
+
+## 3. Relaciones Generales
+
+### Filtros Comunes
+- **Sección**: `MAESTRO SECCIONES`.
+- **Familia**: `MAESTRO FAMILIAS`.
+- **Cliente**: `MAESTRO CLIENTES`.
+- **Proveedor**: `PROVEEDORES MAESTRO`.
