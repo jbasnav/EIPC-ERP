@@ -4,101 +4,141 @@
         "label": "MAESTROS",
         "icon": "ri-database-2-line",
         "view": "maestros",
+        "pageTitle": "MAESTROS",
+        "pageSubtitle": "Gestión de datos maestros",
         "submenu": [
             {
                 "label": "Articulos",
                 "view": "articulos",
-                "icon": "ri-file-list-2-line"
+                "icon": "ri-file-list-2-line",
+                "pageTitle": "Artículos",
+                "pageSubtitle": "Maestro de artículos"
             },
             {
                 "label": "Centros",
                 "view": "centros",
-                "icon": "ri-building-line"
+                "icon": "ri-building-line",
+                "pageTitle": "Centros",
+                "pageSubtitle": "Maestro de centros de trabajo"
             },
             {
                 "label": "Especificaciones",
                 "view": "especificaciones",
-                "icon": "ri-file-text-line"
+                "icon": "ri-file-text-line",
+                "pageTitle": "Especificaciones",
+                "pageSubtitle": "Documentación técnica"
             },
             {
                 "label": "Proveedores",
                 "view": "proveedores",
-                "icon": "ri-truck-line"
+                "icon": "ri-truck-line",
+                "pageTitle": "Proveedores",
+                "pageSubtitle": "Gestión de proveedores"
             },
             {
                 "label": "Clientes",
                 "view": "clientes",
-                "icon": "ri-user-star-line"
+                "icon": "ri-user-star-line",
+                "pageTitle": "Clientes",
+                "pageSubtitle": "Cartera de clientes"
             },
             {
                 "label": "Códigos rechazo",
                 "view": "codigos-rechazo",
-                "icon": "ri-alert-line"
+                "icon": "ri-alert-line",
+                "pageTitle": "Códigos de Rechazo",
+                "pageSubtitle": "Catálogo de defectos y rechazos"
             },
             {
                 "label": "Incidencias",
                 "view": "incidencias",
-                "icon": "ri-error-warning-line"
+                "icon": "ri-error-warning-line",
+                "pageTitle": "Incidencias",
+                "pageSubtitle": "Tipos de incidencias de producción"
             },
             {
                 "label": "Utillajes",
                 "view": "utillajes",
-                "icon": "ri-tools-line"
+                "icon": "ri-tools-line",
+                "pageTitle": "Utillajes",
+                "pageSubtitle": "Gestión de moldes y herramientas"
             },
             {
                 "label": "Ausencias",
                 "view": "ausencias",
-                "icon": "ri-calendar-close-line"
+                "icon": "ri-calendar-close-line",
+                "pageTitle": "Ausencias",
+                "pageSubtitle": "Registro de ausencias"
             },
             {
                 "label": "Materiales",
                 "view": "materiales",
-                "icon": "ri-box-3-line"
+                "icon": "ri-box-3-line",
+                "pageTitle": "Materiales",
+                "pageSubtitle": "Stock y materias primas"
             },
             {
                 "label": "Normas",
                 "view": "normas",
-                "icon": "ri-book-2-line"
+                "icon": "ri-book-2-line",
+                "pageTitle": "Normas",
+                "pageSubtitle": "Normatíva ISO/UNE"
             },
             {
                 "label": "Rutas",
                 "view": "rutas",
-                "icon": "ri-route-line"
+                "icon": "ri-route-line",
+                "pageTitle": "Rutas",
+                "pageSubtitle": "Rutas de fabricación"
             },
             {
                 "label": "Operarios",
                 "view": "operarios",
-                "icon": "ri-team-line"
+                "icon": "ri-team-line",
+                "pageTitle": "Operarios",
+                "pageSubtitle": "Personal de planta"
             },
             {
                 "label": "Operaciones",
                 "view": "operaciones",
-                "icon": "ri-tools-line"
+                "icon": "ri-tools-line",
+                "pageTitle": "Operaciones",
+                "pageSubtitle": "Catálogo de operaciones estándar"
             },
             {
                 "label": "Grupos Cálculo",
                 "view": "grupos-calculo",
-                "icon": "ri-calculator-line"
+                "icon": "ri-calculator-line",
+                "pageTitle": "Grupos de Cálculo",
+                "pageSubtitle": "Agrupaciones para costes"
             },
             {
                 "label": "Activos",
                 "view": "activos",
-                "icon": "ri-device-line"
+                "icon": "ri-device-line",
+                "pageTitle": "Activos",
+                "pageSubtitle": "Inventario de equipos"
             },
             {
                 "label": "Equipos",
                 "view": "equipos",
-                "icon": "ri-cpu-line"
+                "icon": "ri-cpu-line",
+                "pageTitle": "Calibraciones",
+                "pageSubtitle": "Gestión de equipos de medición"
             },
             {
                 "label": "Secciones",
                 "view": "secciones",
-                "icon": "ri-layout-2-line"
+                "icon": "ri-layout-2-line",
+                "pageTitle": "Secciones",
+                "pageSubtitle": "Estructura de planta"
             },
             {
                 "label": "Estructuras",
                 "view": "estructuras",
-                "icon": "ri-organization-chart"
+                "icon": "ri-organization-chart",
+                "pageTitle": "Estructuras",
+                "pageSubtitle": "Árbol de producto"
             }
         ]
     },
@@ -107,11 +147,15 @@
         "label": "TRAT. TERMICOS",
         "icon": "ri-fire-fill",
         "view": "dashboard",
+        "pageTitle": "Heat Treatment",
+        "pageSubtitle": "Panel de Tratamientos Térmicos",
         "submenu": [
             {
                 "label": "Coladas-TT",
                 "view": "orders",
-                "icon": "ri-file-list-3-line"
+                "icon": "ri-file-list-3-line",
+                "pageTitle": "Coladas HeatTreat",
+                "pageSubtitle": "Seguimiento de coladas"
             }
         ]
     },
@@ -119,11 +163,15 @@
         "id": "calidad",
         "label": "CALIDAD",
         "icon": "ri-shield-check-line",
+        "pageTitle": "Calidad",
+        "pageSubtitle": "Sistema de Gestión de Calidad",
         "submenu": [
             {
                 "label": "Rechazos",
                 "view": "calidad-rechazos",
-                "icon": "ri-close-circle-line"
+                "icon": "ri-close-circle-line",
+                "pageTitle": "Análisis de Rechazos",
+                "pageSubtitle": "Estadísticas de no conformidad"
             }
         ]
     },
@@ -132,31 +180,43 @@
         "label": "PERSONAL",
         "icon": "ri-user-settings-line",
         "view": "personal-dashboard",
+        "pageTitle": "Personal",
+        "pageSubtitle": "Dashboard de Recursos Humanos",
         "submenu": [
             {
                 "label": "Bonos",
                 "view": "bonos",
-                "icon": "ri-medal-line"
+                "icon": "ri-medal-line",
+                "pageTitle": "Bonos de Producción",
+                "pageSubtitle": "Cálculo de eficiencias y primas"
             },
             {
                 "label": "Formación",
                 "view": "formacion",
-                "icon": "ri-book-open-line"
+                "icon": "ri-book-open-line",
+                "pageTitle": "Formación",
+                "pageSubtitle": "Plan de formación continua"
             },
             {
                 "label": "Matriz de Polivalencias",
                 "view": "matriz-polivalencias",
-                "icon": "ri-grid-fill"
+                "icon": "ri-grid-fill",
+                "pageTitle": "Matriz de Polivalencias",
+                "pageSubtitle": "Versatilidad del personal"
             },
             {
                 "label": "Capacitaciones",
                 "view": "capacitaciones",
-                "icon": "ri-school-line"
+                "icon": "ri-school-line",
+                "pageTitle": "Capacitaciones",
+                "pageSubtitle": "Historial de capacitaciones"
             },
             {
                 "label": "Certificaciones",
                 "view": "certificaciones",
-                "icon": "ri-award-line"
+                "icon": "ri-award-line",
+                "pageTitle": "Certificaciones",
+                "pageSubtitle": "Certificaciones oficiales"
             }
         ]
     },
@@ -165,36 +225,50 @@
         "label": "ENSAYOS",
         "icon": "ri-test-tube-line",
         "view": "ensayos-dashboard",
+        "pageTitle": "Laboratorio de Ensayos",
+        "pageSubtitle": "Ensayos No Destructivos y Destructivos",
         "submenu": [
             {
                 "label": "Informes VT",
                 "view": "ensayos-vt",
-                "icon": "ri-eye-line"
+                "icon": "ri-eye-line",
+                "pageTitle": "Inspección Visual (VT)",
+                "pageSubtitle": "Informes de inspección visual"
             },
             {
                 "label": "Informes PT",
                 "view": "ensayos-pt",
-                "icon": "ri-drop-line"
+                "icon": "ri-drop-line",
+                "pageTitle": "Líquidos Penetrantes (PT)",
+                "pageSubtitle": "Informes de líquidos penetrantes"
             },
             {
                 "label": "Informes RT",
                 "view": "ensayos-rt",
-                "icon": "ri-file-list-3-line"
+                "icon": "ri-file-list-3-line",
+                "pageTitle": "Radiografía (RT)",
+                "pageSubtitle": "Informes de radiografía industrial"
             },
             {
                 "label": "Informes Dureza",
                 "view": "ensayos-dureza",
-                "icon": "ri-hammer-line"
+                "icon": "ri-hammer-line",
+                "pageTitle": "Ensayos de Dureza",
+                "pageSubtitle": "Resultados de durómetros"
             },
             {
                 "label": "Informes Tracción",
                 "view": "ensayos-traccion",
-                "icon": "ri-drag-move-2-line"
+                "icon": "ri-drag-move-2-line",
+                "pageTitle": "Ensayos de Tracción",
+                "pageSubtitle": "Pruebas de resistencia mecánica"
             },
             {
                 "label": "Informes Metalografía",
                 "view": "ensayos-metalografia",
-                "icon": "ri-microscope-line"
+                "icon": "ri-microscope-line",
+                "pageTitle": "Metalografía",
+                "pageSubtitle": "Análisis microestructural"
             }
         ]
     },
@@ -203,6 +277,8 @@
         "label": "MANTENIMIENTO",
         "icon": "ri-tools-fill",
         "view": "mantenimiento",
+        "pageTitle": "Mantenimiento",
+        "pageSubtitle": "Gestión de Activos y Órdenes de Trabajo",
         "submenu": []
     },
     {
@@ -210,22 +286,30 @@
         "label": "CALIBRACIONES",
         "icon": "ri-ruler-line",
         "view": "equipos",
+        "pageTitle": "Calibraciones",
+        "pageSubtitle": "Control de equipos de medición y monitoreo",
         "submenu": []
     },
     {
         "id": "produccion",
         "label": "PRODUCCION",
         "icon": "ri-git-pull-request-fill",
+        "pageTitle": "Producción",
+        "pageSubtitle": "Control de fabricación",
         "submenu": [
             {
                 "label": "OEE",
                 "view": "oee",
-                "icon": "ri-speed-up-line"
+                "icon": "ri-speed-up-line",
+                "pageTitle": "OEE Dashboard",
+                "pageSubtitle": "Eficiencia General de los Equipos"
             },
             {
                 "label": "Ordenes",
                 "view": "ordenes",
-                "icon": "ri-file-list-3-line"
+                "icon": "ri-file-list-3-line",
+                "pageTitle": "Órdenes de Fabricación",
+                "pageSubtitle": "Seguimiento de OFs en curso"
             }
         ]
     },
@@ -234,26 +318,36 @@
         "label": "COMPRAS",
         "icon": "ri-shopping-cart-line",
         "view": "compras-dashboard",
+        "pageTitle": "Compras",
+        "pageSubtitle": "Gestión de aprovisionamiento",
         "submenu": [
             {
                 "label": "Solicitante Compras",
                 "view": "solicitante-compras",
-                "icon": "ri-file-list-line"
+                "icon": "ri-file-list-line",
+                "pageTitle": "Solicitudes de Compra",
+                "pageSubtitle": "Peticiones de material"
             },
             {
                 "label": "Pedidos",
                 "view": "pedidos",
-                "icon": "ri-shopping-bag-line"
+                "icon": "ri-shopping-bag-line",
+                "pageTitle": "Pedidos a Proveedor",
+                "pageSubtitle": "Gestión de pedidos emitidos"
             },
             {
                 "label": "Albaranes",
                 "view": "albaranes",
-                "icon": "ri-file-text-line"
+                "icon": "ri-file-text-line",
+                "pageTitle": "Albaranes de Entrada",
+                "pageSubtitle": "Recepción de mercancía"
             },
             {
                 "label": "Facturas",
                 "view": "facturas",
-                "icon": "ri-file-copy-line"
+                "icon": "ri-file-copy-line",
+                "pageTitle": "Facturas de Compra",
+                "pageSubtitle": "Registro de facturación"
             }
         ]
     },
@@ -262,16 +356,22 @@
         "label": "COMERCIAL",
         "icon": "ri-briefcase-line",
         "view": "comercial-dashboard",
+        "pageTitle": "Comercial",
+        "pageSubtitle": "Ventas y Atención al Cliente",
         "submenu": [
             {
                 "label": "OTD",
                 "view": "otd",
-                "icon": "ri-truck-line"
+                "icon": "ri-truck-line",
+                "pageTitle": "OTD - On Time Delivery",
+                "pageSubtitle": "Gestión y análisis de entregas a tiempo"
             },
             {
                 "label": "Capa Charge",
                 "view": "capa-charge",
-                "icon": "ri-bar-chart-grouped-line"
+                "icon": "ri-bar-chart-grouped-line",
+                "pageTitle": "Capa Charge",
+                "pageSubtitle": "Gestión y análisis de capacidad de carga comercial"
             }
         ]
     }

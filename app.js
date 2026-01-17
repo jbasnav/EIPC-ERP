@@ -285,142 +285,149 @@ async function switchView(viewName) {
         }
 
 
-        // Update header based on view - COMPLETELY RECONSTRUCT HEADER TO ENSURE VISIBILITY
+        // Update header based on view - DYNAMIC FROM JSON
         const headerTitleContainer = document.querySelector('.header-title');
         if (headerTitleContainer) {
-            console.log('Updating header for view:', viewName);
-            if (viewName === 'otd') {
-                headerTitleContainer.innerHTML = `
-                    <h1 id="pageTitle" style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-                        <i class="ri-truck-line" style="color: #4f46e5; margin-right: 0.5rem;"></i>OTD - On Time Delivery
-                    </h1>
-                    <p id="pageSubtitle" style="margin: 0; color: #64748b; font-size: 0.875rem; display: block;">
-                        Gestión y análisis de entregas a tiempo
-                    </p>
-                `;
-            } else if (viewName === 'capa-charge') {
-                headerTitleContainer.innerHTML = `
-                    <h1 id="pageTitle" style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-                        <i class="ri-bar-chart-grouped-line" style="color: #4f46e5; margin-right: 0.5rem;"></i>Capa Charge
-                    </h1>
-                    <p id="pageSubtitle" style="margin: 0; color: #64748b; font-size: 0.875rem; display: block;">
-                        Gestión y análisis de capacidad de carga comercial
-                    </p>
-                `;
-            } else if (viewName === 'top-orders') {
-                headerTitleContainer.innerHTML = `
-                    <h1 id="pageTitle" style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-                        <i class="ri-trophy-line" style="color: #4f46e5; margin-right: 0.5rem;"></i>Top Pedidos
-                    </h1>
-                    <p id="pageSubtitle" style="margin: 0; color: #64748b; font-size: 0.875rem; display: block;">
-                        Análisis de pedidos más frecuentes por cliente y artículo
-                    </p>
-                `;
-            } else if (viewName === 'equipos') {
-                headerTitleContainer.innerHTML = `
-                    <h1 id="pageTitle" style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-                        Calibraciones
-                    </h1>
-                    <p id="pageSubtitle" style="margin: 0; color: #64748b; font-size: 0.875rem; display: none;">
-                    </p>
-                `;
-            } else {
-                // Default behavior
-                const niceName = viewName.charAt(0).toUpperCase() + viewName.slice(1).replace('-', ' ');
-                headerTitleContainer.innerHTML = `
-                    <h1 id="pageTitle" style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">${niceName}</h1>
-                    <p id="pageSubtitle" style="display: none;"></p>
-                `;
-            }
-        } else if (elements.pageTitle) {
-            // Fallback if container not found but pageTitle element exists
-            const niceName = viewName.charAt(0).toUpperCase() + viewName.slice(1).replace('-', ' ');
-            elements.pageTitle.textContent = niceName;
-        }
 
-        // Perform view-specific data loading
-        if (viewName === 'orders') {
-            if (appData.raw.length === 0) {
-                await fetchAllData();
+            // Find config for this view
+            let activeConfig = null;
+
+            // Search in global config
+            if (globalMenuConfig) {
+                // Check top level
+                activeConfig = globalMenuConfig.find(item => item.view === viewName);
+
+                // Check submenus if not found
+                if (!activeConfig) {
+                    for (const section of globalMenuConfig) {
+                        if (section.submenu) {
+                            const subItem = section.submenu.find(sub => sub.view === viewName);
+                            if (subItem) {
+                                activeConfig = subItem;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Default values if not found in JSON
+            let titleText = viewName.charAt(0).toUpperCase() + viewName.slice(1).replace(/-/g, ' ');
+            let subtitleText = '';
+            let iconClass = '';
+
+            if (activeConfig) {
+                if (activeConfig.pageTitle) titleText = activeConfig.pageTitle;
+                if (activeConfig.pageSubtitle) subtitleText = activeConfig.pageSubtitle;
+                if (activeConfig.icon) iconClass = activeConfig.icon;
             } else {
-                // If data exists but wasn't analyzed (e.g. page reload), analyze it
-                if (appData.analysis.uniqueOrders === 0) analyzeData();
-                updateUI();
+                // Fallback for Top Orders (not in menu)
+                if (viewName === 'top-orders') {
+                    titleText = 'Top Pedidos';
+                    subtitleText = 'Análisis de pedidos más frecuentes por cliente y artículo';
+                    iconClass = 'ri-trophy-line';
+                }
             }
-        } else if (viewName === 'articulos') {
-            if (!appData.articulos || appData.articulos.length === 0) {
-                await fetchAllData(); // fetches articulos too
-            } else {
-                renderArticulosTable(appData.articulos);
-            }
-            // Ensure filter options are loaded
-            if (appData.articulosFilterData) {
-                updateArticulosFilterOptions();
-                // updateArticulosTipoFilter(appData.articulosFilterData.tipos);
-            }
-        } else if (viewName === 'rutas') {
-            // Load filters if needed
-            loadRutasFiltros();
-            loadFasesSelect();
-        } else if (viewName === 'operarios') {
-            loadOperariosSecciones();
-            fetchOperarios();
-        } else if (viewName === 'operaciones') {
-            loadOperacionesSecciones();
-            fetchOperaciones();
-        } else if (viewName === 'activos') {
-            fetchActivos();
-        } else if (viewName === 'equipos') {
-            fetchEquipos();
-        } else if (viewName === 'codigos-rechazo') {
-            loadCodigosRechazoSecciones();
-            fetchCodigosRechazo();
-        } else if (viewName === 'materiales') {
-            fetchMateriales();
-        } else if (viewName === 'clientes') {
-            fetchClientes();
-        } else if (viewName === 'incidencias') {
-            loadIncidenciasFilters();
-            fetchIncidencias();
-        } else if (viewName === 'ausencias') {
-            fetchAusencias();
-        } else if (viewName === 'utillajes') {
-            fetchUtillajesFiltros();
-            fetchUtillajes();
-        } else if (viewName === 'ensayos-vt') {
-            fetchEnsayosVt();
-        } else if (viewName === 'ensayos-pt') {
-            fetchEnsayosPt();
-        } else if (viewName === 'ensayos-rt') {
-            fetchEnsayosRt();
-        } else if (viewName === 'ensayos-dureza') {
-            fetchEnsayosDureza();
-        } else if (viewName === 'ensayos-traccion') {
-            fetchEnsayosTraccion();
-        } else if (viewName === 'ensayos-metalografia') {
-            fetchEnsayosMetalografia();
-        } else if (viewName === 'dashboard') {
-            analyzeData();
-            updateUI();
-        } else if (viewName === 'personal-dashboard') {
-            fetchPersonalDashboard();
-        } else if (viewName === 'inicio') {
-            fetchDashboardGeneral();
-        } else if (viewName === 'compras-dashboard') {
-            fetchComprasDashboard();
-        } else if (viewName === 'comercial-dashboard') {
-            fetchComercialDashboard();
-        } else if (viewName === 'otd') {
-            fetchOTD();
-        } else if (viewName === 'capa-charge') {
-            fetchCapaCharge();
-        } else if (viewName === 'mantenimiento') {
-            fetchMantenimientoData();
-        } else if (viewName === 'admin') {
-            loadAiConfig();
+            // Render Header
+            const iconHtml = iconClass ? `<i class="${iconClass}" style="color: var(--primary); margin-right: 0.5rem;"></i>` : '';
+            const subtitleHtml = subtitleText ? `<p id="pageSubtitle" style="margin: 0; color: var(--text-muted); font-size: 0.875rem; display: block;">${subtitleText}</p>` : `<p id="pageSubtitle" style="display: none;"></p>`;
+
+            headerTitleContainer.innerHTML = `
+                <h1 id="pageTitle" style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                    ${iconHtml}${titleText}
+                </h1>
+                ${subtitleHtml}
+            `;
         }
+    } else if (elements.pageTitle) {
+        // Fallback if container not found but pageTitle element exists
+        const niceName = viewName.charAt(0).toUpperCase() + viewName.slice(1).replace('-', ' ');
+        elements.pageTitle.textContent = niceName;
+    }
+
+    // Perform view-specific data loading
+    if (viewName === 'orders') {
+        if (appData.raw.length === 0) {
+            await fetchAllData();
+        } else {
+            // If data exists but wasn't analyzed (e.g. page reload), analyze it
+            if (appData.analysis.uniqueOrders === 0) analyzeData();
+            updateUI();
+        }
+    } else if (viewName === 'articulos') {
+        if (!appData.articulos || appData.articulos.length === 0) {
+            await fetchAllData(); // fetches articulos too
+        } else {
+            renderArticulosTable(appData.articulos);
+        }
+        // Ensure filter options are loaded
+        if (appData.articulosFilterData) {
+            updateArticulosFilterOptions();
+            // updateArticulosTipoFilter(appData.articulosFilterData.tipos);
+        }
+    } else if (viewName === 'rutas') {
+        // Load filters if needed
+        loadRutasFiltros();
+        loadFasesSelect();
+    } else if (viewName === 'operarios') {
+        loadOperariosSecciones();
+        fetchOperarios();
+    } else if (viewName === 'operaciones') {
+        loadOperacionesSecciones();
+        fetchOperaciones();
+    } else if (viewName === 'activos') {
+        fetchActivos();
+    } else if (viewName === 'equipos') {
+        fetchEquipos();
+    } else if (viewName === 'codigos-rechazo') {
+        loadCodigosRechazoSecciones();
+        fetchCodigosRechazo();
+    } else if (viewName === 'materiales') {
+        fetchMateriales();
+    } else if (viewName === 'clientes') {
+        fetchClientes();
+    } else if (viewName === 'incidencias') {
+        loadIncidenciasFilters();
+        fetchIncidencias();
+    } else if (viewName === 'ausencias') {
+        fetchAusencias();
+    } else if (viewName === 'utillajes') {
+        fetchUtillajesFiltros();
+        fetchUtillajes();
+    } else if (viewName === 'ensayos-vt') {
+        fetchEnsayosVt();
+    } else if (viewName === 'ensayos-pt') {
+        fetchEnsayosPt();
+    } else if (viewName === 'ensayos-rt') {
+        fetchEnsayosRt();
+    } else if (viewName === 'ensayos-dureza') {
+        fetchEnsayosDureza();
+    } else if (viewName === 'ensayos-traccion') {
+        fetchEnsayosTraccion();
+    } else if (viewName === 'ensayos-metalografia') {
+        fetchEnsayosMetalografia();
+    } else if (viewName === 'dashboard') {
+        analyzeData();
+        updateUI();
+    } else if (viewName === 'personal-dashboard') {
+        fetchPersonalDashboard();
+    } else if (viewName === 'inicio') {
+        fetchDashboardGeneral();
+    } else if (viewName === 'compras-dashboard') {
+        fetchComprasDashboard();
+    } else if (viewName === 'comercial-dashboard') {
+        fetchComercialDashboard();
+    } else if (viewName === 'otd') {
+        fetchOTD();
+    } else if (viewName === 'capa-charge') {
+        fetchCapaCharge();
+    } else if (viewName === 'mantenimiento') {
+        fetchMantenimientoData();
+    } else if (viewName === 'admin') {
+        loadAiConfig();
     }
 }
+
 
 // Event Listeners
 function setupEventListeners() {
@@ -4239,257 +4246,7 @@ function createChart(id, type, data, options = {}) {
     });
 }
 
-function switchView(viewName) {
-    elements.navItems.forEach(item => {
-        item.classList.toggle('active', item.dataset.view === viewName);
-    });
 
-    elements.views.forEach(view => view.classList.remove('active'));
-
-    // Map view names to view IDs
-    const viewMap = {
-        'inicio': 'inicioView',
-        'maestros': 'maestrosView',
-        'dashboard': 'dashboardView',
-        'orders': 'ordersView',
-        'rutas': 'rutasView',
-        'articulos': 'articulosView',
-        'operarios': 'operariosView',
-        'operaciones': 'operacionesView',
-        'activos': 'activosView',
-        'equipos': 'equiposView',
-        'ensayos-vt': 'ensayosVtView',
-        'ensayos-pt': 'ensayosPtView',
-        'ensayos-rt': 'ensayosRtView',
-        'ensayos-dureza': 'ensayosDurezaView',
-        'ensayos-traccion': 'ensayosTraccionView',
-        'ensayos-metalografia': 'ensayosMetalografiaView',
-        'ensayos-dashboard': 'ensayosDashboardView',
-        'bonos': 'bonosView',
-        'personal-dashboard': 'personal-dashboardView',
-        'calidad-rechazos': 'calidadRechazosView',
-        'centros': 'centrosView',
-        'proveedores': 'proveedoresView',
-        'clientes': 'clientesView',
-        'normas': 'normasView',
-        'especificaciones': 'especificacionesView',
-        'otd': 'otdView',
-        'comercial-dashboard': 'comercial-dashboardView',
-        'compras-dashboard': 'compras-dashboardView',
-        'oee': 'oeeView',
-        'codigos-rechazo': 'codigos-rechazoView',
-        'incidencias': 'incidenciasView',
-        'ausencias': 'ausenciasView',
-        'secciones': 'seccionesView',
-        'estructuras': 'estructurasView',
-        'capa-charge': 'capaChargeView',
-        'materiales': 'materialesView',
-        'utillajes': 'utillajesView',
-        'grupos-calculo': 'gruposCalculoView',
-        'admin': 'adminView',
-        'mantenimiento': 'mantenimientoView'
-    };
-
-    const targetView = viewMap[viewName] || 'inicioView';
-    document.getElementById(targetView)?.classList.add('active');
-
-    // Load filter options when entering articulos view
-    if (viewName === 'articulos') {
-        updateArticulosFilterOptions();
-    }
-
-    // Load operaciones datalist when entering rutas view
-    if (viewName === 'rutas') {
-        loadOperacionesSelect();
-        loadFasesSelect();
-        loadRutasFiltros();  // Load familia and clasificacion filters
-        loadRutasTop10();    // Load TOP 10 lists immediately
-    } else if (viewName === 'estructuras') {
-        loadEstructurasTop10();  // Load TOP 10 immediately
-    } else if (viewName === 'dashboard') {
-        // Fetch data first if not already loaded
-        if (!appData.raw || appData.raw.length === 0) {
-            fetchAllData();
-        } else {
-            analyzeData();
-            updateUI();
-        }
-    } else if (viewName === 'ensayos-dashboard') {
-        fetchEnsayosDashboard();
-    } else if (viewName === 'personal-dashboard') {
-        fetchPersonalDashboard();
-    } else if (viewName === 'ensayos-vt') {
-        fetchEnsayosVt();
-    } else if (viewName === 'ensayos-pt') {
-        fetchEnsayosPt();
-    } else if (viewName === 'ensayos-rt') {
-        fetchEnsayosRt();
-    } else if (viewName === 'ensayos-dureza') {
-        fetchEnsayosDureza();
-    } else if (viewName === 'ensayos-traccion') {
-        fetchEnsayosTraccion();
-    } else if (viewName === 'ensayos-metalografia') {
-        fetchEnsayosMetalografia();
-    } else if (viewName === 'operarios') {
-        fetchOperarios();
-    } else if (viewName === 'operaciones') {
-        fetchOperaciones();
-    } else if (viewName === 'activos') {
-        fetchActivos();
-    } else if (viewName === 'equipos') {
-        fetchEquipos();
-    } else if (viewName === 'bonos') {
-        fetchBonos();
-    } else if (viewName === 'personal-dashboard') {
-        fetchPersonalDashboard();
-    } else if (viewName === 'calidad-rechazos') {
-        fetchCalidadRechazos();
-    } else if (viewName === 'centros') {
-        fetchCentros();
-    } else if (viewName === 'proveedores') {
-        fetchProveedores();
-    } else if (viewName === 'clientes') {
-        fetchClientes();
-    } else if (viewName === 'normas') {
-        fetchNormas();
-    } else if (viewName === 'especificaciones') {
-        fetchEspecificaciones();
-    } else if (viewName === 'otd') {
-        fetchOTDData();
-    } else if (viewName === 'comercial-dashboard') {
-        fetchComercialDashboard();
-    } else if (viewName === 'compras-dashboard') {
-        fetchComprasDashboard();
-    } else if (viewName === 'oee') {
-        fetchOEEDashboard();
-    } else if (viewName === 'codigos-rechazo') {
-        fetchCodigosRechazo();
-    } else if (viewName === 'incidencias') {
-        fetchIncidencias();
-    } else if (viewName === 'ausencias') {
-        fetchAusencias();
-    } else if (viewName === 'secciones') {
-        fetchSecciones();
-    } else if (viewName === 'materiales') {
-        fetchMateriales();
-    } else if (viewName === 'utillajes') {
-        fetchUtillajes();
-    } else if (viewName === 'grupos-calculo') {
-        fetchGruposCalculo();
-    } else if (viewName === 'admin') {
-        loadAdminUsers();
-    } else if (viewName === 'mantenimiento') {
-        fetchMantenimientoData();
-    }
-
-    // Update page title based on view
-    const titleMap = {
-        'inicio': 'Dashboard General',
-        'maestros': 'Dashboard Maestros',
-        'dashboard': 'Dashboard HeatTreat',
-        'orders': 'Listado de \u00D3rdenes',
-        'rutas': 'Gesti\u00F3n de Rutas',
-        'articulos': 'Maestro de Art\u00EDculos',
-        'operarios': 'Gesti\u00F3n de Operarios',
-        'operaciones': 'Gesti\u00F3n de Operaciones',
-        'activos': 'Gesti\u00F3n de Activos',
-        'equipos': 'Calibraciones',
-        'ensayos-vt': 'Informes VT',
-        'ensayos-pt': 'Informes PT',
-        'ensayos-rt': 'Informes RT',
-        'ensayos-dureza': 'Informes Dureza',
-        'ensayos-traccion': 'Informes Tracci\u00F3n',
-        'ensayos-metalografia': 'Informes Metalograf\u00EDa',
-        'ensayos-dashboard': 'Dashboard Ensayos',
-        'bonos': 'Bonos de Producci\u00F3n',
-        'personal-dashboard': 'Dashboard Personal',
-        'calidad-rechazos': 'Dashboard Rechazos',
-        'centros': 'Gestion de Centros',
-        'proveedores': 'Maestro de Proveedores',
-        'clientes': 'Maestro de Clientes',
-        'normas': 'Catalogo de Normas',
-        'especificaciones': 'Especificaciones de Compra',
-        'otd': 'OTD - Customer Service',
-        'comercial-dashboard': 'Dashboard Comercial',
-        'compras-dashboard': 'Dashboard Compras',
-        'oee': 'OEE Dashboard',
-        'codigos-rechazo': 'Códigos de Rechazo',
-        'incidencias': 'Gestión de Incidencias',
-        'ausencias': 'Maestro de Ausencias',
-        'secciones': 'Maestro de Secciones',
-        'estructuras': 'Estructuras de Artículos',
-        'capa-charge': 'Capa Charge',
-        'materiales': 'Maestro de Materiales',
-        'utillajes': 'Maestro de Utillajes',
-        'admin': 'Panel de Administración',
-        'mantenimiento': 'Dashboard Mantenimiento'
-    };
-
-    // Icon map for each view
-    const iconMap = {
-        'inicio': 'ri-dashboard-line',
-        'maestros': 'ri-database-2-line',
-        'dashboard': 'ri-fire-line',
-        'orders': 'ri-file-list-3-line',
-        'rutas': 'ri-route-line',
-        'articulos': 'ri-box-3-line',
-        'operarios': 'ri-user-line',
-        'operaciones': 'ri-tools-line',
-        'activos': 'ri-building-line',
-        'equipos': 'ri-cpu-line',
-        'ensayos-vt': 'ri-eye-line',
-        'ensayos-pt': 'ri-drop-line',
-        'ensayos-rt': 'ri-contrast-2-line',
-        'ensayos-dureza': 'ri-hammer-line',
-        'ensayos-traccion': 'ri-arrow-left-right-line',
-        'ensayos-metalografia': 'ri-microscope-line',
-        'ensayos-dashboard': 'ri-flask-line',
-        'bonos': 'ri-bank-card-line',
-        'personal-dashboard': 'ri-team-line',
-        'calidad-rechazos': 'ri-error-warning-line',
-        'centros': 'ri-building-2-line',
-        'proveedores': 'ri-truck-line',
-        'clientes': 'ri-user-star-line',
-        'normas': 'ri-book-2-line',
-        'especificaciones': 'ri-file-text-line',
-        'otd': 'ri-truck-line',
-        'comercial-dashboard': 'ri-store-line',
-        'compras-dashboard': 'ri-shopping-cart-line',
-        'oee': 'ri-bar-chart-grouped-line',
-        'codigos-rechazo': 'ri-close-circle-line',
-        'incidencias': 'ri-alarm-warning-line',
-        'ausencias': 'ri-calendar-event-line',
-        'secciones': 'ri-layout-grid-line',
-        'estructuras': 'ri-node-tree',
-        'capa-charge': 'ri-battery-charge-line',
-        'materiales': 'ri-copper-coin-line',
-        'utillajes': 'ri-tools-fill',
-        'admin': 'ri-settings-3-line',
-        'mantenimiento': 'ri-tools-line'
-    };
-
-    // Subtitle map for each view
-    const subtitleMap = {
-        'admin': 'Gestión de usuarios del sistema',
-        'maestros': 'Gestión de datos maestros'
-    };
-
-    const title = titleMap[viewName] || 'Dashboard General';
-    const icon = iconMap[viewName] || 'ri-dashboard-line';
-    const subtitle = subtitleMap[viewName] || '';
-
-    elements.pageTitle.innerHTML = `<i class="${icon}" style="font-size: 1.5rem; color: var(--text-main);"></i> ${title}`;
-
-    const subtitleEl = document.getElementById('pageSubtitle');
-    if (subtitleEl) {
-        if (subtitle) {
-            subtitleEl.textContent = subtitle;
-            subtitleEl.style.display = 'block';
-        } else {
-            subtitleEl.style.display = 'none';
-        }
-    }
-}
 
 function showLoading(show) {
     elements.loading.style.display = show ? 'flex' : 'none';
@@ -13964,6 +13721,8 @@ document.addEventListener('DOMContentLoaded', initEnsayosEventListeners);
 // ============================================
 // DYNAMIC MENU LOADING
 // ============================================
+let globalMenuConfig = [];
+
 async function loadMenu() {
     try {
         const container = document.getElementById('dynamic-menu-container');
@@ -13972,7 +13731,8 @@ async function loadMenu() {
         const response = await fetch('menu.json');
         if (!response.ok) throw new Error('Failed to load menu config');
 
-        const sections = await response.json();
+        globalMenuConfig = await response.json();
+        const sections = globalMenuConfig;
 
         // Clear container just in case
         container.innerHTML = '';
